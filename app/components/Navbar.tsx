@@ -8,22 +8,35 @@ import { useRouter, usePathname } from "next/navigation";
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
 
-  // Check login status
   useEffect(() => {
-    const getUser = async () => {
+    const getUserAndRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-    };
-    getUser();
 
-    // Listen for auth changes (login / logout)
+      if (user) {
+        // Check if the logged-in user is an admin
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+        
+        if (profile?.role === "admin") {
+          setIsAdmin(true);
+        }
+      }
+    };
+    getUserAndRole();
+
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user || null);
+        if (!session?.user) setIsAdmin(false);
       }
     );
 
@@ -35,6 +48,7 @@ export default function Navbar() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setMenuOpen(false);
+    setIsAdmin(false);
     router.push("/login");
     router.refresh();
   };
@@ -83,6 +97,13 @@ export default function Navbar() {
           {user && (
             <Link href="/my-listings" className={navLinkClass("/my-listings")}>
               My Listings
+            </Link>
+          )}
+
+          {/* ADMIN LINK - Only shows if user is an admin */}
+          {isAdmin && (
+            <Link href="/admin" className={navLinkClass("/admin")}>
+              Admin Panel
             </Link>
           )}
 
@@ -138,6 +159,17 @@ export default function Navbar() {
                 className="rounded-lg bg-[#FBF7EC] px-4 py-3 font-bold text-[#9A7B37]"
               >
                 My Listings
+              </Link>
+            )}
+
+            {/* ADMIN LINK - Only shows if user is an admin */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]"
+              >
+                Admin Panel
               </Link>
             )}
 
