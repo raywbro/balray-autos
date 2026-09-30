@@ -174,7 +174,6 @@ export default function MyListingsPage() {
                             <div className="inline-block rounded-full bg-[#FBF7EC] px-3 py-1 text-xs font-bold text-[#8F7130]">
                               {category}
                             </div>
-                            {/* STATUS BADGE */}
                             {listing.status === "active" ? (
                               <div className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
                                 ✓ Active
@@ -198,6 +197,12 @@ export default function MyListingsPage() {
                             className="rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
                           >
                             View
+                          </Link>
+                          <Link
+                            href={`/edit-listing/${listing.id}`}
+                            className="rounded-xl border border-[#34414A] bg-white px-5 py-3 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
+                          >
+                            Edit
                           </Link>
                           <button
                             type="button"
