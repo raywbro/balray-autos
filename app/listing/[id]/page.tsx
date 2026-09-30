@@ -30,7 +30,6 @@ const fuelMap: Record<string, string> = {
   other: "N/A",
 };
 
-// Clean a phone number for WhatsApp
 function cleanPhone(phone: string) {
   if (!phone) return "";
   let cleaned = phone.replace(/[^0-9]/g, "");
@@ -81,6 +80,7 @@ export default function ListingDetailPage() {
         sellerPhone: data.seller_phone,
         sellerEmail: data.seller_email,
         sellerType: data.seller_type,
+        sellerId: data.user_id,
         views: data.views || 0,
         images:
           data.images && data.images.length > 0
@@ -91,7 +91,6 @@ export default function ListingDetailPage() {
       setListing(formatted);
       setLoading(false);
 
-      // Increment the view count for this listing
       try {
         await supabase.rpc("increment_view", { listing_id: id });
       } catch (err) {
@@ -155,7 +154,6 @@ export default function ListingDetailPage() {
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
       <Navbar />
 
-      {/* BREADCRUMB */}
       <div className="bg-white border-b border-[#E1E5E8]">
         <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <button
@@ -167,12 +165,10 @@ export default function ListingDetailPage() {
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
       <section className="w-full bg-[#F7F8F9] py-10">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[2fr_1fr]">
 
-            {/* LEFT COLUMN */}
             <div>
               <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-[#D5DBDF] bg-[#E9EDF0]">
                 <img
@@ -215,7 +211,6 @@ export default function ListingDetailPage() {
                 </p>
               </div>
 
-              {/* SHARE BUTTONS */}
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <button
                   onClick={handleShare}
@@ -236,7 +231,6 @@ export default function ListingDetailPage() {
               </div>
             </div>
 
-            {/* RIGHT COLUMN */}
             <div className="space-y-6">
               <div className="rounded-2xl border border-[#D5DBDF] bg-white p-6 sm:p-8">
                 <h1 className="text-3xl font-black leading-tight text-[#34414A]">
@@ -285,9 +279,14 @@ export default function ListingDetailPage() {
 
               <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-6 sm:p-8">
                 <h3 className="text-lg font-black text-[#8F7130] mb-2">Contact Seller</h3>
-                <p className="text-sm text-[#8F7130] mb-6">
-                  {listing.sellerName} ({listing.sellerType})
-                </p>
+
+                {/* SELLER LINK */}
+                <Link
+                  href={`/seller/${listing.sellerId}`}
+                  className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-[#8F7130] hover:underline"
+                >
+                  {listing.sellerName} ({listing.sellerType}) →
+                </Link>
 
                 <div className="flex flex-col gap-3">
                   <a
@@ -325,7 +324,6 @@ export default function ListingDetailPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
         <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
