@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 
 const categoryMap: Record<string, string> = {
@@ -29,16 +30,25 @@ const fuelMap: Record<string, string> = {
   other: "N/A",
 };
 
-export default function MarketplacePage() {
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [search, setSearch] = useState("");
+function MarketplaceContent() {
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get("q") || "";
+  const initialCategory = searchParams.get("category") || "All";
+
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const [search, setSearch] = useState(initialSearch);
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
+  // Update state if the URL parameters change
+  useEffect(() => {
+    setSelectedCategory(searchParams.get("category") || "All");
+    setSearch(searchParams.get("q") || "");
+  }, [searchParams]);
+
   useEffect(() => {
     const fetchListings = async () => {
-      // ONLY fetch listings that are 'active' (approved by admin)
       const { data, error } = await supabase
         .from("listings")
         .select("*")
@@ -86,6 +96,7 @@ export default function MarketplacePage() {
       selectedCategory === "All" || listing.category === selectedCategory;
     const searchText = search.toLowerCase().trim();
     const matchesSearch =
+      searchText === "" ||
       listing.title.toLowerCase().includes(searchText) ||
       listing.category.toLowerCase().includes(searchText) ||
       listing.location.toLowerCase().includes(searchText);
@@ -93,9 +104,7 @@ export default function MarketplacePage() {
   });
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
-
+    <>
       {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-[24px] border-[#D9DEE2]/70" />
@@ -161,6 +170,7 @@ export default function MarketplacePage() {
               <h2 className="mt-2 text-3xl font-black tracking-tight text-[#34414A]">Available Listings</h2>
               <p className="mt-2 text-sm text-[#66737C]">
                 Showing {filteredListings.length} listing{filteredListings.length === 1 ? "" : "s"}
+                {search && <span> for &quot;{search}&quot;</span>}
               </p>
             </div>
             <Link href="/sell" className="inline-flex w-full justify-center rounded-xl bg-[#34414A] px-5 py-3 text-sm font-bold text-white hover:bg-[#4A5962] sm:w-auto">
@@ -240,6 +250,21 @@ export default function MarketplacePage() {
           </Link>
         </div>
       </section>
+    </>
+  );
+}
+
+export default function MarketplacePage() {
+  return (
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
+      <Navbar />
+      <Suspense fallback={
+        <div className="min-h-screen w-full flex items-center justify-center">
+          <div className="text-lg font-bold animate-pulse text-[#9A7B37]">Loading marketplace...</div>
+        </div>
+      }>
+        <MarketplaceContent />
+      </Suspense>
 
       {/* FOOTER */}
       <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
