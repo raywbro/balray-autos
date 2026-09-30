@@ -38,9 +38,11 @@ export default function MarketplacePage() {
 
   useEffect(() => {
     const fetchListings = async () => {
+      // ONLY fetch listings that are 'active' (approved by admin)
       const { data, error } = await supabase
         .from("listings")
         .select("*")
+        .eq("status", "active")
         .order("created_at", { ascending: false });
 
       if (error) {

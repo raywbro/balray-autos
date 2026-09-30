@@ -25,7 +25,6 @@ export default function MyListingsPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  // THE BOUNCER: Redirect to login if not logged in
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -106,7 +105,6 @@ export default function MyListingsPage() {
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
       <Navbar />
 
-      {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="relative mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           <div className="max-w-3xl">
@@ -124,7 +122,6 @@ export default function MyListingsPage() {
         </div>
       </section>
 
-      {/* MAIN CONTENT */}
       <section className="w-full bg-[#F7F8F9] py-12">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
 
@@ -167,16 +164,26 @@ export default function MyListingsPage() {
                     className="overflow-hidden rounded-2xl border border-[#D5DBDF] bg-white shadow-sm"
                   >
                     <div className="grid gap-0 sm:grid-cols-[220px_minmax(0,1fr)]">
-                      {/* IMAGE */}
                       <div className="relative aspect-[16/10] sm:aspect-auto sm:h-full bg-[#E9EDF0]">
                         <img src={image} alt={title} className="h-full w-full object-cover" />
                       </div>
 
-                      {/* DETAILS */}
                       <div className="flex flex-col justify-between p-6">
                         <div>
-                          <div className="inline-block rounded-full bg-[#FBF7EC] px-3 py-1 text-xs font-bold text-[#8F7130]">
-                            {category}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="inline-block rounded-full bg-[#FBF7EC] px-3 py-1 text-xs font-bold text-[#8F7130]">
+                              {category}
+                            </div>
+                            {/* STATUS BADGE */}
+                            {listing.status === "active" ? (
+                              <div className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+                                ✓ Active
+                              </div>
+                            ) : (
+                              <div className="inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-bold text-yellow-700">
+                                ⏳ Pending Review
+                              </div>
+                            )}
                           </div>
                           <h3 className="mt-3 text-xl font-black text-[#34414A]">{title}</h3>
                           <div className="mt-2 text-2xl font-black text-[#9A7B37]">{price}</div>
@@ -211,7 +218,6 @@ export default function MyListingsPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
         <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
