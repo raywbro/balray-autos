@@ -30,11 +30,10 @@ const fuelMap: Record<string, string> = {
   other: "N/A",
 };
 
-// Clean a phone number for WhatsApp (remove spaces, +, dashes)
+// Clean a phone number for WhatsApp
 function cleanPhone(phone: string) {
   if (!phone) return "";
   let cleaned = phone.replace(/[^0-9]/g, "");
-  // If it starts with 0, assume South African and add country code
   if (cleaned.startsWith("0")) {
     cleaned = "27" + cleaned.substring(1);
   }
@@ -82,6 +81,7 @@ export default function ListingDetailPage() {
         sellerPhone: data.seller_phone,
         sellerEmail: data.seller_email,
         sellerType: data.seller_type,
+        views: data.views || 0,
         images:
           data.images && data.images.length > 0
             ? data.images
@@ -90,6 +90,13 @@ export default function ListingDetailPage() {
 
       setListing(formatted);
       setLoading(false);
+
+      // Increment the view count for this listing
+      try {
+        await supabase.rpc("increment_view", { listing_id: id });
+      } catch (err) {
+        console.error("Error incrementing views:", err);
+      }
     };
 
     if (id) fetchListing();
@@ -107,10 +114,9 @@ export default function ListingDetailPage() {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        // User cancelled or error occurred
+        // User cancelled
       }
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
@@ -168,7 +174,6 @@ export default function ListingDetailPage() {
 
             {/* LEFT COLUMN */}
             <div>
-              {/* MAIN IMAGE */}
               <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-[#D5DBDF] bg-[#E9EDF0]">
                 <img
                   src={listing.images[activeImage]}
@@ -185,7 +190,6 @@ export default function ListingDetailPage() {
                 )}
               </div>
 
-              {/* THUMBNAILS */}
               {listing.images.length > 1 && (
                 <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
                   {listing.images.map((img: string, index: number) => (
@@ -204,7 +208,6 @@ export default function ListingDetailPage() {
                 </div>
               )}
 
-              {/* DESCRIPTION */}
               <div className="mt-8 rounded-2xl border border-[#D5DBDF] bg-white p-6 sm:p-8">
                 <h2 className="text-2xl font-black text-[#34414A] mb-4">Description</h2>
                 <p className="text-sm leading-7 text-[#66737C] whitespace-pre-wrap">
@@ -235,7 +238,6 @@ export default function ListingDetailPage() {
 
             {/* RIGHT COLUMN */}
             <div className="space-y-6">
-              {/* PRICE & TITLE */}
               <div className="rounded-2xl border border-[#D5DBDF] bg-white p-6 sm:p-8">
                 <h1 className="text-3xl font-black leading-tight text-[#34414A]">
                   {listing.title}
@@ -243,12 +245,14 @@ export default function ListingDetailPage() {
                 <div className="mt-4 text-4xl font-black text-[#9A7B37]">
                   {listing.price}
                 </div>
-                <div className="mt-4 flex items-center text-sm font-bold text-[#66737C]">
-                  📍 {listing.location}
+                <div className="mt-4 flex items-center justify-between text-sm font-bold text-[#66737C]">
+                  <span>📍 {listing.location}</span>
+                  <span className="rounded-full bg-[#FBF7EC] px-3 py-1 text-xs text-[#8F7130]">
+                    👁️ {listing.views + 1} views
+                  </span>
                 </div>
               </div>
 
-              {/* SPECS GRID */}
               <div className="rounded-2xl border border-[#D5DBDF] bg-white p-6 sm:p-8">
                 <h3 className="text-lg font-black text-[#34414A] mb-4">Vehicle Details</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -279,7 +283,6 @@ export default function ListingDetailPage() {
                 </div>
               </div>
 
-              {/* CONTACT SELLER */}
               <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-6 sm:p-8">
                 <h3 className="text-lg font-black text-[#8F7130] mb-2">Contact Seller</h3>
                 <p className="text-sm text-[#8F7130] mb-6">
@@ -287,7 +290,6 @@ export default function ListingDetailPage() {
                 </p>
 
                 <div className="flex flex-col gap-3">
-                  {/* WHATSAPP - THE BIG ONE */}
                   <a
                     href={whatsappUrl}
                     target="_blank"
@@ -297,7 +299,6 @@ export default function ListingDetailPage() {
                     💬 WhatsApp Seller
                   </a>
 
-                  {/* CALL */}
                   <a
                     href={`tel:${listing.sellerPhone}`}
                     className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-center text-sm font-bold text-white shadow-md hover:brightness-105"
@@ -305,7 +306,6 @@ export default function ListingDetailPage() {
                     📞 Call {listing.sellerPhone}
                   </a>
 
-                  {/* EMAIL */}
                   {listing.sellerEmail && (
                     <a
                       href={`mailto:${listing.sellerEmail}`}

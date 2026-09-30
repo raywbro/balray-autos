@@ -101,6 +101,9 @@ export default function MyListingsPage() {
 
   if (!user) return null;
 
+  // Calculate total views across all listings
+  const totalViews = listings.reduce((sum, item) => sum + (item.views || 0), 0);
+
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
       <Navbar />
@@ -118,6 +121,28 @@ export default function MyListingsPage() {
             <p className="mt-4 text-base leading-7 text-[#66737C]">
               Manage the vehicles you have listed on Balray Autos.
             </p>
+
+            {/* STATS */}
+            {listings.length > 0 && (
+              <div className="mt-6 flex flex-wrap gap-3">
+                <div className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3">
+                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
+                    Listings
+                  </div>
+                  <div className="mt-1 text-2xl font-black text-[#34414A]">
+                    {listings.length}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3">
+                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
+                    Total Views
+                  </div>
+                  <div className="mt-1 text-2xl font-black text-[#34414A]">
+                    👁️ {totalViews}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -183,6 +208,9 @@ export default function MyListingsPage() {
                                 ⏳ Pending Review
                               </div>
                             )}
+                            <div className="inline-block rounded-full bg-[#F7F8F9] px-3 py-1 text-xs font-bold text-[#34414A]">
+                              👁️ {listing.views || 0} views
+                            </div>
                           </div>
                           <h3 className="mt-3 text-xl font-black text-[#34414A]">{title}</h3>
                           <div className="mt-2 text-2xl font-black text-[#9A7B37]">{price}</div>
