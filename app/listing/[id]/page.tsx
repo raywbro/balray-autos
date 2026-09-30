@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 
-// Helpers to format data
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
   bakkies: "Bakkies & 4x4s",
@@ -31,10 +30,22 @@ const fuelMap: Record<string, string> = {
   other: "N/A",
 };
 
+// Clean a phone number for WhatsApp (remove spaces, +, dashes)
+function cleanPhone(phone: string) {
+  if (!phone) return "";
+  let cleaned = phone.replace(/[^0-9]/g, "");
+  // If it starts with 0, assume South African and add country code
+  if (cleaned.startsWith("0")) {
+    cleaned = "27" + cleaned.substring(1);
+  }
+  return cleaned;
+}
+
 export default function ListingDetailPage() {
   const [listing, setListing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   const params = useParams();
   const router = useRouter();
@@ -84,6 +95,28 @@ export default function ListingDetailPage() {
     if (id) fetchListing();
   }, [id, supabase]);
 
+  const handleShare = async () => {
+    const url = window.location.href;
+    const shareData = {
+      title: listing?.title,
+      text: `Check out this ${listing?.title} for ${listing?.price} on Balray Autos`,
+      url: url,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // User cancelled or error occurred
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen w-full flex items-center justify-center bg-[#F7F8F9]">
@@ -106,11 +139,17 @@ export default function ListingDetailPage() {
     );
   }
 
+  const whatsappNumber = cleanPhone(listing.sellerPhone);
+  const whatsappMessage = encodeURIComponent(
+    `Hi ${listing.sellerName}, I saw your ${listing.title} listed on Balray Autos for ${listing.price}. Is it still available?`
+  );
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
+
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
       <Navbar />
 
-      {/* BREADCRUMB / BACK BUTTON */}
+      {/* BREADCRUMB */}
       <div className="bg-white border-b border-[#E1E5E8]">
         <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <button
@@ -127,7 +166,7 @@ export default function ListingDetailPage() {
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[2fr_1fr]">
 
-            {/* LEFT COLUMN: IMAGES & DESCRIPTION */}
+            {/* LEFT COLUMN */}
             <div>
               {/* MAIN IMAGE */}
               <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-[#D5DBDF] bg-[#E9EDF0]">
@@ -139,6 +178,11 @@ export default function ListingDetailPage() {
                 <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-4 py-2 text-sm font-bold text-white backdrop-blur">
                   {listing.category}
                 </div>
+                {listing.images.length > 1 && (
+                  <div className="absolute right-4 top-4 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white backdrop-blur">
+                    {activeImage + 1} / {listing.images.length}
+                  </div>
+                )}
               </div>
 
               {/* THUMBNAILS */}
@@ -167,11 +211,31 @@ export default function ListingDetailPage() {
                   {listing.description}
                 </p>
               </div>
+
+              {/* SHARE BUTTONS */}
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={handleShare}
+                  className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
+                >
+                  {copied ? "✓ Link Copied!" : "🔗 Share Listing"}
+                </button>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(
+                    `Check out this ${listing.title} on Balray Autos: ${typeof window !== "undefined" ? window.location.href : ""}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-xl border border-[#25D366]/40 bg-[#25D366]/10 px-5 py-3 text-sm font-bold text-[#128C7E] hover:bg-[#25D366]/20"
+                >
+                  💬 Share on WhatsApp
+                </a>
+              </div>
             </div>
 
-            {/* RIGHT COLUMN: DETAILS & SELLER INFO */}
+            {/* RIGHT COLUMN */}
             <div className="space-y-6">
-              {/* PRICE & TITLE CARD */}
+              {/* PRICE & TITLE */}
               <div className="rounded-2xl border border-[#D5DBDF] bg-white p-6 sm:p-8">
                 <h1 className="text-3xl font-black leading-tight text-[#34414A]">
                   {listing.title}
@@ -215,7 +279,7 @@ export default function ListingDetailPage() {
                 </div>
               </div>
 
-              {/* CONTACT SELLER CARD */}
+              {/* CONTACT SELLER */}
               <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-6 sm:p-8">
                 <h3 className="text-lg font-black text-[#8F7130] mb-2">Contact Seller</h3>
                 <p className="text-sm text-[#8F7130] mb-6">
@@ -223,6 +287,17 @@ export default function ListingDetailPage() {
                 </p>
 
                 <div className="flex flex-col gap-3">
+                  {/* WHATSAPP - THE BIG ONE */}
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full rounded-xl bg-[#25D366] px-6 py-4 text-center text-sm font-bold text-white shadow-md transition hover:bg-[#20BD5A]"
+                  >
+                    💬 WhatsApp Seller
+                  </a>
+
+                  {/* CALL */}
                   <a
                     href={`tel:${listing.sellerPhone}`}
                     className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-center text-sm font-bold text-white shadow-md hover:brightness-105"
@@ -230,6 +305,7 @@ export default function ListingDetailPage() {
                     📞 Call {listing.sellerPhone}
                   </a>
 
+                  {/* EMAIL */}
                   {listing.sellerEmail && (
                     <a
                       href={`mailto:${listing.sellerEmail}`}
