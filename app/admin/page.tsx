@@ -65,6 +65,25 @@ export default function AdminPage() {
     }
   };
 
+  const handleToggleFeatured = async (id: string, currentFeatured: boolean) => {
+    const newValue = !currentFeatured;
+    const action = newValue ? "feature" : "un-feature";
+    const confirmed = confirm(`Are you sure you want to ${action} this listing?`);
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("listings")
+      .update({ featured: newValue })
+      .eq("id", id);
+
+    if (error) {
+      alert("Error updating listing: " + error.message);
+    } else {
+      setListings(listings.map((item) => (item.id === id ? { ...item, featured: newValue } : item)));
+      setMessage(`Listing ${newValue ? "featured" : "un-featured"} successfully.`);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     const confirmed = confirm("Admin Action: Are you sure you want to delete this listing permanently?");
     if (!confirmed) return;
@@ -103,7 +122,7 @@ export default function AdminPage() {
             Manage All Listings
           </h1>
           <p className="mt-2 text-sm text-[#66737C]">
-            Review, approve, and delete any vehicle on the Balray Autos marketplace.
+            Review, approve, feature, and delete any vehicle on the Balray Autos marketplace.
           </p>
         </div>
 
@@ -122,7 +141,9 @@ export default function AdminPage() {
             {listings.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 rounded-2xl border border-[#D5DBDF] bg-white p-5 shadow-sm"
+                className={`flex flex-col lg:flex-row lg:items-center justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm ${
+                  item.featured ? "border-[#B08D3C] ring-2 ring-[#B08D3C]/20" : "border-[#D5DBDF]"
+                }`}
               >
                 <div className="flex items-center gap-4">
                   <img
@@ -131,10 +152,15 @@ export default function AdminPage() {
                     alt={item.model}
                   />
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h3 className="text-lg font-black text-[#34414A]">
                         {item.year} {item.make} {item.model}
                       </h3>
+                      {item.featured && (
+                        <span className="rounded-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C] px-2 py-0.5 text-xs font-bold text-white">
+                          ⭐ Featured
+                        </span>
+                      )}
                       {item.status === "active" ? (
                         <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">Active</span>
                       ) : (
@@ -145,7 +171,7 @@ export default function AdminPage() {
                       R{Number(item.price).toLocaleString()}
                     </p>
                     <p className="text-xs text-[#66737C] mt-1">
-                      Listed by: {item.seller_name} • 📍 {item.location}
+                      Listed by: {item.seller_name} • 📍 {item.location} • 👁️ {item.views || 0} views
                     </p>
                   </div>
                 </div>
@@ -157,6 +183,7 @@ export default function AdminPage() {
                   >
                     View
                   </Link>
+
                   {item.status !== "active" && (
                     <button
                       onClick={() => handleApprove(item.id)}
@@ -165,6 +192,18 @@ export default function AdminPage() {
                       Approve
                     </button>
                   )}
+
+                  <button
+                    onClick={() => handleToggleFeatured(item.id, item.featured)}
+                    className={`rounded-xl px-5 py-2.5 text-sm font-bold ${
+                      item.featured
+                        ? "border border-[#B08D3C] bg-[#FBF7EC] text-[#8F7130] hover:bg-[#F5EDD8]"
+                        : "bg-gradient-to-r from-[#8F7130] to-[#B08D3C] text-white hover:brightness-105"
+                    }`}
+                  >
+                    {item.featured ? "★ Un-feature" : "☆ Feature"}
+                  </button>
+
                   <button
                     onClick={() => handleDelete(item.id)}
                     className="rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-100"

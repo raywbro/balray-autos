@@ -41,7 +41,6 @@ function MarketplaceContent() {
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
-  // Update state if the URL parameters change
   useEffect(() => {
     setSelectedCategory(searchParams.get("category") || "All");
     setSearch(searchParams.get("q") || "");
@@ -53,6 +52,7 @@ function MarketplaceContent() {
         .from("listings")
         .select("*")
         .eq("status", "active")
+        .order("featured", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -68,6 +68,7 @@ function MarketplaceContent() {
           location: item.location,
           transmission: transmissionMap[item.transmission] || item.transmission || "N/A",
           fuel: fuelMap[item.fuel] || item.fuel || "N/A",
+          featured: item.featured || false,
           image:
             item.images && item.images.length > 0
               ? item.images[0]
@@ -186,12 +187,24 @@ function MarketplaceContent() {
           ) : filteredListings.length > 0 ? (
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filteredListings.map((listing) => (
-                <article key={listing.id} className="group overflow-hidden rounded-2xl border border-[#D5DBDF] bg-white shadow-sm transition hover:-translate-y-1 hover:border-[#B08D3C]/60 hover:shadow-[0_20px_50px_rgba(52,65,74,0.12)]">
+                <article
+                  key={listing.id}
+                  className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
+                    listing.featured
+                      ? "border-2 border-[#B08D3C] shadow-[0_15px_40px_rgba(176,141,60,0.20)]"
+                      : "border border-[#D5DBDF] hover:border-[#B08D3C]/60 hover:shadow-[0_20px_50px_rgba(52,65,74,0.12)]"
+                  }`}
+                >
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
                     <img src={listing.image} alt={listing.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                     <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
                       {listing.category}
                     </div>
+                    {listing.featured && (
+                      <div className="absolute right-4 top-4 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
+                        ⭐ FEATURED
+                      </div>
+                    )}
                   </div>
                   <div className="p-5">
                     <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">{listing.title}</h3>
@@ -266,7 +279,6 @@ export default function MarketplacePage() {
         <MarketplaceContent />
       </Suspense>
 
-      {/* FOOTER */}
       <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
         <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
