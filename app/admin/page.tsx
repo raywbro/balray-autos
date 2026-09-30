@@ -15,14 +15,12 @@ export default function AdminPage() {
 
   useEffect(() => {
     const checkAdminAndFetch = async () => {
-      // 1. Check if user is logged in
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push("/login");
         return;
       }
 
-      // 2. Check if user is an admin
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
@@ -30,11 +28,10 @@ export default function AdminPage() {
         .single();
 
       if (!profile || profile.role !== "admin") {
-        router.push("/"); // Kick non-admins back to home
+        router.push("/");
         return;
       }
 
-      // 3. If admin, fetch ALL listings
       const { data, error } = await supabase
         .from("listings")
         .select("*")
@@ -50,6 +47,23 @@ export default function AdminPage() {
 
     checkAdminAndFetch();
   }, [router, supabase]);
+
+  const handleApprove = async (id: string) => {
+    const confirmed = confirm("Approve this listing? It will become visible on the public marketplace.");
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("listings")
+      .update({ status: "active" })
+      .eq("id", id);
+
+    if (error) {
+      alert("Error approving listing: " + error.message);
+    } else {
+      setListings(listings.map((item) => (item.id === id ? { ...item, status: "active" } : item)));
+      setMessage("Listing approved successfully.");
+    }
+  };
 
   const handleDelete = async (id: string) => {
     const confirmed = confirm("Admin Action: Are you sure you want to delete this listing permanently?");
@@ -108,7 +122,7 @@ export default function AdminPage() {
             {listings.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-[#D5DBDF] bg-white p-5 shadow-sm"
+                className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 rounded-2xl border border-[#D5DBDF] bg-white p-5 shadow-sm"
               >
                 <div className="flex items-center gap-4">
                   <img
@@ -117,10 +131,17 @@ export default function AdminPage() {
                     alt={item.model}
                   />
                   <div>
-                    <h3 className="text-lg font-black text-[#34414A]">
-                      {item.year} {item.make} {item.model}
-                    </h3>
-                    <p className="text-sm font-bold text-[#9A7B37] mt-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-lg font-black text-[#34414A]">
+                        {item.year} {item.make} {item.model}
+                      </h3>
+                      {item.status === "active" ? (
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">Active</span>
+                      ) : (
+                        <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-700">Pending</span>
+                      )}
+                    </div>
+                    <p className="text-sm font-bold text-[#9A7B37]">
                       R{Number(item.price).toLocaleString()}
                     </p>
                     <p className="text-xs text-[#66737C] mt-1">
@@ -129,13 +150,21 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 sm:flex-col sm:items-stretch lg:flex-row">
+                <div className="flex flex-wrap items-center gap-3">
                   <Link
                     href={`/listing/${item.id}`}
                     className="rounded-xl border border-[#B08D3C] bg-white px-5 py-2.5 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
                   >
                     View
                   </Link>
+                  {item.status !== "active" && (
+                    <button
+                      onClick={() => handleApprove(item.id)}
+                      className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-green-700"
+                    >
+                      Approve
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDelete(item.id)}
                     className="rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-100"
