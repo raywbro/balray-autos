@@ -19,13 +19,12 @@ export default function Navbar() {
       setUser(user);
 
       if (user) {
-        // Check if the logged-in user is an admin
         const { data: profile } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", user.id)
           .single();
-        
+
         if (profile?.role === "admin") {
           setIsAdmin(true);
         }
@@ -64,7 +63,6 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-[#D9DEE2] bg-white/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
 
-        {/* LOGO */}
         <Link
           href="/"
           onClick={() => setMenuOpen(false)}
@@ -95,12 +93,16 @@ export default function Navbar() {
           <Link href="/sell" className={navLinkClass("/sell")}>Sell</Link>
 
           {user && (
-            <Link href="/my-listings" className={navLinkClass("/my-listings")}>
-              My Listings
-            </Link>
+            <>
+              <Link href="/my-listings" className={navLinkClass("/my-listings")}>
+                My Listings
+              </Link>
+              <Link href="/favorites" className={navLinkClass("/favorites")}>
+                Favorites
+              </Link>
+            </>
           )}
 
-          {/* ADMIN LINK - Only shows if user is an admin */}
           {isAdmin && (
             <Link href="/admin" className={navLinkClass("/admin")}>
               Admin Panel
@@ -127,7 +129,6 @@ export default function Navbar() {
           )}
         </nav>
 
-        {/* MOBILE BUTTON */}
         <button
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
@@ -153,16 +154,24 @@ export default function Navbar() {
             </Link>
 
             {user && (
-              <Link
-                href="/my-listings"
-                onClick={() => setMenuOpen(false)}
-                className="rounded-lg bg-[#FBF7EC] px-4 py-3 font-bold text-[#9A7B37]"
-              >
-                My Listings
-              </Link>
+              <>
+                <Link
+                  href="/my-listings"
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-lg bg-[#FBF7EC] px-4 py-3 font-bold text-[#9A7B37]"
+                >
+                  My Listings
+                </Link>
+                <Link
+                  href="/favorites"
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]"
+                >
+                  Favorites
+                </Link>
+              </>
             )}
 
-            {/* ADMIN LINK - Only shows if user is an admin */}
             {isAdmin && (
               <Link
                 href="/admin"

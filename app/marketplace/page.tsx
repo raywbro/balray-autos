@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 
 const categoryMap: Record<string, string> = {
@@ -32,6 +32,7 @@ const fuelMap: Record<string, string> = {
 
 function MarketplaceContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialSearch = searchParams.get("q") || "";
   const initialCategory = searchParams.get("category") || "All";
 
@@ -39,6 +40,8 @@ function MarketplaceContent() {
   const [search, setSearch] = useState(initialSearch);
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const supabase = createClient();
 
   useEffect(() => {
@@ -79,8 +82,46 @@ function MarketplaceContent() {
       setLoading(false);
     };
 
+    const loadUserAndFavorites = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      if (user) {
+        const { data } = await supabase
+          .from("favorites")
+          .select("listing_id")
+          .eq("user_id", user.id);
+        setFavorites((data || []).map((f) => f.listing_id));
+      }
+    };
+
     fetchListings();
+    loadUserAndFavorites();
   }, [supabase]);
+
+  const toggleFavorite = async (listingId: string) => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    const isFav = favorites.includes(listingId);
+
+    if (isFav) {
+      // Remove from favorites
+      setFavorites(favorites.filter((id) => id !== listingId));
+      await supabase
+        .from("favorites")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("listing_id", listingId);
+    } else {
+      // Add to favorites
+      setFavorites([...favorites, listingId]);
+      await supabase
+        .from("favorites")
+        .insert({ user_id: user.id, listing_id: listingId });
+    }
+  };
 
   const categories = [
     "All",
@@ -201,10 +242,19 @@ function MarketplaceContent() {
                       {listing.category}
                     </div>
                     {listing.featured && (
-                      <div className="absolute right-4 top-4 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
+                      <div className="absolute left-4 top-14 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
                         ⭐ FEATURED
                       </div>
                     )}
+                    {/* HEART BUTTON */}
+                    <button
+                      type="button"
+                      onClick={() => toggleFavorite(listing.id)}
+                      className="absolute bottom-4 right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-xl shadow-md backdrop-blur transition hover:bg-white hover:scale-105"
+                      aria-label="Save to favorites"
+                    >
+                      {favorites.includes(listing.id) ? "❤️" : "🤍"}
+                    </button>
                   </div>
                   <div className="p-5">
                     <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">{listing.title}</h3>
