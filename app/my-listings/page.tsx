@@ -15,11 +15,19 @@ const categoryMap: Record<string, string> = {
   parts: "Parts & Accessories",
 };
 
+// Helper: how many days left until expiry
+function daysUntil(expiresAt: string | null) {
+  if (!expiresAt) return null;
+  const diff = new Date(expiresAt).getTime() - new Date().getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
 export default function MyListingsPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [listings, setListings] = useState<any[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [renewingId, setRenewingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
   const router = useRouter();
@@ -53,6 +61,42 @@ export default function MyListingsPage() {
     setLoading(false);
   };
 
+  const handleRenew = async (listingId: string) => {
+    const confirmed = confirm(
+      "Renew this listing for another 30 days? It will be sent back to admin for review."
+    );
+    if (!confirmed) return;
+
+    setRenewingId(listingId);
+    setMessage("");
+
+    const newExpiry = new Date();
+    newExpiry.setDate(newExpiry.getDate() + 30);
+
+    const { error } = await supabase
+      .from("listings")
+      .update({
+        status: "pending",
+        expires_at: newExpiry.toISOString(),
+      })
+      .eq("id", listingId);
+
+    if (error) {
+      setMessage("Error renewing listing: " + error.message);
+    } else {
+      setListings(
+        listings.map((item) =>
+          item.id === listingId
+            ? { ...item, status: "pending", expires_at: newExpiry.toISOString() }
+            : item
+        )
+      );
+      setMessage("Listing renewed! It will go live again once approved by admin.");
+      setTimeout(() => setMessage(""), 5000);
+    }
+    setRenewingId(null);
+  };
+
   const handleDelete = async (listingId: string, imageUrls: string[]) => {
     const confirmed = confirm(
       "Are you sure you want to delete this listing? This cannot be undone."
@@ -81,6 +125,7 @@ export default function MyListingsPage() {
 
       setListings(listings.filter((item) => item.id !== listingId));
       setMessage("Listing deleted successfully.");
+      setTimeout(() => setMessage(""), 3000);
     } catch (err: any) {
       console.error(err);
       setMessage("Error deleting listing: " + err.message);
@@ -101,8 +146,8 @@ export default function MyListingsPage() {
 
   if (!user) return null;
 
-  // Calculate total views across all listings
   const totalViews = listings.reduce((sum, item) => sum + (item.views || 0), 0);
+  const activeCount = listings.filter((l) => l.status === "active").length;
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
@@ -119,18 +164,17 @@ export default function MyListingsPage() {
               My Listings
             </h1>
             <p className="mt-4 text-base leading-7 text-[#66737C]">
-              Manage the vehicles you have listed on Balray Autos.
+              Manage your vehicles. Listings stay live for 30 days — you can renew anytime.
             </p>
 
-            {/* STATS */}
             {listings.length > 0 && (
               <div className="mt-6 flex flex-wrap gap-3">
                 <div className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3">
                   <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
-                    Listings
+                    Active
                   </div>
                   <div className="mt-1 text-2xl font-black text-[#34414A]">
-                    {listings.length}
+                    {activeCount}
                   </div>
                 </div>
                 <div className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3">
@@ -183,6 +227,10 @@ export default function MyListingsPage() {
                     ? listing.images[0]
                     : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80";
 
+                const daysLeft = daysUntil(listing.expires_at);
+                const isExpired = daysLeft !== null && daysLeft <= 0;
+                const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 5;
+
                 return (
                   <div
                     key={listing.id}
@@ -200,9 +248,15 @@ export default function MyListingsPage() {
                               {category}
                             </div>
                             {listing.status === "active" ? (
-                              <div className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
-                                ✓ Active
-                              </div>
+                              isExpired ? (
+                                <div className="inline-block rounded-full bg-gray-200 px-3 py-1 text-xs font-bold text-gray-700">
+                                  ⌛ Expired
+                                </div>
+                              ) : (
+                                <div className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+                                  ✓ Active
+                                </div>
+                              )
                             ) : (
                               <div className="inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-bold text-yellow-700">
                                 ⏳ Pending Review
@@ -211,12 +265,34 @@ export default function MyListingsPage() {
                             <div className="inline-block rounded-full bg-[#F7F8F9] px-3 py-1 text-xs font-bold text-[#34414A]">
                               👁️ {listing.views || 0} views
                             </div>
+                            {listing.status === "active" && daysLeft !== null && !isExpired && (
+                              <div
+                                className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${
+                                  isExpiringSoon
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-blue-100 text-blue-700"
+                                }`}
+                              >
+                                ⏰ {daysLeft} day{daysLeft === 1 ? "" : "s"} left
+                              </div>
+                            )}
                           </div>
+
                           <h3 className="mt-3 text-xl font-black text-[#34414A]">{title}</h3>
                           <div className="mt-2 text-2xl font-black text-[#9A7B37]">{price}</div>
                           <div className="mt-3 text-sm text-[#66737C]">
                             📍 {listing.location} • {listing.mileage || "N/A"}
                           </div>
+                          {listing.expires_at && !isExpired && listing.status === "active" && (
+                            <div className="mt-2 text-xs text-[#89939A]">
+                              Expires on{" "}
+                              {new Date(listing.expires_at).toLocaleDateString("en-ZA", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </div>
+                          )}
                         </div>
 
                         <div className="mt-6 flex flex-wrap gap-3">
@@ -232,6 +308,16 @@ export default function MyListingsPage() {
                           >
                             Edit
                           </Link>
+                          {(isExpired || listing.status === "active") && (
+                            <button
+                              type="button"
+                              disabled={renewingId === listing.id}
+                              onClick={() => handleRenew(listing.id)}
+                              className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-5 py-3 text-sm font-bold text-white shadow-md hover:brightness-105 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {renewingId === listing.id ? "Renewing..." : "🔄 Renew 30 Days"}
+                            </button>
+                          )}
                           <button
                             type="button"
                             disabled={deletingId === listing.id}
