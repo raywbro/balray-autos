@@ -59,6 +59,7 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [featuredListings, setFeaturedListings] = useState<any[]>([]);
   const [latestListings, setLatestListings] = useState<any[]>([]);
+  const [hotDeals, setHotDeals] = useState<any[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<any[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
   const [loadingRecent, setLoadingRecent] = useState(true);
@@ -69,6 +70,7 @@ export default function Home() {
     const fetchHomepageListings = async () => {
       const now = new Date().toISOString();
 
+      // FEATURED
       const { data: featuredData } = await supabase
         .from("listings")
         .select("*")
@@ -78,6 +80,7 @@ export default function Home() {
         .order("created_at", { ascending: false })
         .limit(3);
 
+      // LATEST
       const { data: latestData } = await supabase
         .from("listings")
         .select("*")
@@ -86,37 +89,66 @@ export default function Home() {
         .order("created_at", { ascending: false })
         .limit(6);
 
-      const format = (item: any) => ({
-        id: item.id,
-        title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
-        category: categoryMap[item.category] || item.category,
-        price: `R${Number(item.price).toLocaleString()}`,
-        location: item.location,
-        mileage: item.mileage || "N/A",
-        featured: item.featured || false,
-        image:
-          item.images && item.images.length > 0
-            ? item.images[0]
-            : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
-      });
+      // HOT DEALS — listings with previous_price > price
+      const { data: hotData } = await supabase
+        .from("listings")
+        .select("*")
+        .eq("status", "active")
+        .not("previous_price", "is", null)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
+        .order("created_at", { ascending: false })
+        .limit(12);
+
+      const format = (item: any) => {
+        const price = Number(item.price);
+        const previous = item.previous_price ? Number(item.previous_price) : null;
+        const hasPriceDrop = previous !== null && previous > price;
+        const savings = hasPriceDrop ? previous - price : 0;
+        const percentOff = hasPriceDrop ? Math.round((savings / previous) * 100) : 0;
+
+        return {
+          id: item.id,
+          title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
+          category: categoryMap[item.category] || item.category,
+          price: `R${price.toLocaleString()}`,
+          priceValue: price,
+          previousPriceFormatted: previous ? `R${previous.toLocaleString()}` : null,
+          hasPriceDrop,
+          savingsFormatted: `R${savings.toLocaleString()}`,
+          percentOff,
+          location: item.location,
+          mileage: item.mileage || "N/A",
+          featured: item.featured || false,
+          image:
+            item.images && item.images.length > 0
+              ? item.images[0]
+              : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
+        };
+      };
 
       setFeaturedListings((featuredData || []).map(format));
       setLatestListings((latestData || []).map(format));
+
+      // Only keep listings where price actually dropped
+      const formattedHot = (hotData || [])
+        .map(format)
+        .filter((item) => item.hasPriceDrop)
+        .sort((a, b) => b.percentOff - a.percentOff)
+        .slice(0, 6);
+
+      setHotDeals(formattedHot);
       setLoadingListings(false);
     };
 
     const fetchRecentlyViewed = async () => {
       try {
         const stored = JSON.parse(localStorage.getItem("balray_recently_viewed") || "[]");
-
         if (!stored || stored.length === 0) {
           setLoadingRecent(false);
           return;
         }
 
         const now = new Date().toISOString();
-
-        // Only fetch active, non-expired listings that are in the "recently viewed" list
         const { data } = await supabase
           .from("listings")
           .select("*")
@@ -124,7 +156,6 @@ export default function Home() {
           .eq("status", "active")
           .or(`expires_at.is.null,expires_at.gt.${now}`);
 
-        // Re-order to match the stored order (most recent first)
         const ordered = stored
           .map((id: string) => (data || []).find((item: any) => item.id === id))
           .filter(Boolean);
@@ -230,20 +261,13 @@ export default function Home() {
                 />
 
                 <div className="relative z-10 mt-8 flex max-w-full flex-wrap justify-center gap-2">
-                  <span className="rounded-full bg-[#34414A] px-3 py-2 text-xs font-bold text-white">
-                    BUY
-                  </span>
-                  <span className="rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white">
-                    SELL
-                  </span>
-                  <span className="rounded-full border border-[#D3D9DD] bg-[#F1F4F6] px-3 py-2 text-xs font-bold text-[#34414A]">
-                    CONNECT
-                  </span>
+                  <span className="rounded-full bg-[#34414A] px-3 py-2 text-xs font-bold text-white">BUY</span>
+                  <span className="rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white">SELL</span>
+                  <span className="rounded-full border border-[#D3D9DD] bg-[#F1F4F6] px-3 py-2 text-xs font-bold text-[#34414A]">CONNECT</span>
                 </div>
 
                 <p className="relative z-10 mt-6 max-w-md text-sm leading-6 text-[#66737C] sm:text-base">
-                  Your marketplace for vehicles and automotive opportunities
-                  across South Africa.
+                  Your marketplace for vehicles and automotive opportunities across South Africa.
                 </p>
               </div>
             </div>
@@ -291,9 +315,90 @@ export default function Home() {
         </div>
       </section>
 
+      {/* HOT DEALS */}
+      {hotDeals.length > 0 && (
+        <section className="w-full bg-gradient-to-r from-red-50 via-orange-50 to-red-50 py-16">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white shadow-md">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+                  🔥 Hot Deals — Price Drops
+                </div>
+                <h2 className="mt-3 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">
+                  Save Big on Recent Price Drops
+                </h2>
+                <p className="mt-2 text-sm text-[#66737C]">
+                  Smart sellers just lowered their prices. Grab them before they&apos;re gone.
+                </p>
+              </div>
+              <Link
+                href="/marketplace"
+                className="text-sm font-bold text-[#9A7B37] hover:underline"
+              >
+                View All →
+              </Link>
+            </div>
+
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {hotDeals.map((listing) => (
+                <article
+                  key={listing.id}
+                  className="group overflow-hidden rounded-2xl border-2 border-red-300 bg-white shadow-[0_15px_40px_rgba(220,38,38,0.15)] transition hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(220,38,38,0.25)]"
+                >
+                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
+                    <img
+                      src={listing.image}
+                      alt={listing.title}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
+                      {listing.category}
+                    </div>
+                    <div className="absolute right-4 top-4 animate-pulse rounded-full bg-red-600 px-3 py-2 text-xs font-black text-white shadow-md">
+                      💰 -{listing.percentOff}%
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">
+                      {listing.title}
+                    </h3>
+
+                    <div className="mt-3">
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <span className="text-2xl font-black text-[#9A7B37]">
+                          {listing.price}
+                        </span>
+                        <span className="text-sm font-bold text-[#89939A] line-through">
+                          {listing.previousPriceFormatted}
+                        </span>
+                      </div>
+                      <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-black text-green-700">
+                        🎉 Save {listing.savingsFormatted}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 text-sm text-[#66737C]">
+                      📍 {listing.location} • {listing.mileage}
+                    </div>
+
+                    <Link
+                      href={`/listing/${listing.id}`}
+                      className="mt-5 block w-full rounded-xl bg-gradient-to-r from-red-600 to-red-700 px-5 py-3 text-center text-sm font-bold text-white shadow-md hover:brightness-110"
+                    >
+                      Grab This Deal →
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* RECENTLY VIEWED */}
       {!loadingRecent && recentlyViewed.length > 0 && (
-        <section className="w-full bg-[#FBF7EC] border-b border-[#D3B86A]/30 py-12">
+        <section className="w-full border-b border-[#D3B86A]/30 bg-[#FBF7EC] py-12">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -567,8 +672,7 @@ export default function Home() {
               How Balray Autos Works
             </h2>
             <p className="mt-4 text-base leading-7 text-[#66737C]">
-              A simple marketplace designed to help buyers and sellers
-              connect.
+              A simple marketplace designed to help buyers and sellers connect.
             </p>
           </div>
 
@@ -579,8 +683,7 @@ export default function Home() {
               </div>
               <h3 className="mt-5 text-xl font-extrabold text-[#34414A]">Search</h3>
               <p className="mt-3 text-sm leading-6 text-[#66737C]">
-                Search through vehicles and automotive listings available on
-                the Balray Autos marketplace.
+                Search through vehicles and automotive listings available on the Balray Autos marketplace.
               </p>
             </div>
 
@@ -590,8 +693,7 @@ export default function Home() {
               </div>
               <h3 className="mt-5 text-xl font-extrabold text-[#34414A]">Connect</h3>
               <p className="mt-3 text-sm leading-6 text-[#66737C]">
-                Find a listing that interests you and connect with the seller
-                to discuss the vehicle or product.
+                Find a listing that interests you and connect with the seller to discuss the vehicle or product.
               </p>
             </div>
 
@@ -601,8 +703,7 @@ export default function Home() {
               </div>
               <h3 className="mt-5 text-xl font-extrabold text-[#34414A]">Sell</h3>
               <p className="mt-3 text-sm leading-6 text-[#66737C]">
-                Sellers can submit their vehicles and automotive products for
-                review and listing on the marketplace.
+                Sellers can submit their vehicles and automotive products for review and listing on the marketplace.
               </p>
             </div>
           </div>
@@ -620,8 +721,7 @@ export default function Home() {
               Have a vehicle to sell?
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-[#68757D]">
-              Submit your vehicle and connect with potential buyers through
-              the Balray Autos marketplace.
+              Submit your vehicle and connect with potential buyers through the Balray Autos marketplace.
             </p>
           </div>
 
@@ -645,13 +745,10 @@ export default function Home() {
               More than just a vehicle website.
             </h2>
             <p className="mt-5 text-base leading-7 text-[#68757D]">
-              Balray Autos is being built as an automotive marketplace where
-              buyers and sellers can connect around vehicles and automotive
-              products.
+              Balray Autos is being built as an automotive marketplace where buyers and sellers can connect around vehicles and automotive products.
             </p>
             <p className="mt-4 text-base leading-7 text-[#68757D]">
-              The goal is to make finding and listing automotive opportunities
-              simpler, clearer and more accessible across South Africa.
+              The goal is to make finding and listing automotive opportunities simpler, clearer and more accessible across South Africa.
             </p>
 
             <Link
@@ -712,8 +809,7 @@ export default function Home() {
           </h2>
 
           <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#66737C]">
-            Explore the Balray Autos marketplace or list your vehicle and
-            connect with potential buyers.
+            Explore the Balray Autos marketplace or list your vehicle and connect with potential buyers.
           </p>
 
           <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:flex-row">
@@ -745,8 +841,7 @@ export default function Home() {
                 className="h-12 w-auto max-w-[190px] object-contain"
               />
               <p className="mt-4 max-w-sm text-sm leading-6 text-[#68757D]">
-                Balray Autos is a South African automotive marketplace
-                connecting buyers and sellers.
+                Balray Autos is a South African automotive marketplace connecting buyers and sellers.
               </p>
             </div>
 
@@ -783,6 +878,9 @@ export default function Home() {
                 <Link href="/contact" className="text-[#68757D] transition hover:text-[#9A7B37]">
                   Contact
                 </Link>
+                <Link href="/blog" className="text-[#68757D] transition hover:text-[#9A7B37]">
+                  Blog
+                </Link>
                 <Link href="/sell" className="text-[#68757D] transition hover:text-[#9A7B37]">
                   Sell Your Vehicle
                 </Link>
@@ -797,8 +895,7 @@ export default function Home() {
           </div>
 
           <div className="mt-10 border-t border-[#D3D9DD] pt-6 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights
-            reserved.
+            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
           </div>
         </div>
       </footer>
