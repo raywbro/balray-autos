@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -29,8 +30,6 @@ export default function MyListingsPage() {
   const [renewingId, setRenewingId] = useState<string | null>(null);
   const [sellingId, setSellingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-
-  // Boost modal
   const [boostListing, setBoostListing] = useState<any>(null);
 
   const router = useRouter();
@@ -187,7 +186,6 @@ export default function MyListingsPage() {
   const soldCount = listings.filter((l) => l.status === "sold").length;
   const featuredCount = listings.filter((l) => l.featured === true).length;
 
-  // Boost WhatsApp message
   const buildBoostWhatsAppUrl = (listing: any) => {
     const title = `${listing.year ? listing.year + " " : ""}${listing.make} ${listing.model}`;
     const price = `R${Number(listing.price).toLocaleString()}`;
@@ -264,7 +262,6 @@ export default function MyListingsPage() {
             </div>
           )}
 
-          {/* BOOST PROMO BANNER */}
           {listings.filter((l) => l.status === "active" && !l.featured).length > 0 && (
             <div className="mb-8 overflow-hidden rounded-2xl border border-[#D3B86A]/50 bg-gradient-to-r from-[#FBF7EC] via-[#F7F8F9] to-[#FBF7EC] p-6">
               <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
@@ -502,7 +499,6 @@ export default function MyListingsPage() {
             className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* HEADER */}
             <div className="relative bg-gradient-to-br from-[#8F7130] via-[#B08D3C] to-[#A47F32] p-6 text-white">
               <button
                 onClick={() => setBoostListing(null)}
@@ -518,9 +514,7 @@ export default function MyListingsPage() {
               </p>
             </div>
 
-            {/* BODY */}
             <div className="p-6">
-              {/* LISTING PREVIEW */}
               <div className="flex items-center gap-3 rounded-xl border border-[#D5DBDF] bg-[#F7F8F9] p-3">
                 <img
                   src={boostListing.images?.[0] || "/placeholder.png"}
@@ -537,7 +531,6 @@ export default function MyListingsPage() {
                 </div>
               </div>
 
-              {/* BENEFITS */}
               <div className="mt-5 space-y-3">
                 <div className="flex items-start gap-3">
                   <span className="text-lg text-green-600">✓</span>
@@ -554,7 +547,7 @@ export default function MyListingsPage() {
                 <div className="flex items-start gap-3">
                   <span className="text-lg text-green-600">✓</span>
                   <span className="text-sm text-[#4A5962]">
-                    Included in the <strong>homepage "Top Picks"</strong> section
+                    Included in the <strong>homepage &ldquo;Top Picks&rdquo;</strong> section
                   </span>
                 </div>
                 <div className="flex items-start gap-3">
@@ -565,7 +558,6 @@ export default function MyListingsPage() {
                 </div>
               </div>
 
-              {/* PRICE */}
               <div className="mt-6 rounded-xl border-2 border-[#D3B86A]/60 bg-[#FBF7EC] p-4 text-center">
                 <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
                   Boost Price
@@ -574,7 +566,6 @@ export default function MyListingsPage() {
                 <div className="text-xs text-[#66737C]">Once-off for 30 days</div>
               </div>
 
-              {/* CTA */}
               <a
                 href={buildBoostWhatsAppUrl(boostListing)}
                 target="_blank"
@@ -593,26 +584,7 @@ export default function MyListingsPage() {
         </div>
       )}
 
-      <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <img src="/balray-autos-logo.png" alt="Balray Autos" className="h-11 w-auto max-w-[180px] object-contain" />
-              <p className="mt-3 text-sm text-[#68757D]">South African automotive marketplace.</p>
-            </div>
-            <div className="flex flex-wrap gap-5 text-sm font-semibold">
-              <Link href="/" className="text-[#68757D] hover:text-[#9A7B37]">Home</Link>
-              <Link href="/marketplace" className="text-[#68757D] hover:text-[#9A7B37]">Marketplace</Link>
-              <Link href="/sell" className="text-[#68757D] hover:text-[#9A7B37]">Sell</Link>
-              <Link href="/my-listings" className="text-[#68757D] hover:text-[#9A7B37]">My Listings</Link>
-              <Link href="/contact" className="text-[#68757D] hover:text-[#9A7B37]">Contact</Link>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-[#D3D9DD] pt-5 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
