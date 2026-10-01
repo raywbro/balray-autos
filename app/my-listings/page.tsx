@@ -15,7 +15,6 @@ const categoryMap: Record<string, string> = {
   parts: "Parts & Accessories",
 };
 
-// Helper: how many days left until expiry
 function daysUntil(expiresAt: string | null) {
   if (!expiresAt) return null;
   const diff = new Date(expiresAt).getTime() - new Date().getTime();
@@ -28,6 +27,7 @@ export default function MyListingsPage() {
   const [listings, setListings] = useState<any[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [renewingId, setRenewingId] = useState<string | null>(null);
+  const [sellingId, setSellingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
   const router = useRouter();
@@ -59,6 +59,39 @@ export default function MyListingsPage() {
       setListings(data || []);
     }
     setLoading(false);
+  };
+
+  const handleMarkAsSold = async (listingId: string) => {
+    const confirmed = confirm(
+      "Mark this listing as SOLD? It will be hidden from the marketplace. This cannot be undone."
+    );
+    if (!confirmed) return;
+
+    setSellingId(listingId);
+    setMessage("");
+
+    const { error } = await supabase
+      .from("listings")
+      .update({
+        status: "sold",
+        sold_at: new Date().toISOString(),
+      })
+      .eq("id", listingId);
+
+    if (error) {
+      setMessage("Error marking as sold: " + error.message);
+    } else {
+      setListings(
+        listings.map((item) =>
+          item.id === listingId
+            ? { ...item, status: "sold", sold_at: new Date().toISOString() }
+            : item
+        )
+      );
+      setMessage("🎉 Congratulations on the sale! Listing marked as sold.");
+      setTimeout(() => setMessage(""), 5000);
+    }
+    setSellingId(null);
   };
 
   const handleRenew = async (listingId: string) => {
@@ -148,6 +181,7 @@ export default function MyListingsPage() {
 
   const totalViews = listings.reduce((sum, item) => sum + (item.views || 0), 0);
   const activeCount = listings.filter((l) => l.status === "active").length;
+  const soldCount = listings.filter((l) => l.status === "sold").length;
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
@@ -175,6 +209,14 @@ export default function MyListingsPage() {
                   </div>
                   <div className="mt-1 text-2xl font-black text-[#34414A]">
                     {activeCount}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3">
+                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
+                    Sold
+                  </div>
+                  <div className="mt-1 text-2xl font-black text-green-600">
+                    🎉 {soldCount}
                   </div>
                 </div>
                 <div className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3">
@@ -228,17 +270,27 @@ export default function MyListingsPage() {
                     : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80";
 
                 const daysLeft = daysUntil(listing.expires_at);
-                const isExpired = daysLeft !== null && daysLeft <= 0;
+                const isExpired = daysLeft !== null && daysLeft <= 0 && listing.status === "active";
                 const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 5;
+                const isSold = listing.status === "sold";
 
                 return (
                   <div
                     key={listing.id}
-                    className="overflow-hidden rounded-2xl border border-[#D5DBDF] bg-white shadow-sm"
+                    className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${
+                      isSold ? "border-green-300 ring-2 ring-green-100" : "border-[#D5DBDF]"
+                    }`}
                   >
                     <div className="grid gap-0 sm:grid-cols-[220px_minmax(0,1fr)]">
                       <div className="relative aspect-[16/10] sm:aspect-auto sm:h-full bg-[#E9EDF0]">
-                        <img src={image} alt={title} className="h-full w-full object-cover" />
+                        <img src={image} alt={title} className={`h-full w-full object-cover ${isSold ? "opacity-60 grayscale" : ""}`} />
+                        {isSold && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <div className="-rotate-12 rounded-lg bg-green-600 px-6 py-3 text-2xl font-black text-white shadow-lg">
+                              SOLD
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-col justify-between p-6">
@@ -247,7 +299,11 @@ export default function MyListingsPage() {
                             <div className="inline-block rounded-full bg-[#FBF7EC] px-3 py-1 text-xs font-bold text-[#8F7130]">
                               {category}
                             </div>
-                            {listing.status === "active" ? (
+                            {isSold ? (
+                              <div className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+                                🎉 Sold
+                              </div>
+                            ) : listing.status === "active" ? (
                               isExpired ? (
                                 <div className="inline-block rounded-full bg-gray-200 px-3 py-1 text-xs font-bold text-gray-700">
                                   ⌛ Expired
@@ -265,7 +321,7 @@ export default function MyListingsPage() {
                             <div className="inline-block rounded-full bg-[#F7F8F9] px-3 py-1 text-xs font-bold text-[#34414A]">
                               👁️ {listing.views || 0} views
                             </div>
-                            {listing.status === "active" && daysLeft !== null && !isExpired && (
+                            {!isSold && listing.status === "active" && daysLeft !== null && !isExpired && (
                               <div
                                 className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${
                                   isExpiringSoon
@@ -283,7 +339,19 @@ export default function MyListingsPage() {
                           <div className="mt-3 text-sm text-[#66737C]">
                             📍 {listing.location} • {listing.mileage || "N/A"}
                           </div>
-                          {listing.expires_at && !isExpired && listing.status === "active" && (
+
+                          {isSold && listing.sold_at && (
+                            <div className="mt-3 rounded-lg bg-green-50 px-4 py-2 text-sm font-bold text-green-700">
+                              🎉 Sold on{" "}
+                              {new Date(listing.sold_at).toLocaleDateString("en-ZA", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </div>
+                          )}
+
+                          {!isSold && listing.expires_at && !isExpired && listing.status === "active" && (
                             <div className="mt-2 text-xs text-[#89939A]">
                               Expires on{" "}
                               {new Date(listing.expires_at).toLocaleDateString("en-ZA", {
@@ -302,13 +370,15 @@ export default function MyListingsPage() {
                           >
                             View
                           </Link>
-                          <Link
-                            href={`/edit-listing/${listing.id}`}
-                            className="rounded-xl border border-[#34414A] bg-white px-5 py-3 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
-                          >
-                            Edit
-                          </Link>
-                          {(isExpired || listing.status === "active") && (
+                          {!isSold && (
+                            <Link
+                              href={`/edit-listing/${listing.id}`}
+                              className="rounded-xl border border-[#34414A] bg-white px-5 py-3 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
+                            >
+                              Edit
+                            </Link>
+                          )}
+                          {!isSold && (isExpired || listing.status === "active") && (
                             <button
                               type="button"
                               disabled={renewingId === listing.id}
@@ -316,6 +386,16 @@ export default function MyListingsPage() {
                               className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-5 py-3 text-sm font-bold text-white shadow-md hover:brightness-105 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               {renewingId === listing.id ? "Renewing..." : "🔄 Renew 30 Days"}
+                            </button>
+                          )}
+                          {!isSold && listing.status === "active" && !isExpired && (
+                            <button
+                              type="button"
+                              disabled={sellingId === listing.id}
+                              onClick={() => handleMarkAsSold(listing.id)}
+                              className="rounded-xl bg-green-600 px-5 py-3 text-sm font-bold text-white shadow-md hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {sellingId === listing.id ? "Saving..." : "✅ Mark as Sold"}
                             </button>
                           )}
                           <button
