@@ -39,6 +39,22 @@ function cleanPhone(phone: string) {
   return cleaned;
 }
 
+// Save a viewed listing to localStorage
+function saveRecentlyViewed(listingId: string) {
+  try {
+    const existing = JSON.parse(localStorage.getItem("balray_recently_viewed") || "[]");
+    // Remove if already there
+    const filtered = existing.filter((id: string) => id !== listingId);
+    // Add to the front
+    filtered.unshift(listingId);
+    // Keep only the latest 8
+    const trimmed = filtered.slice(0, 8);
+    localStorage.setItem("balray_recently_viewed", JSON.stringify(trimmed));
+  } catch (err) {
+    console.error("Error saving recently viewed:", err);
+  }
+}
+
 export default function ListingDetailPage() {
   const [listing, setListing] = useState<any>(null);
   const [similar, setSimilar] = useState<any[]>([]);
@@ -101,7 +117,10 @@ export default function ListingDetailPage() {
       setListing(formatted);
       setLoading(false);
 
-      // Fetch similar listings (same category, active, not this one)
+      // Save to recently viewed
+      saveRecentlyViewed(data.id);
+
+      // Fetch similar listings
       const now = new Date().toISOString();
       const { data: similarData } = await supabase
         .from("listings")

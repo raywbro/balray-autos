@@ -59,7 +59,9 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [featuredListings, setFeaturedListings] = useState<any[]>([]);
   const [latestListings, setLatestListings] = useState<any[]>([]);
+  const [recentlyViewed, setRecentlyViewed] = useState<any[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
+  const [loadingRecent, setLoadingRecent] = useState(true);
   const router = useRouter();
   const supabase = createClient();
 
@@ -67,7 +69,6 @@ export default function Home() {
     const fetchHomepageListings = async () => {
       const now = new Date().toISOString();
 
-      // Fetch featured listings
       const { data: featuredData } = await supabase
         .from("listings")
         .select("*")
@@ -77,7 +78,6 @@ export default function Home() {
         .order("created_at", { ascending: false })
         .limit(3);
 
-      // Fetch latest listings
       const { data: latestData } = await supabase
         .from("listings")
         .select("*")
@@ -105,7 +105,53 @@ export default function Home() {
       setLoadingListings(false);
     };
 
+    const fetchRecentlyViewed = async () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem("balray_recently_viewed") || "[]");
+
+        if (!stored || stored.length === 0) {
+          setLoadingRecent(false);
+          return;
+        }
+
+        const now = new Date().toISOString();
+
+        // Only fetch active, non-expired listings that are in the "recently viewed" list
+        const { data } = await supabase
+          .from("listings")
+          .select("*")
+          .in("id", stored)
+          .eq("status", "active")
+          .or(`expires_at.is.null,expires_at.gt.${now}`);
+
+        // Re-order to match the stored order (most recent first)
+        const ordered = stored
+          .map((id: string) => (data || []).find((item: any) => item.id === id))
+          .filter(Boolean);
+
+        const formatted = ordered.map((item: any) => ({
+          id: item.id,
+          title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
+          category: categoryMap[item.category] || item.category,
+          price: `R${Number(item.price).toLocaleString()}`,
+          location: item.location,
+          mileage: item.mileage || "N/A",
+          featured: item.featured || false,
+          image:
+            item.images && item.images.length > 0
+              ? item.images[0]
+              : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
+        }));
+
+        setRecentlyViewed(formatted);
+      } catch (err) {
+        console.error("Error loading recently viewed:", err);
+      }
+      setLoadingRecent(false);
+    };
+
     fetchHomepageListings();
+    fetchRecentlyViewed();
   }, [supabase]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -114,6 +160,11 @@ export default function Home() {
     if (search.trim()) params.set("q", search.trim());
     if (selectedCategory) params.set("category", selectedCategory);
     router.push(`/marketplace?${params.toString()}`);
+  };
+
+  const clearRecentlyViewed = () => {
+    localStorage.removeItem("balray_recently_viewed");
+    setRecentlyViewed([]);
   };
 
   return (
@@ -239,6 +290,59 @@ export default function Home() {
           </form>
         </div>
       </section>
+
+      {/* RECENTLY VIEWED */}
+      {!loadingRecent && recentlyViewed.length > 0 && (
+        <section className="w-full bg-[#FBF7EC] border-b border-[#D3B86A]/30 py-12">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+                  👀 Continue Browsing
+                </div>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-[#34414A] sm:text-3xl">
+                  Recently Viewed
+                </h2>
+              </div>
+              <button
+                onClick={clearRecentlyViewed}
+                className="self-start text-sm font-bold text-[#9A7B37] hover:underline sm:self-end"
+              >
+                Clear History
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {recentlyViewed.slice(0, 4).map((listing) => (
+                <Link
+                  key={listing.id}
+                  href={`/listing/${listing.id}`}
+                  className="group overflow-hidden rounded-2xl border border-[#D5DBDF] bg-white shadow-sm transition hover:-translate-y-1 hover:border-[#B08D3C]/60 hover:shadow-lg"
+                >
+                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
+                    <img
+                      src={listing.image}
+                      alt={listing.title}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="line-clamp-2 min-h-[44px] text-base font-extrabold leading-6 text-[#34414A]">
+                      {listing.title}
+                    </h3>
+                    <div className="mt-2 text-lg font-black text-[#9A7B37]">
+                      {listing.price}
+                    </div>
+                    <div className="mt-1 text-xs text-[#66737C]">
+                      📍 {listing.location}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* FEATURED LISTINGS */}
       {featuredListings.length > 0 && (
