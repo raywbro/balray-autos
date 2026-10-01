@@ -6,17 +6,46 @@ import Navbar from "@/app/components/Navbar";
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSubmitted(true);
+    setSending(true);
+    setErrorMessage("");
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: formData.get("name"),
+      email: formData.get("email"),
+      phone: formData.get("phone"),
+      subject: formData.get("subject"),
+      message: formData.get("message"),
+    };
+
+    try {
+      const res = await fetch("/api/send-contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (res.ok) {
+        setSubmitted(true);
+      } else {
+        const err = await res.json();
+        setErrorMessage(err.error || "Failed to send. Please try again.");
+      }
+    } catch (err) {
+      setErrorMessage("Network error. Please try again.");
+    }
+    setSending(false);
   };
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
       <Navbar />
 
-      {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-[24px] border-[#D9DEE2]/70" />
         <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full border-[20px] border-[#C5CDD2]/50" />
@@ -44,7 +73,6 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* MAIN CONTENT */}
       <section className="w-full bg-[#F7F8F9] py-16">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[1fr_1.3fr]">
@@ -60,7 +88,6 @@ export default function ContactPage() {
                 </p>
 
                 <div className="mt-8 space-y-5">
-                  {/* EMAIL */}
                   <a
                     href="mailto:balrayautos@gmail.com"
                     className="flex items-start gap-4 rounded-xl border border-[#D5DBDF] bg-[#F7F8F9] p-5 transition hover:border-[#B08D3C] hover:bg-[#FBF7EC]"
@@ -78,7 +105,6 @@ export default function ContactPage() {
                     </div>
                   </a>
 
-                  {/* PHONE */}
                   <a
                     href="tel:+27815973009"
                     className="flex items-start gap-4 rounded-xl border border-[#D5DBDF] bg-[#F7F8F9] p-5 transition hover:border-[#B08D3C] hover:bg-[#FBF7EC]"
@@ -96,7 +122,6 @@ export default function ContactPage() {
                     </div>
                   </a>
 
-                  {/* LOCATION */}
                   <div className="flex items-start gap-4 rounded-xl border border-[#D5DBDF] bg-[#F7F8F9] p-5">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] text-xl text-white">
                       📍
@@ -111,7 +136,6 @@ export default function ContactPage() {
                     </div>
                   </div>
 
-                  {/* HOURS */}
                   <div className="flex items-start gap-4 rounded-xl border border-[#D5DBDF] bg-[#F7F8F9] p-5">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] text-xl text-white">
                       🕐
@@ -128,7 +152,6 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              {/* WHATSAPP CTA */}
               <a
                 href="https://wa.me/27815973009"
                 target="_blank"
@@ -245,12 +268,12 @@ export default function ContactPage() {
                         <option value="" disabled>
                           Choose a subject
                         </option>
-                        <option value="general">General Enquiry</option>
-                        <option value="listing">Listing Help</option>
-                        <option value="buying">Buying a Vehicle</option>
-                        <option value="selling">Selling a Vehicle</option>
-                        <option value="partnership">Partnership / Business</option>
-                        <option value="report">Report a Listing</option>
+                        <option value="General Enquiry">General Enquiry</option>
+                        <option value="Listing Help">Listing Help</option>
+                        <option value="Buying a Vehicle">Buying a Vehicle</option>
+                        <option value="Selling a Vehicle">Selling a Vehicle</option>
+                        <option value="Partnership / Business">Partnership / Business</option>
+                        <option value="Report a Listing">Report a Listing</option>
                       </select>
                     </div>
 
@@ -271,11 +294,18 @@ export default function ContactPage() {
                       />
                     </div>
 
+                    {errorMessage && (
+                      <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm font-bold text-red-600">
+                        {errorMessage}
+                      </div>
+                    )}
+
                     <button
                       type="submit"
-                      className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-base font-bold text-white shadow-md transition hover:brightness-105"
+                      disabled={sending}
+                      className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-base font-bold text-white shadow-md transition hover:brightness-105 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                      Send Message
+                      {sending ? "SENDING..." : "Send Message"}
                     </button>
 
                     <p className="text-center text-xs leading-5 text-[#89939A]">
@@ -289,7 +319,6 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
         <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
