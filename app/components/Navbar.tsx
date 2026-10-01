@@ -97,6 +97,9 @@ export default function Navbar() {
               <Link href="/my-listings" className={navLinkClass("/my-listings")}>
                 My Listings
               </Link>
+              <Link href="/analytics" className={navLinkClass("/analytics")}>
+                Analytics
+              </Link>
               <Link href="/favorites" className={navLinkClass("/favorites")}>
                 Favorites
               </Link>
@@ -161,6 +164,13 @@ export default function Navbar() {
                   className="rounded-lg bg-[#FBF7EC] px-4 py-3 font-bold text-[#9A7B37]"
                 >
                   My Listings
+                </Link>
+                <Link
+                  href="/analytics"
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]"
+                >
+                  Analytics
                 </Link>
                 <Link
                   href="/favorites"
