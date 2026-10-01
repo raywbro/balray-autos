@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -59,13 +60,11 @@ export default function ListingDetailPage() {
   const [copied, setCopied] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
-  // Financing calculator state
   const [depositPercent, setDepositPercent] = useState(10);
   const [termMonths, setTermMonths] = useState(60);
   const [interestRate, setInterestRate] = useState(11.75);
   const [showCalculator, setShowCalculator] = useState(false);
 
-  // Report modal
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
@@ -281,7 +280,6 @@ export default function ListingDetailPage() {
     );
   }
 
-  // Financing calculations
   const deposit = (listing.priceValue * depositPercent) / 100;
   const loanAmount = listing.priceValue - deposit;
   const monthlyRate = interestRate / 100 / 12;
@@ -297,7 +295,6 @@ export default function ListingDetailPage() {
   const totalPaidFormatted = `R${Math.round(totalPaid).toLocaleString()}`;
   const totalInterestFormatted = `R${Math.round(totalInterest).toLocaleString()}`;
 
-  // Pre-approval WhatsApp
   const preApprovalMessage = encodeURIComponent(
     `Hi Balray Autos! I'm interested in the ${listing.title} listed at ${listing.price}.\n\nI'd like to know about financing options:\n- Deposit: ${depositFormatted}\n- Term: ${termMonths} months\n- Estimated monthly: ${monthlyPaymentFormatted}\n\nCan you help me get pre-approved?`
   );
@@ -517,7 +514,6 @@ export default function ListingDetailPage() {
                   )}
                 </div>
 
-                {/* ESTIMATED MONTHLY — HERO HIGHLIGHT */}
                 <div className="mt-4 rounded-xl bg-gradient-to-r from-[#FBF7EC] to-[#F7F8F9] p-4 border border-[#D3B86A]/50">
                   <div className="flex items-center justify-between">
                     <div>
@@ -546,7 +542,6 @@ export default function ListingDetailPage() {
                 </div>
               </div>
 
-              {/* FINANCING CALCULATOR */}
               {showCalculator && (
                 <div className="rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-4">
@@ -563,7 +558,6 @@ export default function ListingDetailPage() {
                     </div>
                   </div>
 
-                  {/* DEPOSIT */}
                   <div className="mt-5">
                     <div className="flex items-center justify-between">
                       <label className="text-sm font-bold text-[#34414A]">
@@ -588,7 +582,6 @@ export default function ListingDetailPage() {
                     </div>
                   </div>
 
-                  {/* TERM */}
                   <div className="mt-5">
                     <label className="text-sm font-bold text-[#34414A]">
                       Term
@@ -611,7 +604,6 @@ export default function ListingDetailPage() {
                     </div>
                   </div>
 
-                  {/* INTEREST RATE */}
                   <div className="mt-5">
                     <div className="flex items-center justify-between">
                       <label className="text-sm font-bold text-[#34414A]">
@@ -636,7 +628,6 @@ export default function ListingDetailPage() {
                     </div>
                   </div>
 
-                  {/* BREAKDOWN */}
                   <div className="mt-6 space-y-3 rounded-xl bg-[#F7F8F9] p-4">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-[#66737C]">Vehicle Price</span>
@@ -676,7 +667,6 @@ export default function ListingDetailPage() {
                     </div>
                   </div>
 
-                  {/* PRE-APPROVAL CTA */}
                   <a
                     href={preApprovalUrl}
                     target="_blank"
@@ -949,26 +939,7 @@ export default function ListingDetailPage() {
         </div>
       )}
 
-      <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <img src="/balray-autos-logo.png" alt="Balray Autos" className="h-11 w-auto max-w-[180px] object-contain" />
-              <p className="mt-3 text-sm text-[#68757D]">South African automotive marketplace.</p>
-            </div>
-            <div className="flex flex-wrap gap-5 text-sm font-semibold">
-              <Link href="/" className="text-[#68757D] hover:text-[#9A7B37]">Home</Link>
-              <Link href="/marketplace" className="text-[#68757D] hover:text-[#9A7B37]">Marketplace</Link>
-              <Link href="/sell" className="text-[#68757D] hover:text-[#9A7B37]">Sell</Link>
-              <Link href="/my-listings" className="text-[#68757D] hover:text-[#9A7B37]">My Listings</Link>
-              <Link href="/contact" className="text-[#68757D] hover:text-[#9A7B37]">Contact</Link>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-[#D3D9DD] pt-5 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
