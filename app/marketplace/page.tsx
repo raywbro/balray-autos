@@ -39,6 +39,16 @@ function MarketplaceContent() {
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [search, setSearch] = useState(initialSearch);
   const [sortBy, setSortBy] = useState("featured");
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Filter states
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [minYear, setMinYear] = useState("");
+  const [maxYear, setMaxYear] = useState("");
+  const [transmissionFilter, setTransmissionFilter] = useState("");
+  const [fuelFilter, setFuelFilter] = useState("");
+
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -75,7 +85,9 @@ function MarketplaceContent() {
           mileage: item.mileage || "N/A",
           location: item.location,
           transmission: transmissionMap[item.transmission] || item.transmission || "N/A",
+          transmissionKey: item.transmission || "",
           fuel: fuelMap[item.fuel] || item.fuel || "N/A",
+          fuelKey: item.fuel || "",
           featured: item.featured || false,
           views: item.views || 0,
           createdAt: item.created_at,
@@ -128,6 +140,17 @@ function MarketplaceContent() {
     }
   };
 
+  const clearAllFilters = () => {
+    setMinPrice("");
+    setMaxPrice("");
+    setMinYear("");
+    setMaxYear("");
+    setTransmissionFilter("");
+    setFuelFilter("");
+    setSearch("");
+    setSelectedCategory("All");
+  };
+
   const categories = [
     "All",
     "Cars & SUVs",
@@ -138,16 +161,51 @@ function MarketplaceContent() {
     "Parts & Accessories",
   ];
 
+  // Count active filters
+  const activeFilterCount =
+    (minPrice ? 1 : 0) +
+    (maxPrice ? 1 : 0) +
+    (minYear ? 1 : 0) +
+    (maxYear ? 1 : 0) +
+    (transmissionFilter ? 1 : 0) +
+    (fuelFilter ? 1 : 0);
+
   const filteredListings = listings.filter((listing) => {
     const matchesCategory =
       selectedCategory === "All" || listing.category === selectedCategory;
+
     const searchText = search.toLowerCase().trim();
     const matchesSearch =
       searchText === "" ||
       listing.title.toLowerCase().includes(searchText) ||
       listing.category.toLowerCase().includes(searchText) ||
       listing.location.toLowerCase().includes(searchText);
-    return matchesCategory && matchesSearch;
+
+    // Price filters
+    const matchesMinPrice = minPrice === "" || listing.priceValue >= Number(minPrice);
+    const matchesMaxPrice = maxPrice === "" || listing.priceValue <= Number(maxPrice);
+
+    // Year filters
+    const matchesMinYear = minYear === "" || listing.yearValue >= Number(minYear);
+    const matchesMaxYear = maxYear === "" || listing.yearValue <= Number(maxYear);
+
+    // Transmission
+    const matchesTransmission =
+      transmissionFilter === "" || listing.transmissionKey === transmissionFilter;
+
+    // Fuel
+    const matchesFuel = fuelFilter === "" || listing.fuelKey === fuelFilter;
+
+    return (
+      matchesCategory &&
+      matchesSearch &&
+      matchesMinPrice &&
+      matchesMaxPrice &&
+      matchesMinYear &&
+      matchesMaxYear &&
+      matchesTransmission &&
+      matchesFuel
+    );
   });
 
   // SORTING LOGIC
@@ -169,7 +227,6 @@ function MarketplaceContent() {
         return a.yearValue - b.yearValue;
       case "featured":
       default:
-        // Featured first, then newest
         if (a.featured && !b.featured) return -1;
         if (!a.featured && b.featured) return 1;
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -237,7 +294,7 @@ function MarketplaceContent() {
             ))}
           </div>
 
-          {/* TITLE + SORT */}
+          {/* TITLE + SORT + FILTER BUTTON */}
           <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">Marketplace</div>
@@ -249,10 +306,26 @@ function MarketplaceContent() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {/* SORT DROPDOWN */}
+              <button
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`relative rounded-xl border px-5 py-3 text-sm font-bold transition ${
+                  showFilters || activeFilterCount > 0
+                    ? "border-[#B08D3C] bg-[#FBF7EC] text-[#8F7130]"
+                    : "border-[#D5DBDF] bg-white text-[#34414A] hover:border-[#B08D3C]"
+                }`}
+              >
+                🎯 Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#B08D3C] px-1.5 text-xs font-black text-white">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
-                  Sort by:
+                  Sort:
                 </label>
                 <select
                   value={sortBy}
@@ -275,6 +348,117 @@ function MarketplaceContent() {
               </Link>
             </div>
           </div>
+
+          {/* ADVANCED FILTERS PANEL */}
+          {showFilters && (
+            <div className="mt-6 rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm">
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {/* PRICE RANGE */}
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
+                    Min Price (R)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                    placeholder="e.g. 50000"
+                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
+                    Max Price (R)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    placeholder="e.g. 500000"
+                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
+                    Min Year
+                  </label>
+                  <input
+                    type="number"
+                    min="1900"
+                    max="2100"
+                    value={minYear}
+                    onChange={(e) => setMinYear(e.target.value)}
+                    placeholder="e.g. 2015"
+                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
+                    Max Year
+                  </label>
+                  <input
+                    type="number"
+                    min="1900"
+                    max="2100"
+                    value={maxYear}
+                    onChange={(e) => setMaxYear(e.target.value)}
+                    placeholder="e.g. 2024"
+                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
+                    Transmission
+                  </label>
+                  <select
+                    value={transmissionFilter}
+                    onChange={(e) => setTransmissionFilter(e.target.value)}
+                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                  >
+                    <option value="">Any</option>
+                    <option value="automatic">Automatic</option>
+                    <option value="manual">Manual</option>
+                    <option value="cvt">CVT</option>
+                    <option value="other">Other / N/A</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
+                    Fuel Type
+                  </label>
+                  <select
+                    value={fuelFilter}
+                    onChange={(e) => setFuelFilter(e.target.value)}
+                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                  >
+                    <option value="">Any</option>
+                    <option value="petrol">Petrol</option>
+                    <option value="diesel">Diesel</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="electric">Electric</option>
+                    <option value="other">Other / N/A</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#E1E5E8] pt-5">
+                <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
+                  {activeFilterCount > 0
+                    ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} applied`
+                    : "No filters applied"}
+                </div>
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-2.5 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
+                >
+                  ✕ Clear All Filters
+                </button>
+              </div>
+            </div>
+          )}
 
           {loading ? (
             <div className="mt-10 rounded-2xl border border-[#D5DBDF] bg-white p-10 text-center animate-pulse">
@@ -345,10 +529,10 @@ function MarketplaceContent() {
           ) : (
             <div className="mt-10 rounded-2xl border border-[#D5DBDF] bg-white p-10 text-center">
               <div className="text-4xl">🔎</div>
-              <h3 className="mt-4 text-xl font-black text-[#34414A]">No listings found</h3>
-              <p className="mt-2 text-sm text-[#66737C]">Try another search or choose a different category.</p>
-              <button type="button" onClick={() => { setSearch(""); setSelectedCategory("All"); }} className="mt-5 rounded-xl bg-[#34414A] px-5 py-3 text-sm font-bold text-white">
-                Clear Search
+              <h3 className="mt-4 text-xl font-black text-[#34414A]">No listings match your filters</h3>
+              <p className="mt-2 text-sm text-[#66737C]">Try widening your price range or removing some filters.</p>
+              <button type="button" onClick={clearAllFilters} className="mt-5 rounded-xl bg-[#34414A] px-5 py-3 text-sm font-bold text-white">
+                Clear All Filters
               </button>
             </div>
           )}
