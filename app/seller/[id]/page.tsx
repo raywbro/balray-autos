@@ -15,7 +15,6 @@ const categoryMap: Record<string, string> = {
   parts: "Parts & Accessories",
 };
 
-// Star display component
 function Stars({ rating, size = "base" }: { rating: number; size?: "sm" | "base" | "lg" }) {
   const sizeClass =
     size === "lg" ? "text-3xl" : size === "sm" ? "text-sm" : "text-xl";
@@ -28,13 +27,21 @@ function Stars({ rating, size = "base" }: { rating: number; size?: "sm" | "base"
   );
 }
 
+// Badge type
+type Badge = {
+  id: string;
+  icon: string;
+  label: string;
+  description: string;
+  color: string;
+};
+
 export default function SellerProfilePage() {
   const [seller, setSeller] = useState<any>(null);
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
-  // Reviews state
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [myReview, setMyReview] = useState<any>(null);
@@ -44,6 +51,9 @@ export default function SellerProfilePage() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewMessage, setReviewMessage] = useState("");
 
+  // Badges
+  const [badges, setBadges] = useState<Badge[]>([]);
+
   const params = useParams();
   const router = useRouter();
   const supabase = createClient();
@@ -51,12 +61,10 @@ export default function SellerProfilePage() {
 
   useEffect(() => {
     const fetchSellerData = async () => {
-      // 1. Fetch all active listings by this seller
       const { data: listingsData, error: listingsError } = await supabase
         .from("listings")
         .select("*")
         .eq("user_id", sellerId)
-        .eq("status", "active")
         .order("featured", { ascending: false })
         .order("created_at", { ascending: false });
 
@@ -66,8 +74,23 @@ export default function SellerProfilePage() {
         return;
       }
 
+      const activeListings = listingsData.filter(
+        (l) => l.status === "active" && (!l.expires_at || new Date(l.expires_at) > new Date())
+      );
+      const soldListings = listingsData.filter((l) => l.status === "sold");
+
       const sample = listingsData[0];
       const totalViews = listingsData.reduce((sum, item) => sum + (item.views || 0), 0);
+      const totalPhotos = listingsData.reduce((sum, item) => sum + (item.images?.length || 0), 0);
+      const avgPhotos = listingsData.length > 0 ? totalPhotos / listingsData.length : 0;
+
+      // Distinct categories
+      const distinctCategories = new Set(listingsData.map((l) => l.category));
+
+      // Days since last listing
+      const latestListingDate = new Date(listingsData[0].created_at);
+      const daysSinceLastListing =
+        (Date.now() - latestListingDate.getTime()) / (1000 * 60 * 60 * 24);
 
       setSeller({
         name: sample.seller_name,
@@ -75,11 +98,16 @@ export default function SellerProfilePage() {
         phone: sample.seller_phone,
         type: sample.seller_type,
         location: sample.location,
-        totalListings: listingsData.length,
+        totalListings: activeListings.length,
         totalViews: totalViews,
+        joinedAt: listingsData[listingsData.length - 1].created_at,
+        daysSinceLastListing,
+        avgPhotos,
+        distinctCategories: distinctCategories.size,
+        soldCount: soldListings.length,
       });
 
-      const formatted = listingsData.map((item) => ({
+      const formatted = activeListings.map((item) => ({
         id: item.id,
         title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
         category: categoryMap[item.category] || item.category,
@@ -108,15 +136,10 @@ export default function SellerProfilePage() {
         .eq("seller_id", sellerId)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching reviews:", error);
-        return;
-      }
+      if (error) return;
 
-      // Enrich with reviewer names (from listings they have or fallback)
       const enriched = await Promise.all(
         (data || []).map(async (review) => {
-          // Try to find a name from any listing they made
           const { data: userListing } = await supabase
             .from("listings")
             .select("seller_name")
@@ -149,13 +172,102 @@ export default function SellerProfilePage() {
     }
   }, [sellerId, supabase]);
 
+  // Compute badges once seller + reviews are loaded
+  useEffect(() => {
+    if (!seller) return;
+
+    const computed: Badge[] = [];
+    const avgRating =
+      reviews.length > 0
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        : 0;
+
+    // 📱 Phone Verified — always shown since signup requires phone
+    if (seller.phone) {
+      computed.push({
+        id: "phone",
+        icon: "📱",
+        label: "Phone Verified",
+        description: "This seller has verified their phone number with us.",
+        color: "from-blue-500 to-blue-600",
+      });
+    }
+
+    // 🏆 Top Seller — 5+ active listings
+    if (seller.totalListings >= 5) {
+      computed.push({
+        id: "top",
+        icon: "🏆",
+        label: "Top Seller",
+        description: `Has ${seller.totalListings} active listings on Balray Autos.`,
+        color: "from-[#8F7130] to-[#B08D3C]",
+      });
+    }
+
+    // 💎 Trusted — 4+ avg rating with 3+ reviews
+    if (avgRating >= 4 && reviews.length >= 3) {
+      computed.push({
+        id: "trusted",
+        icon: "💎",
+        label: "Trusted Seller",
+        description: `Rated ${avgRating.toFixed(1)} stars by ${reviews.length} buyers.`,
+        color: "from-purple-500 to-purple-600",
+      });
+    }
+
+    // 🔥 Active — listed in last 7 days
+    if (seller.daysSinceLastListing <= 7) {
+      computed.push({
+        id: "active",
+        icon: "🔥",
+        label: "Active Seller",
+        description: "Recently posted a new listing — quick to respond.",
+        color: "from-red-500 to-orange-500",
+      });
+    }
+
+    // 📸 Photo Pro — avg 4+ photos per listing
+    if (seller.avgPhotos >= 4) {
+      computed.push({
+        id: "photos",
+        icon: "📸",
+        label: "Photo Pro",
+        description: `Lists with high-quality photos (avg ${seller.avgPhotos.toFixed(1)} per listing).`,
+        color: "from-pink-500 to-pink-600",
+      });
+    }
+
+    // 🎯 Variety — listings in 3+ categories
+    if (seller.distinctCategories >= 3) {
+      computed.push({
+        id: "variety",
+        icon: "🎯",
+        label: "Multi-Category",
+        description: `Sells across ${seller.distinctCategories} different categories.`,
+        color: "from-green-500 to-green-600",
+      });
+    }
+
+    // ✅ Sold History — at least 1 sold
+    if (seller.soldCount >= 1) {
+      computed.push({
+        id: "sold",
+        icon: "✅",
+        label: "Successful Sales",
+        description: `Has successfully marked ${seller.soldCount} listing${seller.soldCount === 1 ? "" : "s"} as sold.`,
+        color: "from-teal-500 to-teal-600",
+      });
+    }
+
+    setBadges(computed);
+  }, [seller, reviews]);
+
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
       router.push("/login");
       return;
     }
-
     if (currentUser.id === sellerId) {
       setReviewMessage("You cannot review yourself.");
       return;
@@ -165,7 +277,6 @@ export default function SellerProfilePage() {
     setReviewMessage("");
 
     if (myReview) {
-      // Update existing review
       const { error } = await supabase
         .from("reviews")
         .update({ rating: reviewRating, comment: reviewComment })
@@ -189,7 +300,6 @@ export default function SellerProfilePage() {
         }, 2000);
       }
     } else {
-      // Create new review
       const { data, error } = await supabase
         .from("reviews")
         .insert([
@@ -268,26 +378,28 @@ export default function SellerProfilePage() {
     );
   }
 
-  // Clean phone for WhatsApp
   let cleanPhone = (seller.phone || "").replace(/[^0-9]/g, "");
   if (cleanPhone.startsWith("0")) cleanPhone = "27" + cleanPhone.substring(1);
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
     `Hi ${seller.name}, I found your profile on Balray Autos and I'm interested in your listings.`
   )}`;
 
-  // Calculate average rating
   const avgRating =
     reviews.length > 0
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
       : 0;
 
-  // Rating distribution
   const ratingDist = [5, 4, 3, 2, 1].map((star) => ({
     star,
     count: reviews.filter((r) => r.rating === star).length,
   }));
 
   const isOwnProfile = currentUser?.id === sellerId;
+
+  // Member since year
+  const memberSince = seller.joinedAt
+    ? new Date(seller.joinedAt).toLocaleDateString("en-ZA", { year: "numeric", month: "long" })
+    : "Recently";
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
@@ -334,6 +446,7 @@ export default function SellerProfilePage() {
                 <span>📍 {seller.location}</span>
                 <span>🚗 {seller.totalListings} active listing{seller.totalListings === 1 ? "" : "s"}</span>
                 <span>👁️ {seller.totalViews} total views</span>
+                <span>📅 Member since {memberSince}</span>
               </div>
             </div>
 
@@ -348,6 +461,32 @@ export default function SellerProfilePage() {
               </a>
             </div>
           </div>
+
+          {/* BADGES */}
+          {badges.length > 0 && (
+            <div className="mt-8 rounded-2xl border border-[#D5DBDF] bg-white/80 p-5 backdrop-blur">
+              <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+                🛡️ Trust & Achievements
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {badges.map((badge) => (
+                  <div
+                    key={badge.id}
+                    className={`group relative flex items-center gap-2 rounded-full bg-gradient-to-r ${badge.color} px-4 py-2 text-sm font-bold text-white shadow-md`}
+                  >
+                    <span className="text-lg">{badge.icon}</span>
+                    <span>{badge.label}</span>
+
+                    {/* Tooltip on hover */}
+                    <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden w-64 -translate-x-1/2 rounded-xl bg-[#34414A] p-3 text-xs font-normal text-white shadow-lg group-hover:block">
+                      {badge.description}
+                      <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-[#34414A]"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -427,7 +566,6 @@ export default function SellerProfilePage() {
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[1fr_1.5fr]">
 
-            {/* LEFT: SUMMARY */}
             <div>
               <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
                 Reviews
@@ -483,7 +621,6 @@ export default function SellerProfilePage() {
                 </div>
               )}
 
-              {/* WRITE REVIEW BUTTON */}
               {!isOwnProfile && currentUser && (
                 <div className="mt-6">
                   {myReview ? (
@@ -539,7 +676,6 @@ export default function SellerProfilePage() {
                 </div>
               )}
 
-              {/* REVIEW FORM */}
               {showReviewForm && (
                 <form
                   onSubmit={handleSubmitReview}
@@ -614,7 +750,6 @@ export default function SellerProfilePage() {
               )}
             </div>
 
-            {/* RIGHT: REVIEW LIST */}
             <div>
               <h3 className="text-lg font-black text-[#34414A]">
                 {reviews.length > 0
