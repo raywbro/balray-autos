@@ -48,21 +48,51 @@ export default function AdminPage() {
     checkAdminAndFetch();
   }, [router, supabase]);
 
-  const handleApprove = async (id: string) => {
-    const confirmed = confirm("Approve this listing? It will become visible on the public marketplace.");
+  const handleApprove = async (item: any) => {
+    const confirmed = confirm("Approve this listing? It will become visible on the public marketplace, and the seller will be emailed.");
     if (!confirmed) return;
 
     const { error } = await supabase
       .from("listings")
       .update({ status: "active" })
-      .eq("id", id);
+      .eq("id", item.id);
 
     if (error) {
       alert("Error approving listing: " + error.message);
-    } else {
-      setListings(listings.map((item) => (item.id === id ? { ...item, status: "active" } : item)));
-      setMessage("Listing approved successfully.");
+      return;
     }
+
+    setListings(listings.map((l) => (l.id === item.id ? { ...l, status: "active" } : l)));
+    setMessage("Listing approved. Sending email to seller...");
+
+    // Send email notification (silent fail — approval still happened)
+    try {
+      const listingTitle = `${item.year ? item.year + " " : ""}${item.make} ${item.model}`;
+      const listingPrice = `R${Number(item.price).toLocaleString()}`;
+
+      const res = await fetch("/api/send-approval", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sellerEmail: item.seller_email,
+          sellerName: item.seller_name,
+          listingTitle,
+          listingPrice,
+          listingId: item.id,
+        }),
+      });
+
+      if (res.ok) {
+        setMessage(`✓ Listing approved and email sent to ${item.seller_email}`);
+      } else {
+        setMessage(`✓ Listing approved (email may have failed — check the seller's email manually)`);
+      }
+    } catch (err) {
+      console.error("Email send error:", err);
+      setMessage(`✓ Listing approved (email could not be sent)`);
+    }
+
+    setTimeout(() => setMessage(""), 6000);
   };
 
   const handleToggleFeatured = async (id: string, currentFeatured: boolean) => {
@@ -81,6 +111,7 @@ export default function AdminPage() {
     } else {
       setListings(listings.map((item) => (item.id === id ? { ...item, featured: newValue } : item)));
       setMessage(`Listing ${newValue ? "featured" : "un-featured"} successfully.`);
+      setTimeout(() => setMessage(""), 3000);
     }
   };
 
@@ -89,12 +120,13 @@ export default function AdminPage() {
     if (!confirmed) return;
 
     const { error } = await supabase.from("listings").delete().eq("id", id);
-    
+
     if (error) {
       alert("Error deleting listing: " + error.message);
     } else {
       setListings(listings.filter((item) => item.id !== id));
       setMessage("Listing deleted successfully.");
+      setTimeout(() => setMessage(""), 3000);
     }
   };
 
@@ -171,7 +203,7 @@ export default function AdminPage() {
                       R{Number(item.price).toLocaleString()}
                     </p>
                     <p className="text-xs text-[#66737C] mt-1">
-                      Listed by: {item.seller_name} • 📍 {item.location} • 👁️ {item.views || 0} views
+                      Listed by: {item.seller_name} • {item.seller_email} • 📍 {item.location} • 👁️ {item.views || 0} views
                     </p>
                   </div>
                 </div>
@@ -186,7 +218,7 @@ export default function AdminPage() {
 
                   {item.status !== "active" && (
                     <button
-                      onClick={() => handleApprove(item.id)}
+                      onClick={() => handleApprove(item)}
                       className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-green-700"
                     >
                       Approve
