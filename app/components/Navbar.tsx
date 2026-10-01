@@ -112,6 +112,7 @@ export default function Navbar() {
             </Link>
           )}
 
+          <Link href="/blog" className={navLinkClass("/blog")}>Blog</Link>
           <Link href="/about" className={navLinkClass("/about")}>About</Link>
           <Link href="/contact" className={navLinkClass("/contact")}>Contact</Link>
 
@@ -192,6 +193,9 @@ export default function Navbar() {
               </Link>
             )}
 
+            <Link href="/blog" onClick={() => setMenuOpen(false)} className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]">
+              Blog
+            </Link>
             <Link href="/about" onClick={() => setMenuOpen(false)} className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]">
               About
             </Link>
