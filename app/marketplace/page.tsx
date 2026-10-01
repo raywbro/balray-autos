@@ -52,12 +52,24 @@ function MarketplaceContent() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [compareList, setCompareList] = useState<string[]>([]);
+  const [compareToast, setCompareToast] = useState("");
   const supabase = createClient();
 
   useEffect(() => {
     setSelectedCategory(searchParams.get("category") || "All");
     setSearch(searchParams.get("q") || "");
   }, [searchParams]);
+
+  // Load compare list from localStorage
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("balray_compare") || "[]");
+      setCompareList(stored);
+    } catch (err) {
+      console.error("Error loading compare:", err);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -86,10 +98,8 @@ function MarketplaceContent() {
             category: categoryMap[item.category] || item.category,
             price: `R${price.toLocaleString()}`,
             priceValue: price,
-            previousPrice: previous,
             previousPriceFormatted: previous ? `R${previous.toLocaleString()}` : null,
             hasPriceDrop,
-            savings,
             savingsFormatted: `R${savings.toLocaleString()}`,
             percentOff,
             year: item.year ? item.year.toString() : "N/A",
@@ -151,6 +161,27 @@ function MarketplaceContent() {
         .from("favorites")
         .insert({ user_id: user.id, listing_id: listingId });
     }
+  };
+
+  const toggleCompare = (listingId: string) => {
+    let newList: string[];
+
+    if (compareList.includes(listingId)) {
+      newList = compareList.filter((id) => id !== listingId);
+      setCompareToast("Removed from comparison");
+    } else {
+      if (compareList.length >= 4) {
+        setCompareToast("You can compare up to 4 vehicles");
+        setTimeout(() => setCompareToast(""), 2500);
+        return;
+      }
+      newList = [...compareList, listingId];
+      setCompareToast("Added to comparison ✓");
+    }
+
+    setCompareList(newList);
+    localStorage.setItem("balray_compare", JSON.stringify(newList));
+    setTimeout(() => setCompareToast(""), 2500);
   };
 
   const clearAllFilters = () => {
@@ -432,14 +463,12 @@ function MarketplaceContent() {
                       {listing.category}
                     </div>
 
-                    {/* FEATURED BADGE */}
                     {listing.featured && (
                       <div className="absolute left-4 top-14 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
                         ⭐ FEATURED
                       </div>
                     )}
 
-                    {/* PRICE DROP BADGE */}
                     {listing.hasPriceDrop && (
                       <div className="absolute right-4 top-4 rounded-full bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-md animate-pulse">
                         💰 PRICE DROP
@@ -458,7 +487,6 @@ function MarketplaceContent() {
                   <div className="p-5">
                     <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">{listing.title}</h3>
 
-                    {/* PRICE DISPLAY */}
                     <div className="mt-3">
                       {listing.hasPriceDrop ? (
                         <div className="flex flex-wrap items-baseline gap-2">
@@ -497,12 +525,31 @@ function MarketplaceContent() {
                         <div className="mt-1 font-bold text-[#34414A]">{listing.fuel}</div>
                       </div>
                     </div>
+
                     <div className="mt-4 border-t border-[#E1E5E8] pt-4">
                       <div className="text-sm text-[#66737C]">📍 {listing.location}</div>
                     </div>
-                    <Link href={`/listing/${listing.id}`} className="mt-5 block w-full rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]">
-                      View Listing
-                    </Link>
+
+                    {/* ACTION BUTTONS */}
+                    <div className="mt-5 grid grid-cols-2 gap-2">
+                      <Link
+                        href={`/listing/${listing.id}`}
+                        className="rounded-xl border border-[#B08D3C] bg-white px-4 py-3 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+                      >
+                        View
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => toggleCompare(listing.id)}
+                        className={`rounded-xl px-4 py-3 text-sm font-bold transition ${
+                          compareList.includes(listing.id)
+                            ? "bg-[#34414A] text-white hover:bg-[#4A5962]"
+                            : "border border-[#D5DBDF] bg-white text-[#34414A] hover:border-[#34414A] hover:bg-[#F7F8F9]"
+                        }`}
+                      >
+                        {compareList.includes(listing.id) ? "✓ Added" : "⚖️ Compare"}
+                      </button>
+                    </div>
                   </div>
                 </article>
               ))}
@@ -533,6 +580,52 @@ function MarketplaceContent() {
           </Link>
         </div>
       </section>
+
+      {/* FLOATING COMPARE BAR */}
+      {compareList.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 z-40 w-[95%] max-w-3xl -translate-x-1/2 rounded-2xl border-2 border-[#B08D3C] bg-white p-4 shadow-2xl">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-lg text-white">
+                ⚖️
+              </div>
+              <div>
+                <div className="text-sm font-black text-[#34414A]">
+                  {compareList.length} vehicle{compareList.length === 1 ? "" : "s"} to compare
+                </div>
+                <div className="text-xs text-[#66737C]">
+                  Compare up to 4 side-by-side
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCompareList([]);
+                  localStorage.removeItem("balray_compare");
+                }}
+                className="rounded-xl border border-[#D5DBDF] bg-white px-4 py-2.5 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
+              >
+                Clear
+              </button>
+              <Link
+                href="/compare"
+                className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-2.5 text-sm font-bold text-white shadow-md hover:brightness-105"
+              >
+                Compare Now →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST */}
+      {compareToast && (
+        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-[#34414A] px-6 py-3 text-sm font-bold text-white shadow-lg">
+          {compareToast}
+        </div>
+      )}
     </>
   );
 }
