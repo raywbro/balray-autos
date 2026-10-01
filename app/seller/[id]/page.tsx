@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -27,7 +28,6 @@ function Stars({ rating, size = "base" }: { rating: number; size?: "sm" | "base"
   );
 }
 
-// Badge type
 type Badge = {
   id: string;
   icon: string;
@@ -51,7 +51,6 @@ export default function SellerProfilePage() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewMessage, setReviewMessage] = useState("");
 
-  // Badges
   const [badges, setBadges] = useState<Badge[]>([]);
 
   const params = useParams();
@@ -84,10 +83,8 @@ export default function SellerProfilePage() {
       const totalPhotos = listingsData.reduce((sum, item) => sum + (item.images?.length || 0), 0);
       const avgPhotos = listingsData.length > 0 ? totalPhotos / listingsData.length : 0;
 
-      // Distinct categories
       const distinctCategories = new Set(listingsData.map((l) => l.category));
 
-      // Days since last listing
       const latestListingDate = new Date(listingsData[0].created_at);
       const daysSinceLastListing =
         (Date.now() - latestListingDate.getTime()) / (1000 * 60 * 60 * 24);
@@ -172,7 +169,6 @@ export default function SellerProfilePage() {
     }
   }, [sellerId, supabase]);
 
-  // Compute badges once seller + reviews are loaded
   useEffect(() => {
     if (!seller) return;
 
@@ -182,7 +178,6 @@ export default function SellerProfilePage() {
         ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
         : 0;
 
-    // 📱 Phone Verified — always shown since signup requires phone
     if (seller.phone) {
       computed.push({
         id: "phone",
@@ -193,7 +188,6 @@ export default function SellerProfilePage() {
       });
     }
 
-    // 🏆 Top Seller — 5+ active listings
     if (seller.totalListings >= 5) {
       computed.push({
         id: "top",
@@ -204,7 +198,6 @@ export default function SellerProfilePage() {
       });
     }
 
-    // 💎 Trusted — 4+ avg rating with 3+ reviews
     if (avgRating >= 4 && reviews.length >= 3) {
       computed.push({
         id: "trusted",
@@ -215,7 +208,6 @@ export default function SellerProfilePage() {
       });
     }
 
-    // 🔥 Active — listed in last 7 days
     if (seller.daysSinceLastListing <= 7) {
       computed.push({
         id: "active",
@@ -226,7 +218,6 @@ export default function SellerProfilePage() {
       });
     }
 
-    // 📸 Photo Pro — avg 4+ photos per listing
     if (seller.avgPhotos >= 4) {
       computed.push({
         id: "photos",
@@ -237,7 +228,6 @@ export default function SellerProfilePage() {
       });
     }
 
-    // 🎯 Variety — listings in 3+ categories
     if (seller.distinctCategories >= 3) {
       computed.push({
         id: "variety",
@@ -248,7 +238,6 @@ export default function SellerProfilePage() {
       });
     }
 
-    // ✅ Sold History — at least 1 sold
     if (seller.soldCount >= 1) {
       computed.push({
         id: "sold",
@@ -374,6 +363,7 @@ export default function SellerProfilePage() {
             Browse Marketplace
           </Link>
         </div>
+        <Footer />
       </main>
     );
   }
@@ -396,7 +386,6 @@ export default function SellerProfilePage() {
 
   const isOwnProfile = currentUser?.id === sellerId;
 
-  // Member since year
   const memberSince = seller.joinedAt
     ? new Date(seller.joinedAt).toLocaleDateString("en-ZA", { year: "numeric", month: "long" })
     : "Recently";
@@ -462,7 +451,6 @@ export default function SellerProfilePage() {
             </div>
           </div>
 
-          {/* BADGES */}
           {badges.length > 0 && (
             <div className="mt-8 rounded-2xl border border-[#D5DBDF] bg-white/80 p-5 backdrop-blur">
               <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
@@ -477,7 +465,6 @@ export default function SellerProfilePage() {
                     <span className="text-lg">{badge.icon}</span>
                     <span>{badge.label}</span>
 
-                    {/* Tooltip on hover */}
                     <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden w-64 -translate-x-1/2 rounded-xl bg-[#34414A] p-3 text-xs font-normal text-white shadow-lg group-hover:block">
                       {badge.description}
                       <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-[#34414A]"></div>
@@ -811,26 +798,7 @@ export default function SellerProfilePage() {
         </div>
       </section>
 
-      <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <img src="/balray-autos-logo.png" alt="Balray Autos" className="h-11 w-auto max-w-[180px] object-contain" />
-              <p className="mt-3 text-sm text-[#68757D]">South African automotive marketplace.</p>
-            </div>
-            <div className="flex flex-wrap gap-5 text-sm font-semibold">
-              <Link href="/" className="text-[#68757D] hover:text-[#9A7B37]">Home</Link>
-              <Link href="/marketplace" className="text-[#68757D] hover:text-[#9A7B37]">Marketplace</Link>
-              <Link href="/sell" className="text-[#68757D] hover:text-[#9A7B37]">Sell</Link>
-              <Link href="/about" className="text-[#68757D] hover:text-[#9A7B37]">About</Link>
-              <Link href="/contact" className="text-[#68757D] hover:text-[#9A7B37]">Contact</Link>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-[#D3D9DD] pt-5 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
