@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 import imageCompression from "browser-image-compression";
 
 export default function SellPage() {
@@ -37,16 +38,13 @@ export default function SellPage() {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    // Limit to 10 images total
     const combined = [...selectedFiles, ...files].slice(0, 10);
     setSelectedFiles(combined);
 
-    // Generate previews
     const newPreviews: string[] = [];
     combined.forEach((file) => {
       newPreviews.push(URL.createObjectURL(file));
     });
-    // Revoke old previews to avoid memory leaks
     previews.forEach((url) => URL.revokeObjectURL(url));
     setPreviews(newPreviews);
   };
@@ -80,7 +78,6 @@ export default function SellPage() {
     const imageUrls: string[] = [];
 
     try {
-      // UPLOAD IMAGES (from selectedFiles state, not form)
       if (selectedFiles.length > 0) {
         for (let i = 0; i < selectedFiles.length; i++) {
           const file = selectedFiles[i];
@@ -143,7 +140,6 @@ export default function SellPage() {
       const { error: dbError } = await supabase.from("listings").insert([newListing]);
       if (dbError) throw dbError;
 
-      // Clean up preview URLs
       previews.forEach((url) => URL.revokeObjectURL(url));
 
       setUploading(false);
@@ -367,7 +363,6 @@ export default function SellPage() {
                     </p>
                   </div>
 
-                  {/* PREVIEWS */}
                   {previews.length > 0 && (
                     <div className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                       {previews.map((preview, index) => (
@@ -383,14 +378,12 @@ export default function SellPage() {
                             className="aspect-[16/10] h-full w-full object-cover"
                           />
 
-                          {/* MAIN BADGE */}
                           {index === 0 && (
                             <div className="absolute left-2 top-2 rounded-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C] px-2 py-1 text-[10px] font-bold text-white shadow-md">
                               MAIN
                             </div>
                           )}
 
-                          {/* REMOVE */}
                           <button
                             type="button"
                             onClick={() => removeImage(index)}
@@ -400,7 +393,6 @@ export default function SellPage() {
                             ×
                           </button>
 
-                          {/* REORDER CONTROLS */}
                           <div className="absolute bottom-2 left-2 right-2 flex justify-between gap-1">
                             <button
                               type="button"
@@ -426,7 +418,6 @@ export default function SellPage() {
                     </div>
                   )}
 
-                  {/* UPLOAD BUTTON */}
                   {selectedFiles.length < 10 && (
                     <label
                       htmlFor="photos"
@@ -482,6 +473,8 @@ export default function SellPage() {
           )}
         </div>
       </section>
+
+      <Footer />
     </main>
   );
 }
