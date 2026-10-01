@@ -38,6 +38,7 @@ function MarketplaceContent() {
 
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [search, setSearch] = useState(initialSearch);
+  const [sortBy, setSortBy] = useState("featured");
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -51,10 +52,12 @@ function MarketplaceContent() {
 
   useEffect(() => {
     const fetchListings = async () => {
+      const now = new Date().toISOString();
       const { data, error } = await supabase
         .from("listings")
         .select("*")
         .eq("status", "active")
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order("featured", { ascending: false })
         .order("created_at", { ascending: false });
 
@@ -66,12 +69,16 @@ function MarketplaceContent() {
           title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
           category: categoryMap[item.category] || item.category,
           price: `R${Number(item.price).toLocaleString()}`,
+          priceValue: Number(item.price),
           year: item.year ? item.year.toString() : "N/A",
+          yearValue: item.year || 0,
           mileage: item.mileage || "N/A",
           location: item.location,
           transmission: transmissionMap[item.transmission] || item.transmission || "N/A",
           fuel: fuelMap[item.fuel] || item.fuel || "N/A",
           featured: item.featured || false,
+          views: item.views || 0,
+          createdAt: item.created_at,
           image:
             item.images && item.images.length > 0
               ? item.images[0]
@@ -107,7 +114,6 @@ function MarketplaceContent() {
     const isFav = favorites.includes(listingId);
 
     if (isFav) {
-      // Remove from favorites
       setFavorites(favorites.filter((id) => id !== listingId));
       await supabase
         .from("favorites")
@@ -115,7 +121,6 @@ function MarketplaceContent() {
         .eq("user_id", user.id)
         .eq("listing_id", listingId);
     } else {
-      // Add to favorites
       setFavorites([...favorites, listingId]);
       await supabase
         .from("favorites")
@@ -143,6 +148,32 @@ function MarketplaceContent() {
       listing.category.toLowerCase().includes(searchText) ||
       listing.location.toLowerCase().includes(searchText);
     return matchesCategory && matchesSearch;
+  });
+
+  // SORTING LOGIC
+  const sortedListings = [...filteredListings].sort((a, b) => {
+    switch (sortBy) {
+      case "price-low":
+        return a.priceValue - b.priceValue;
+      case "price-high":
+        return b.priceValue - a.priceValue;
+      case "newest":
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      case "oldest":
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      case "popular":
+        return b.views - a.views;
+      case "year-new":
+        return b.yearValue - a.yearValue;
+      case "year-old":
+        return a.yearValue - b.yearValue;
+      case "featured":
+      default:
+        // Featured first, then newest
+        if (a.featured && !b.featured) return -1;
+        if (!a.featured && b.featured) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
   });
 
   return (
@@ -206,18 +237,43 @@ function MarketplaceContent() {
             ))}
           </div>
 
-          <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          {/* TITLE + SORT */}
+          <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">Marketplace</div>
               <h2 className="mt-2 text-3xl font-black tracking-tight text-[#34414A]">Available Listings</h2>
               <p className="mt-2 text-sm text-[#66737C]">
-                Showing {filteredListings.length} listing{filteredListings.length === 1 ? "" : "s"}
+                Showing {sortedListings.length} listing{sortedListings.length === 1 ? "" : "s"}
                 {search && <span> for &quot;{search}&quot;</span>}
               </p>
             </div>
-            <Link href="/sell" className="inline-flex w-full justify-center rounded-xl bg-[#34414A] px-5 py-3 text-sm font-bold text-white hover:bg-[#4A5962] sm:w-auto">
-              Sell Your Vehicle
-            </Link>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* SORT DROPDOWN */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
+                  Sort by:
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm font-bold text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                >
+                  <option value="featured">⭐ Featured First</option>
+                  <option value="newest">🆕 Newest Arrivals</option>
+                  <option value="oldest">📅 Oldest Listings</option>
+                  <option value="price-low">💰 Price: Low to High</option>
+                  <option value="price-high">💎 Price: High to Low</option>
+                  <option value="popular">👁️ Most Popular</option>
+                  <option value="year-new">🚗 Year: Newest</option>
+                  <option value="year-old">🚙 Year: Oldest</option>
+                </select>
+              </div>
+
+              <Link href="/sell" className="inline-flex justify-center rounded-xl bg-[#34414A] px-5 py-3 text-sm font-bold text-white hover:bg-[#4A5962]">
+                Sell Your Vehicle
+              </Link>
+            </div>
           </div>
 
           {loading ? (
@@ -225,9 +281,9 @@ function MarketplaceContent() {
               <div className="text-4xl">🚗</div>
               <h3 className="mt-4 text-xl font-black text-[#34414A]">Loading vehicles...</h3>
             </div>
-          ) : filteredListings.length > 0 ? (
+          ) : sortedListings.length > 0 ? (
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredListings.map((listing) => (
+              {sortedListings.map((listing) => (
                 <article
                   key={listing.id}
                   className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
@@ -246,7 +302,6 @@ function MarketplaceContent() {
                         ⭐ FEATURED
                       </div>
                     )}
-                    {/* HEART BUTTON */}
                     <button
                       type="button"
                       onClick={() => toggleFavorite(listing.id)}
