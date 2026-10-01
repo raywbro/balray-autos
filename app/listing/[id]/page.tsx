@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
@@ -39,15 +39,11 @@ function cleanPhone(phone: string) {
   return cleaned;
 }
 
-// Save a viewed listing to localStorage
 function saveRecentlyViewed(listingId: string) {
   try {
     const existing = JSON.parse(localStorage.getItem("balray_recently_viewed") || "[]");
-    // Remove if already there
     const filtered = existing.filter((id: string) => id !== listingId);
-    // Add to the front
     filtered.unshift(listingId);
-    // Keep only the latest 8
     const trimmed = filtered.slice(0, 8);
     localStorage.setItem("balray_recently_viewed", JSON.stringify(trimmed));
   } catch (err) {
@@ -62,6 +58,10 @@ export default function ListingDetailPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [copied, setCopied] = useState(false);
 
+  // Fullscreen lightbox
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  // Report modal
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
@@ -116,11 +116,8 @@ export default function ListingDetailPage() {
 
       setListing(formatted);
       setLoading(false);
-
-      // Save to recently viewed
       saveRecentlyViewed(data.id);
 
-      // Fetch similar listings
       const now = new Date().toISOString();
       const { data: similarData } = await supabase
         .from("listings")
@@ -158,6 +155,38 @@ export default function ListingDetailPage() {
 
     if (id) fetchListing();
   }, [id, supabase]);
+
+  // Lightbox keyboard controls
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!lightboxOpen || !listing) return;
+      if (e.key === "Escape") setLightboxOpen(false);
+      if (e.key === "ArrowRight") {
+        setActiveImage((prev) => (prev + 1) % listing.images.length);
+      }
+      if (e.key === "ArrowLeft") {
+        setActiveImage((prev) => (prev - 1 + listing.images.length) % listing.images.length);
+      }
+    },
+    [lightboxOpen, listing]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
+  // Lock body scroll when lightbox open
+  useEffect(() => {
+    if (lightboxOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [lightboxOpen]);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -267,7 +296,12 @@ export default function ListingDetailPage() {
 
             {/* LEFT COLUMN */}
             <div>
-              <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-[#D5DBDF] bg-[#E9EDF0]">
+              {/* MAIN IMAGE — Clickable */}
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(true)}
+                className="group relative block aspect-[16/10] w-full cursor-zoom-in overflow-hidden rounded-2xl border border-[#D5DBDF] bg-[#E9EDF0]"
+              >
                 <img
                   src={listing.images[activeImage]}
                   alt={listing.title}
@@ -281,8 +315,12 @@ export default function ListingDetailPage() {
                     {activeImage + 1} / {listing.images.length}
                   </div>
                 )}
-              </div>
+                <div className="absolute bottom-4 right-4 rounded-full bg-black/60 px-3 py-2 text-xs font-bold text-white backdrop-blur opacity-0 transition group-hover:opacity-100">
+                  🔍 Click to view fullscreen
+                </div>
+              </button>
 
+              {/* THUMBNAILS */}
               {listing.images.length > 1 && (
                 <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
                   {listing.images.map((img: string, index: number) => (
@@ -301,6 +339,7 @@ export default function ListingDetailPage() {
                 </div>
               )}
 
+              {/* DESCRIPTION */}
               <div className="mt-8 rounded-2xl border border-[#D5DBDF] bg-white p-6 sm:p-8">
                 <h2 className="text-2xl font-black text-[#34414A] mb-4">Description</h2>
                 <p className="text-sm leading-7 text-[#66737C] whitespace-pre-wrap">
@@ -308,6 +347,7 @@ export default function ListingDetailPage() {
                 </p>
               </div>
 
+              {/* SHARE BUTTONS */}
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <button
                   onClick={handleShare}
@@ -478,6 +518,92 @@ export default function ListingDetailPage() {
           </div>
         </div>
       </section>
+
+      {/* FULLSCREEN LIGHTBOX */}
+      {lightboxOpen && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-sm"
+          onClick={() => setLightboxOpen(false)}
+        >
+          {/* CLOSE */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxOpen(false);
+            }}
+            className="absolute right-4 top-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-3xl text-white backdrop-blur transition hover:bg-white/20"
+            aria-label="Close"
+          >
+            ×
+          </button>
+
+          {/* COUNTER */}
+          <div className="absolute left-4 top-6 z-10 rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white backdrop-blur">
+            {activeImage + 1} / {listing.images.length}
+          </div>
+
+          {/* PREV */}
+          {listing.images.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveImage((prev) => (prev - 1 + listing.images.length) % listing.images.length);
+              }}
+              className="absolute left-4 top-1/2 z-10 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-3xl text-white backdrop-blur transition hover:bg-white/20"
+              aria-label="Previous"
+            >
+              ‹
+            </button>
+          )}
+
+          {/* IMAGE */}
+          <img
+            src={listing.images[activeImage]}
+            alt={listing.title}
+            className="max-h-[90vh] max-w-[90vw] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* NEXT */}
+          {listing.images.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveImage((prev) => (prev + 1) % listing.images.length);
+              }}
+              className="absolute right-4 top-1/2 z-10 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-3xl text-white backdrop-blur transition hover:bg-white/20"
+              aria-label="Next"
+            >
+              ›
+            </button>
+          )}
+
+          {/* BOTTOM THUMBNAILS */}
+          {listing.images.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 z-10 flex max-w-[90vw] -translate-x-1/2 gap-2 overflow-x-auto rounded-2xl bg-white/10 p-2 backdrop-blur">
+              {listing.images.map((img: string, index: number) => (
+                <button
+                  key={index}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImage(index);
+                  }}
+                  className={`h-14 w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                    activeImage === index ? "border-[#B08D3C]" : "border-transparent opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  <img src={img} alt={`Thumb ${index}`} className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* HINT */}
+          <div className="absolute top-6 right-20 z-10 hidden rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-white backdrop-blur md:block">
+            Use ← → keys to navigate • ESC to close
+          </div>
+        </div>
+      )}
 
       {/* REPORT MODAL */}
       {reportOpen && (

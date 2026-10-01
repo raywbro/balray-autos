@@ -14,11 +14,12 @@ export default function SellPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
 
   const router = useRouter();
   const supabase = createClient();
 
-  // THE BOUNCER
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -32,6 +33,44 @@ export default function SellPage() {
     checkUser();
   }, [router, supabase]);
 
+  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Limit to 10 images total
+    const combined = [...selectedFiles, ...files].slice(0, 10);
+    setSelectedFiles(combined);
+
+    // Generate previews
+    const newPreviews: string[] = [];
+    combined.forEach((file) => {
+      newPreviews.push(URL.createObjectURL(file));
+    });
+    // Revoke old previews to avoid memory leaks
+    previews.forEach((url) => URL.revokeObjectURL(url));
+    setPreviews(newPreviews);
+  };
+
+  const removeImage = (index: number) => {
+    URL.revokeObjectURL(previews[index]);
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    const newPreviews = previews.filter((_, i) => i !== index);
+    setSelectedFiles(newFiles);
+    setPreviews(newPreviews);
+  };
+
+  const moveImage = (index: number, direction: "left" | "right") => {
+    const newIndex = direction === "left" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= selectedFiles.length) return;
+
+    const newFiles = [...selectedFiles];
+    const newPreviews = [...previews];
+    [newFiles[index], newFiles[newIndex]] = [newFiles[newIndex], newFiles[index]];
+    [newPreviews[index], newPreviews[newIndex]] = [newPreviews[newIndex], newPreviews[index]];
+    setSelectedFiles(newFiles);
+    setPreviews(newPreviews);
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setUploading(true);
@@ -41,30 +80,25 @@ export default function SellPage() {
     const imageUrls: string[] = [];
 
     try {
-      // 1. COMPRESS & UPLOAD IMAGES
-      const files = formData.getAll("photos") as File[];
-      const validFiles = files.filter((file) => file.size > 0);
+      // UPLOAD IMAGES (from selectedFiles state, not form)
+      if (selectedFiles.length > 0) {
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          setUploadProgress(`Compressing image ${i + 1} of ${selectedFiles.length}...`);
 
-      if (validFiles.length > 0) {
-        for (let i = 0; i < validFiles.length; i++) {
-          const file = validFiles[i];
-          setUploadProgress(`Compressing image ${i + 1} of ${validFiles.length}...`);
-
-          // Compress the image
           const compressedFile = await imageCompression(file, {
-            maxSizeMB: 0.5,           // Max 500 KB per image
-            maxWidthOrHeight: 1600,   // Resize to max 1600px
+            maxSizeMB: 0.5,
+            maxWidthOrHeight: 1600,
             useWebWorker: true,
             fileType: "image/jpeg",
             initialQuality: 0.85,
           });
 
-          setUploadProgress(`Uploading image ${i + 1} of ${validFiles.length}...`);
+          setUploadProgress(`Uploading image ${i + 1} of ${selectedFiles.length}...`);
 
-          const fileExt = "jpg"; // Always save as jpg after compression
-          const fileName = `${user.id}-${Date.now()}-${Math.random()
+          const fileName = `${user.id}-${Date.now()}-${i}-${Math.random()
             .toString(36)
-            .substring(7)}.${fileExt}`;
+            .substring(7)}.jpg`;
 
           const { error: uploadError } = await supabase.storage
             .from("car-images")
@@ -83,7 +117,6 @@ export default function SellPage() {
         }
       }
 
-      // 2. SAVE LISTING TO DATABASE
       setUploadProgress("Saving your listing...");
 
       const newListing = {
@@ -109,6 +142,9 @@ export default function SellPage() {
 
       const { error: dbError } = await supabase.from("listings").insert([newListing]);
       if (dbError) throw dbError;
+
+      // Clean up preview URLs
+      previews.forEach((url) => URL.revokeObjectURL(url));
 
       setUploading(false);
       setUploadProgress("");
@@ -321,21 +357,105 @@ export default function SellPage() {
                   </div>
                 </div>
 
-                {/* IMAGES */}
+                {/* IMAGES WITH PREVIEW */}
                 <div className="border-t border-[#E1E5E8] pt-10">
                   <div className="mb-5">
                     <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">04</div>
                     <h3 className="mt-1 text-xl font-black text-[#34414A]">Photos</h3>
                     <p className="mt-1 text-sm text-[#66737C]">
-                      Add clear photos. Images are automatically optimized for fast loading.
+                      Add up to 10 photos. The first image becomes the main photo. Use the arrows to reorder.
                     </p>
                   </div>
-                  <label htmlFor="photos" className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D5DBDF] bg-[#F7F8F9] px-6 py-10 text-center transition hover:border-[#B08D3C] hover:bg-[#FBF7EC]">
-                    <div className="text-4xl">📷</div>
-                    <div className="mt-4 font-bold text-[#34414A]">Choose photos</div>
-                    <div className="mt-2 text-sm text-[#66737C]">JPG, PNG or WEBP images</div>
-                    <input id="photos" name="photos" type="file" accept="image/*" multiple className="hidden" />
-                  </label>
+
+                  {/* PREVIEWS */}
+                  {previews.length > 0 && (
+                    <div className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                      {previews.map((preview, index) => (
+                        <div
+                          key={index}
+                          className={`relative overflow-hidden rounded-xl border-2 ${
+                            index === 0 ? "border-[#B08D3C]" : "border-[#D5DBDF]"
+                          }`}
+                        >
+                          <img
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
+                            className="aspect-[16/10] h-full w-full object-cover"
+                          />
+
+                          {/* MAIN BADGE */}
+                          {index === 0 && (
+                            <div className="absolute left-2 top-2 rounded-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C] px-2 py-1 text-[10px] font-bold text-white shadow-md">
+                              MAIN
+                            </div>
+                          )}
+
+                          {/* REMOVE */}
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white shadow-md transition hover:bg-red-700"
+                            aria-label="Remove image"
+                          >
+                            ×
+                          </button>
+
+                          {/* REORDER CONTROLS */}
+                          <div className="absolute bottom-2 left-2 right-2 flex justify-between gap-1">
+                            <button
+                              type="button"
+                              onClick={() => moveImage(index, "left")}
+                              disabled={index === 0}
+                              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-sm font-bold text-[#34414A] shadow-md transition hover:bg-white disabled:opacity-30"
+                              aria-label="Move left"
+                            >
+                              ←
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveImage(index, "right")}
+                              disabled={index === previews.length - 1}
+                              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-sm font-bold text-[#34414A] shadow-md transition hover:bg-white disabled:opacity-30"
+                              aria-label="Move right"
+                            >
+                              →
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* UPLOAD BUTTON */}
+                  {selectedFiles.length < 10 && (
+                    <label
+                      htmlFor="photos"
+                      className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D5DBDF] bg-[#F7F8F9] px-6 py-10 text-center transition hover:border-[#B08D3C] hover:bg-[#FBF7EC]"
+                    >
+                      <div className="text-4xl">📷</div>
+                      <div className="mt-4 font-bold text-[#34414A]">
+                        {previews.length === 0 ? "Choose photos" : "Add more photos"}
+                      </div>
+                      <div className="mt-2 text-sm text-[#66737C]">
+                        JPG, PNG or WEBP — up to 10 images
+                      </div>
+                      <input
+                        id="photos"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleFilesSelected}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+
+                  {selectedFiles.length > 0 && (
+                    <p className="mt-3 text-center text-xs text-[#89939A]">
+                      {selectedFiles.length} image{selectedFiles.length === 1 ? "" : "s"} selected
+                      {selectedFiles.length >= 10 && " (maximum reached)"}
+                    </p>
+                  )}
                 </div>
 
                 {/* TERMS */}
@@ -362,27 +482,6 @@ export default function SellPage() {
           )}
         </div>
       </section>
-
-      <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <img src="/balray-autos-logo.png" alt="Balray Autos" className="h-11 w-auto max-w-[180px] object-contain" />
-              <p className="mt-3 text-sm text-[#68757D]">South African automotive marketplace.</p>
-            </div>
-            <div className="flex flex-wrap gap-5 text-sm font-semibold">
-              <Link href="/" className="text-[#68757D] hover:text-[#9A7B37]">Home</Link>
-              <Link href="/marketplace" className="text-[#68757D] hover:text-[#9A7B37]">Marketplace</Link>
-              <Link href="/sell" className="text-[#68757D] hover:text-[#9A7B37]">Sell</Link>
-              <Link href="/my-listings" className="text-[#68757D] hover:text-[#9A7B37]">My Listings</Link>
-              <Link href="/contact" className="text-[#68757D] hover:text-[#9A7B37]">Contact</Link>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-[#D3D9DD] pt-5 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }
