@@ -10,6 +10,7 @@ export default function AdminPage() {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [newReportCount, setNewReportCount] = useState(0);
   const router = useRouter();
   const supabase = createClient();
 
@@ -32,6 +33,7 @@ export default function AdminPage() {
         return;
       }
 
+      // Fetch listings
       const { data, error } = await supabase
         .from("listings")
         .select("*")
@@ -42,6 +44,14 @@ export default function AdminPage() {
       } else {
         setListings(data || []);
       }
+
+      // Fetch new reports count
+      const { count } = await supabase
+        .from("reports")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "new");
+
+      setNewReportCount(count || 0);
       setLoading(false);
     };
 
@@ -152,7 +162,7 @@ export default function AdminPage() {
       <Navbar />
 
       <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="inline-flex items-center gap-3 rounded-full border border-[#D3B86A]/50 bg-[#FBF7EC] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#8F7130]">
               <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-[#8F7130] to-[#D2B66A]" />
@@ -166,13 +176,26 @@ export default function AdminPage() {
             </p>
           </div>
 
-          {/* STATS LINK */}
-          <Link
-            href="/admin/stats"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-sm font-bold text-white shadow-md hover:brightness-105"
-          >
-            📊 View Stats Dashboard
-          </Link>
+          {/* TOP-RIGHT ACTION BUTTONS */}
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/admin/reports"
+              className="relative inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-6 py-3 text-sm font-bold text-red-600 hover:bg-red-100"
+            >
+              🚩 Reports
+              {newReportCount > 0 && (
+                <span className="ml-1 inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-600 px-2 text-xs font-black text-white">
+                  {newReportCount}
+                </span>
+              )}
+            </Link>
+            <Link
+              href="/admin/stats"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-sm font-bold text-white shadow-md hover:brightness-105"
+            >
+              📊 Stats Dashboard
+            </Link>
+          </div>
         </div>
 
         {message && (
