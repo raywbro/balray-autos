@@ -40,7 +40,6 @@ export default function EditListingPage() {
         return;
       }
 
-      // Check: is this user the owner OR an admin?
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
@@ -87,7 +86,7 @@ export default function EditListingPage() {
       transmission: formData.get("transmission"),
       fuel: formData.get("fuel"),
       description: formData.get("description"),
-      status: "pending", // Re-set to pending so admin re-approves edits
+      status: "pending",
     };
 
     const { error } = await supabase.from("listings").update(updates).eq("id", id);
