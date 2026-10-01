@@ -30,6 +30,9 @@ export default function MyListingsPage() {
   const [sellingId, setSellingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
+  // Boost modal
+  const [boostListing, setBoostListing] = useState<any>(null);
+
   const router = useRouter();
   const supabase = createClient();
 
@@ -182,6 +185,17 @@ export default function MyListingsPage() {
   const totalViews = listings.reduce((sum, item) => sum + (item.views || 0), 0);
   const activeCount = listings.filter((l) => l.status === "active").length;
   const soldCount = listings.filter((l) => l.status === "sold").length;
+  const featuredCount = listings.filter((l) => l.featured === true).length;
+
+  // Boost WhatsApp message
+  const buildBoostWhatsAppUrl = (listing: any) => {
+    const title = `${listing.year ? listing.year + " " : ""}${listing.make} ${listing.model}`;
+    const price = `R${Number(listing.price).toLocaleString()}`;
+    const message = encodeURIComponent(
+      `Hi Balray Autos! I want to BOOST my listing:\n\n🚗 ${title}\n💰 ${price}\n📍 ${listing.location}\n\nListing ID: ${listing.id}\n\nI'd like to feature it for 30 days. Please send me payment details.`
+    );
+    return `https://wa.me/27815973009?text=${message}`;
+  };
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
@@ -213,6 +227,14 @@ export default function MyListingsPage() {
                 </div>
                 <div className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3">
                   <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
+                    Featured
+                  </div>
+                  <div className="mt-1 text-2xl font-black text-[#8F7130]">
+                    ⭐ {featuredCount}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3">
+                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
                     Sold
                   </div>
                   <div className="mt-1 text-2xl font-black text-green-600">
@@ -239,6 +261,36 @@ export default function MyListingsPage() {
           {message && (
             <div className="mb-6 rounded-xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4 text-center text-sm font-bold text-[#8F7130]">
               {message}
+            </div>
+          )}
+
+          {/* BOOST PROMO BANNER */}
+          {listings.filter((l) => l.status === "active" && !l.featured).length > 0 && (
+            <div className="mb-8 overflow-hidden rounded-2xl border border-[#D3B86A]/50 bg-gradient-to-r from-[#FBF7EC] via-[#F7F8F9] to-[#FBF7EC] p-6">
+              <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-2xl text-white shadow-md">
+                  🚀
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-black text-[#34414A]">
+                    Boost Your Listing for 3× More Views
+                  </h3>
+                  <p className="mt-1 text-sm text-[#66737C]">
+                    Featured listings appear at the top of the marketplace with a golden badge — buyers see them first.
+                  </p>
+                </div>
+                <div className="text-left sm:text-right">
+                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
+                    Only
+                  </div>
+                  <div className="text-2xl font-black text-[#8F7130]">
+                    R99
+                  </div>
+                  <div className="text-xs text-[#66737C]">
+                    for 30 days
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -273,22 +325,36 @@ export default function MyListingsPage() {
                 const isExpired = daysLeft !== null && daysLeft <= 0 && listing.status === "active";
                 const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 5;
                 const isSold = listing.status === "sold";
+                const canBoost = listing.status === "active" && !listing.featured && !isExpired;
 
                 return (
                   <div
                     key={listing.id}
                     className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${
-                      isSold ? "border-green-300 ring-2 ring-green-100" : "border-[#D5DBDF]"
+                      isSold
+                        ? "border-green-300 ring-2 ring-green-100"
+                        : listing.featured
+                        ? "border-2 border-[#B08D3C] ring-2 ring-[#B08D3C]/20"
+                        : "border-[#D5DBDF]"
                     }`}
                   >
                     <div className="grid gap-0 sm:grid-cols-[220px_minmax(0,1fr)]">
                       <div className="relative aspect-[16/10] sm:aspect-auto sm:h-full bg-[#E9EDF0]">
-                        <img src={image} alt={title} className={`h-full w-full object-cover ${isSold ? "opacity-60 grayscale" : ""}`} />
+                        <img
+                          src={image}
+                          alt={title}
+                          className={`h-full w-full object-cover ${isSold ? "opacity-60 grayscale" : ""}`}
+                        />
                         {isSold && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                             <div className="-rotate-12 rounded-lg bg-green-600 px-6 py-3 text-2xl font-black text-white shadow-lg">
                               SOLD
                             </div>
+                          </div>
+                        )}
+                        {listing.featured && !isSold && (
+                          <div className="absolute left-3 top-3 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-1.5 text-xs font-black text-white shadow-md">
+                            ⭐ FEATURED
                           </div>
                         )}
                       </div>
@@ -378,6 +444,15 @@ export default function MyListingsPage() {
                               Edit
                             </Link>
                           )}
+                          {canBoost && (
+                            <button
+                              type="button"
+                              onClick={() => setBoostListing(listing)}
+                              className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-5 py-3 text-sm font-bold text-white shadow-md hover:brightness-105"
+                            >
+                              🚀 Boost Listing
+                            </button>
+                          )}
                           {!isSold && (isExpired || listing.status === "active") && (
                             <button
                               type="button"
@@ -416,6 +491,107 @@ export default function MyListingsPage() {
           )}
         </div>
       </section>
+
+      {/* BOOST MODAL */}
+      {boostListing && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => setBoostListing(null)}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* HEADER */}
+            <div className="relative bg-gradient-to-br from-[#8F7130] via-[#B08D3C] to-[#A47F32] p-6 text-white">
+              <button
+                onClick={() => setBoostListing(null)}
+                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-lg text-white hover:bg-white/30"
+                aria-label="Close"
+              >
+                ×
+              </button>
+              <div className="text-4xl">🚀</div>
+              <h2 className="mt-3 text-2xl font-black">Boost This Listing</h2>
+              <p className="mt-1 text-sm text-white/90">
+                Get up to 3× more views for 30 days
+              </p>
+            </div>
+
+            {/* BODY */}
+            <div className="p-6">
+              {/* LISTING PREVIEW */}
+              <div className="flex items-center gap-3 rounded-xl border border-[#D5DBDF] bg-[#F7F8F9] p-3">
+                <img
+                  src={boostListing.images?.[0] || "/placeholder.png"}
+                  alt="listing"
+                  className="h-14 w-20 flex-shrink-0 rounded-lg object-cover"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-black text-[#34414A]">
+                    {boostListing.year} {boostListing.make} {boostListing.model}
+                  </div>
+                  <div className="text-xs font-bold text-[#9A7B37]">
+                    R{Number(boostListing.price).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              {/* BENEFITS */}
+              <div className="mt-5 space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="text-lg text-green-600">✓</span>
+                  <span className="text-sm text-[#4A5962]">
+                    Appears at the <strong>top of the marketplace</strong>
+                  </span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-lg text-green-600">✓</span>
+                  <span className="text-sm text-[#4A5962]">
+                    Gets a <strong>golden FEATURED badge</strong> on the listing card
+                  </span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-lg text-green-600">✓</span>
+                  <span className="text-sm text-[#4A5962]">
+                    Included in the <strong>homepage "Top Picks"</strong> section
+                  </span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-lg text-green-600">✓</span>
+                  <span className="text-sm text-[#4A5962]">
+                    Featured for a full <strong>30 days</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* PRICE */}
+              <div className="mt-6 rounded-xl border-2 border-[#D3B86A]/60 bg-[#FBF7EC] p-4 text-center">
+                <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
+                  Boost Price
+                </div>
+                <div className="mt-1 text-4xl font-black text-[#8F7130]">R99</div>
+                <div className="text-xs text-[#66737C]">Once-off for 30 days</div>
+              </div>
+
+              {/* CTA */}
+              <a
+                href={buildBoostWhatsAppUrl(boostListing)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 block w-full rounded-xl bg-[#25D366] px-6 py-4 text-center text-sm font-bold text-white shadow-md hover:bg-[#20BD5A]"
+              >
+                💬 Chat with Balray Autos to Boost
+              </a>
+
+              <p className="mt-3 text-center text-xs leading-5 text-[#89939A]">
+                We&apos;ll send you payment details. Once you&apos;ve paid, we&apos;ll
+                feature your listing within 1 hour.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
         <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
