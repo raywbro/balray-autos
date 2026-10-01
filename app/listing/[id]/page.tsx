@@ -59,6 +59,13 @@ export default function ListingDetailPage() {
   const [copied, setCopied] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
+  // Financing calculator state
+  const [depositPercent, setDepositPercent] = useState(10);
+  const [termMonths, setTermMonths] = useState(60);
+  const [interestRate, setInterestRate] = useState(11.75);
+  const [showCalculator, setShowCalculator] = useState(false);
+
+  // Report modal
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
@@ -274,6 +281,28 @@ export default function ListingDetailPage() {
     );
   }
 
+  // Financing calculations
+  const deposit = (listing.priceValue * depositPercent) / 100;
+  const loanAmount = listing.priceValue - deposit;
+  const monthlyRate = interestRate / 100 / 12;
+  const monthlyPayment =
+    monthlyRate > 0
+      ? (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, termMonths)) /
+        (Math.pow(1 + monthlyRate, termMonths) - 1)
+      : loanAmount / termMonths;
+  const totalPaid = monthlyPayment * termMonths + deposit;
+  const totalInterest = totalPaid - listing.priceValue;
+  const monthlyPaymentFormatted = `R${Math.round(monthlyPayment).toLocaleString()}`;
+  const depositFormatted = `R${Math.round(deposit).toLocaleString()}`;
+  const totalPaidFormatted = `R${Math.round(totalPaid).toLocaleString()}`;
+  const totalInterestFormatted = `R${Math.round(totalInterest).toLocaleString()}`;
+
+  // Pre-approval WhatsApp
+  const preApprovalMessage = encodeURIComponent(
+    `Hi Balray Autos! I'm interested in the ${listing.title} listed at ${listing.price}.\n\nI'd like to know about financing options:\n- Deposit: ${depositFormatted}\n- Term: ${termMonths} months\n- Estimated monthly: ${monthlyPaymentFormatted}\n\nCan you help me get pre-approved?`
+  );
+  const preApprovalUrl = `https://wa.me/27815973009?text=${preApprovalMessage}`;
+
   const whatsappNumber = cleanPhone(listing.sellerPhone);
   const whatsappMessage = encodeURIComponent(
     `Hi ${listing.sellerName}, I saw your ${listing.title} listed on Balray Autos for ${listing.price}. Is it still available?`
@@ -315,7 +344,6 @@ export default function ListingDetailPage() {
                   {listing.category}
                 </div>
 
-                {/* PRICE DROP BADGE */}
                 {listing.hasPriceDrop && (
                   <div className="absolute left-4 top-16 rounded-full bg-red-600 px-4 py-2 text-sm font-bold text-white shadow-lg animate-pulse">
                     💰 PRICE DROP -{listing.percentOff}%
@@ -350,7 +378,6 @@ export default function ListingDetailPage() {
                 </div>
               )}
 
-              {/* PRICE DROP BANNER */}
               {listing.hasPriceDrop && (
                 <div className="mt-6 rounded-2xl border-2 border-red-300 bg-gradient-to-r from-red-50 to-orange-50 p-5">
                   <div className="flex items-center gap-4">
@@ -468,7 +495,6 @@ export default function ListingDetailPage() {
                   {listing.title}
                 </h1>
 
-                {/* PRICE DISPLAY */}
                 <div className="mt-4">
                   {listing.hasPriceDrop ? (
                     <div>
@@ -491,6 +517,27 @@ export default function ListingDetailPage() {
                   )}
                 </div>
 
+                {/* ESTIMATED MONTHLY — HERO HIGHLIGHT */}
+                <div className="mt-4 rounded-xl bg-gradient-to-r from-[#FBF7EC] to-[#F7F8F9] p-4 border border-[#D3B86A]/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
+                        Estimated Monthly
+                      </div>
+                      <div className="mt-1 text-2xl font-black text-[#8F7130]">
+                        {monthlyPaymentFormatted}
+                        <span className="text-sm font-bold text-[#66737C]">/pm</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowCalculator(!showCalculator)}
+                      className="rounded-xl border border-[#B08D3C] bg-white px-4 py-2.5 text-xs font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+                    >
+                      {showCalculator ? "Hide" : "Calculate"}
+                    </button>
+                  </div>
+                </div>
+
                 <div className="mt-4 flex items-center justify-between text-sm font-bold text-[#66737C]">
                   <span>📍 {listing.location}</span>
                   <span className="rounded-full bg-[#FBF7EC] px-3 py-1 text-xs text-[#8F7130]">
@@ -498,6 +545,153 @@ export default function ListingDetailPage() {
                   </span>
                 </div>
               </div>
+
+              {/* FINANCING CALCULATOR */}
+              {showCalculator && (
+                <div className="rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-lg text-white">
+                      💳
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-[#34414A]">
+                        Financing Calculator
+                      </h3>
+                      <p className="text-xs text-[#89939A]">
+                        Estimate your monthly payment
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* DEPOSIT */}
+                  <div className="mt-5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-[#34414A]">
+                        Deposit
+                      </label>
+                      <span className="text-sm font-black text-[#8F7130]">
+                        {depositPercent}% ({depositFormatted})
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="50"
+                      step="5"
+                      value={depositPercent}
+                      onChange={(e) => setDepositPercent(Number(e.target.value))}
+                      className="mt-2 w-full accent-[#B08D3C]"
+                    />
+                    <div className="mt-1 flex justify-between text-xs text-[#89939A]">
+                      <span>0%</span>
+                      <span>50%</span>
+                    </div>
+                  </div>
+
+                  {/* TERM */}
+                  <div className="mt-5">
+                    <label className="text-sm font-bold text-[#34414A]">
+                      Term
+                    </label>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {[12, 24, 36, 48, 60, 72].map((months) => (
+                        <button
+                          key={months}
+                          type="button"
+                          onClick={() => setTermMonths(months)}
+                          className={`rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
+                            termMonths === months
+                              ? "border-[#B08D3C] bg-[#B08D3C] text-white"
+                              : "border-[#D5DBDF] bg-white text-[#34414A] hover:border-[#B08D3C]"
+                          }`}
+                        >
+                          {months} mo
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* INTEREST RATE */}
+                  <div className="mt-5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-[#34414A]">
+                        Interest Rate (annual)
+                      </label>
+                      <span className="text-sm font-black text-[#8F7130]">
+                        {interestRate.toFixed(2)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="7"
+                      max="20"
+                      step="0.25"
+                      value={interestRate}
+                      onChange={(e) => setInterestRate(Number(e.target.value))}
+                      className="mt-2 w-full accent-[#B08D3C]"
+                    />
+                    <div className="mt-1 flex justify-between text-xs text-[#89939A]">
+                      <span>7%</span>
+                      <span>20%</span>
+                    </div>
+                  </div>
+
+                  {/* BREAKDOWN */}
+                  <div className="mt-6 space-y-3 rounded-xl bg-[#F7F8F9] p-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[#66737C]">Vehicle Price</span>
+                      <span className="font-bold text-[#34414A]">{listing.price}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[#66737C]">Deposit</span>
+                      <span className="font-bold text-[#34414A]">- {depositFormatted}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[#66737C]">Amount Financed</span>
+                      <span className="font-bold text-[#34414A]">
+                        R{Math.round(loanAmount).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="border-t border-[#E1E5E8] pt-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-[#34414A]">
+                          Monthly Payment
+                        </span>
+                        <span className="text-2xl font-black text-[#8F7130]">
+                          {monthlyPaymentFormatted}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#89939A]">Total Interest Paid</span>
+                      <span className="font-bold text-[#89939A]">
+                        {totalInterestFormatted}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#89939A]">Total Amount Paid</span>
+                      <span className="font-bold text-[#89939A]">
+                        {totalPaidFormatted}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* PRE-APPROVAL CTA */}
+                  <a
+                    href={preApprovalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-5 block w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3.5 text-center text-sm font-bold text-white shadow-md hover:brightness-105"
+                  >
+                    💬 Get Pre-Approved
+                  </a>
+
+                  <p className="mt-3 text-center text-xs leading-5 text-[#89939A]">
+                    ⓘ Estimate only. Actual rates depend on your credit profile
+                    and lender terms.
+                  </p>
+                </div>
+              )}
 
               <div className="rounded-2xl border border-[#D5DBDF] bg-white p-6 sm:p-8">
                 <h3 className="text-lg font-black text-[#34414A] mb-4">Vehicle Details</h3>
