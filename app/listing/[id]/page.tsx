@@ -41,11 +41,11 @@ function cleanPhone(phone: string) {
 
 export default function ListingDetailPage() {
   const [listing, setListing] = useState<any>(null);
+  const [similar, setSimilar] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [copied, setCopied] = useState(false);
 
-  // Report modal states
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
@@ -76,7 +76,9 @@ export default function ListingDetailPage() {
         id: data.id,
         title: `${data.year ? data.year + " " : ""}${data.make} ${data.model}`,
         category: categoryMap[data.category] || data.category,
+        categoryKey: data.category,
         price: `R${Number(data.price).toLocaleString()}`,
+        priceValue: Number(data.price),
         year: data.year ? data.year.toString() : "N/A",
         mileage: data.mileage || "N/A",
         location: data.location,
@@ -98,6 +100,35 @@ export default function ListingDetailPage() {
 
       setListing(formatted);
       setLoading(false);
+
+      // Fetch similar listings (same category, active, not this one)
+      const now = new Date().toISOString();
+      const { data: similarData } = await supabase
+        .from("listings")
+        .select("*")
+        .eq("category", data.category)
+        .eq("status", "active")
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
+        .neq("id", data.id)
+        .order("featured", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      const formattedSimilar = (similarData || []).map((item) => ({
+        id: item.id,
+        title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
+        category: categoryMap[item.category] || item.category,
+        price: `R${Number(item.price).toLocaleString()}`,
+        year: item.year ? item.year.toString() : "N/A",
+        mileage: item.mileage || "N/A",
+        location: item.location,
+        featured: item.featured || false,
+        image:
+          item.images && item.images.length > 0
+            ? item.images[0]
+            : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
+      }));
+      setSimilar(formattedSimilar);
 
       try {
         await supabase.rpc("increment_view", { listing_id: id });
@@ -282,6 +313,58 @@ export default function ListingDetailPage() {
                   🚩 Report Listing
                 </button>
               </div>
+
+              {/* SIMILAR LISTINGS */}
+              {similar.length > 0 && (
+                <div className="mt-12">
+                  <div className="mb-5">
+                    <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+                      You Might Also Like
+                    </div>
+                    <h2 className="mt-2 text-2xl font-black text-[#34414A]">
+                      Similar {listing.category}
+                    </h2>
+                  </div>
+
+                  <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {similar.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={`/listing/${item.id}`}
+                        className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
+                          item.featured
+                            ? "border-2 border-[#B08D3C]"
+                            : "border border-[#D5DBDF] hover:border-[#B08D3C]/60"
+                        }`}
+                      >
+                        <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                          />
+                          {item.featured && (
+                            <div className="absolute right-3 top-3 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-1 text-xs font-bold text-white shadow-md">
+                              ⭐ FEATURED
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-4">
+                          <h3 className="line-clamp-2 min-h-[48px] text-base font-extrabold leading-6 text-[#34414A]">
+                            {item.title}
+                          </h3>
+                          <div className="mt-2 text-xl font-black text-[#9A7B37]">
+                            {item.price}
+                          </div>
+                          <div className="mt-2 text-xs text-[#66737C]">
+                            📍 {item.location} • {item.mileage}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* RIGHT COLUMN */}
