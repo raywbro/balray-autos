@@ -5,18 +5,20 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
+import imageCompression from "browser-image-compression";
 
 export default function SellPage() {
   const [submitted, setSubmitted] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const router = useRouter();
   const supabase = createClient();
 
-  // THE BOUNCER: Check if user is logged in
+  // THE BOUNCER
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -39,19 +41,37 @@ export default function SellPage() {
     const imageUrls: string[] = [];
 
     try {
+      // 1. COMPRESS & UPLOAD IMAGES
       const files = formData.getAll("photos") as File[];
       const validFiles = files.filter((file) => file.size > 0);
 
       if (validFiles.length > 0) {
-        for (const file of validFiles) {
-          const fileExt = file.name.split(".").pop();
+        for (let i = 0; i < validFiles.length; i++) {
+          const file = validFiles[i];
+          setUploadProgress(`Compressing image ${i + 1} of ${validFiles.length}...`);
+
+          // Compress the image
+          const compressedFile = await imageCompression(file, {
+            maxSizeMB: 0.5,           // Max 500 KB per image
+            maxWidthOrHeight: 1600,   // Resize to max 1600px
+            useWebWorker: true,
+            fileType: "image/jpeg",
+            initialQuality: 0.85,
+          });
+
+          setUploadProgress(`Uploading image ${i + 1} of ${validFiles.length}...`);
+
+          const fileExt = "jpg"; // Always save as jpg after compression
           const fileName = `${user.id}-${Date.now()}-${Math.random()
             .toString(36)
             .substring(7)}.${fileExt}`;
 
           const { error: uploadError } = await supabase.storage
             .from("car-images")
-            .upload(fileName, file);
+            .upload(fileName, compressedFile, {
+              contentType: "image/jpeg",
+              cacheControl: "3600",
+            });
 
           if (uploadError) throw uploadError;
 
@@ -62,6 +82,9 @@ export default function SellPage() {
           imageUrls.push(publicUrl);
         }
       }
+
+      // 2. SAVE LISTING TO DATABASE
+      setUploadProgress("Saving your listing...");
 
       const newListing = {
         user_id: user.id,
@@ -81,17 +104,20 @@ export default function SellPage() {
         fuel: formData.get("fuel"),
         description: formData.get("description"),
         images: imageUrls,
+        status: "pending",
       };
 
       const { error: dbError } = await supabase.from("listings").insert([newListing]);
       if (dbError) throw dbError;
 
       setUploading(false);
+      setUploadProgress("");
       setSubmitted(true);
     } catch (error: any) {
       console.error(error);
       setErrorMessage(error.message || "Something went wrong. Please try again.");
       setUploading(false);
+      setUploadProgress("");
     }
   };
 
@@ -111,7 +137,6 @@ export default function SellPage() {
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
       <Navbar />
 
-      {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-[24px] border-[#D9DEE2]/70" />
         <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full border-[20px] border-[#C5CDD2]/50" />
@@ -134,7 +159,6 @@ export default function SellPage() {
         </div>
       </section>
 
-      {/* FORM AREA */}
       <section className="w-full bg-[#F7F8F9]">
         <div className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           {submitted ? (
@@ -158,7 +182,7 @@ export default function SellPage() {
             <form onSubmit={handleSubmit} className="overflow-hidden rounded-3xl border border-[#D5DBDF] bg-white shadow-sm">
               <div className="border-b border-[#E1E5E8] bg-[#34414A] px-6 py-8 sm:px-10">
                 <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#D2B66A]">Listing Information</div>
-                <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl">Tell us about what you're selling</h2>
+                <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl">Tell us about what you&apos;re selling</h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#D9DEE2]">Complete the form below. Your information will be used to create your marketplace listing.</p>
                 <div className="mt-4 inline-block rounded-lg bg-white/10 px-4 py-2 text-xs font-semibold text-[#D2B66A]">
                   Logged in as: {user.email}
@@ -302,7 +326,9 @@ export default function SellPage() {
                   <div className="mb-5">
                     <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">04</div>
                     <h3 className="mt-1 text-xl font-black text-[#34414A]">Photos</h3>
-                    <p className="mt-1 text-sm text-[#66737C]">Add clear photos of the vehicle or product.</p>
+                    <p className="mt-1 text-sm text-[#66737C]">
+                      Add clear photos. Images are automatically optimized for fast loading.
+                    </p>
                   </div>
                   <label htmlFor="photos" className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D5DBDF] bg-[#F7F8F9] px-6 py-10 text-center transition hover:border-[#B08D3C] hover:bg-[#FBF7EC]">
                     <div className="text-4xl">📷</div>
@@ -325,7 +351,7 @@ export default function SellPage() {
                 {/* SUBMIT */}
                 <div className="border-t border-[#E1E5E8] pt-8">
                   <button type="submit" disabled={uploading} className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-base font-bold text-white shadow-md transition hover:brightness-105 disabled:opacity-70 disabled:cursor-not-allowed">
-                    {uploading ? "UPLOADING PHOTOS & SAVING..." : "SUBMIT LISTING"}
+                    {uploading ? uploadProgress || "UPLOADING..." : "SUBMIT LISTING"}
                   </button>
                   <p className="mt-4 text-center text-xs leading-5 text-[#89939A]">
                     Your listing will be reviewed by Balray Autos before it becomes publicly visible.
@@ -337,7 +363,6 @@ export default function SellPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
         <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
