@@ -41,7 +41,6 @@ function MarketplaceContent() {
   const [sortBy, setSortBy] = useState("featured");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Filter states
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [minYear, setMinYear] = useState("");
@@ -74,28 +73,42 @@ function MarketplaceContent() {
       if (error) {
         console.error("Error fetching listings:", error);
       } else {
-        const formattedListings = data.map((item) => ({
-          id: item.id,
-          title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
-          category: categoryMap[item.category] || item.category,
-          price: `R${Number(item.price).toLocaleString()}`,
-          priceValue: Number(item.price),
-          year: item.year ? item.year.toString() : "N/A",
-          yearValue: item.year || 0,
-          mileage: item.mileage || "N/A",
-          location: item.location,
-          transmission: transmissionMap[item.transmission] || item.transmission || "N/A",
-          transmissionKey: item.transmission || "",
-          fuel: fuelMap[item.fuel] || item.fuel || "N/A",
-          fuelKey: item.fuel || "",
-          featured: item.featured || false,
-          views: item.views || 0,
-          createdAt: item.created_at,
-          image:
-            item.images && item.images.length > 0
-              ? item.images[0]
-              : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
-        }));
+        const formattedListings = data.map((item) => {
+          const price = Number(item.price);
+          const previous = item.previous_price ? Number(item.previous_price) : null;
+          const hasPriceDrop = previous !== null && previous > price;
+          const savings = hasPriceDrop ? previous - price : 0;
+          const percentOff = hasPriceDrop ? Math.round((savings / previous) * 100) : 0;
+
+          return {
+            id: item.id,
+            title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
+            category: categoryMap[item.category] || item.category,
+            price: `R${price.toLocaleString()}`,
+            priceValue: price,
+            previousPrice: previous,
+            previousPriceFormatted: previous ? `R${previous.toLocaleString()}` : null,
+            hasPriceDrop,
+            savings,
+            savingsFormatted: `R${savings.toLocaleString()}`,
+            percentOff,
+            year: item.year ? item.year.toString() : "N/A",
+            yearValue: item.year || 0,
+            mileage: item.mileage || "N/A",
+            location: item.location,
+            transmission: transmissionMap[item.transmission] || item.transmission || "N/A",
+            transmissionKey: item.transmission || "",
+            fuel: fuelMap[item.fuel] || item.fuel || "N/A",
+            fuelKey: item.fuel || "",
+            featured: item.featured || false,
+            views: item.views || 0,
+            createdAt: item.created_at,
+            image:
+              item.images && item.images.length > 0
+                ? item.images[0]
+                : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
+          };
+        });
         setListings(formattedListings);
       }
       setLoading(false);
@@ -161,7 +174,6 @@ function MarketplaceContent() {
     "Parts & Accessories",
   ];
 
-  // Count active filters
   const activeFilterCount =
     (minPrice ? 1 : 0) +
     (maxPrice ? 1 : 0) +
@@ -173,27 +185,18 @@ function MarketplaceContent() {
   const filteredListings = listings.filter((listing) => {
     const matchesCategory =
       selectedCategory === "All" || listing.category === selectedCategory;
-
     const searchText = search.toLowerCase().trim();
     const matchesSearch =
       searchText === "" ||
       listing.title.toLowerCase().includes(searchText) ||
       listing.category.toLowerCase().includes(searchText) ||
       listing.location.toLowerCase().includes(searchText);
-
-    // Price filters
     const matchesMinPrice = minPrice === "" || listing.priceValue >= Number(minPrice);
     const matchesMaxPrice = maxPrice === "" || listing.priceValue <= Number(maxPrice);
-
-    // Year filters
     const matchesMinYear = minYear === "" || listing.yearValue >= Number(minYear);
     const matchesMaxYear = maxYear === "" || listing.yearValue <= Number(maxYear);
-
-    // Transmission
     const matchesTransmission =
       transmissionFilter === "" || listing.transmissionKey === transmissionFilter;
-
-    // Fuel
     const matchesFuel = fuelFilter === "" || listing.fuelKey === fuelFilter;
 
     return (
@@ -208,7 +211,6 @@ function MarketplaceContent() {
     );
   });
 
-  // SORTING LOGIC
   const sortedListings = [...filteredListings].sort((a, b) => {
     switch (sortBy) {
       case "price-low":
@@ -294,7 +296,6 @@ function MarketplaceContent() {
             ))}
           </div>
 
-          {/* TITLE + SORT + FILTER BUTTON */}
           <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">Marketplace</div>
@@ -353,70 +354,25 @@ function MarketplaceContent() {
           {showFilters && (
             <div className="mt-6 rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm">
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {/* PRICE RANGE */}
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
-                    Min Price (R)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
-                    placeholder="e.g. 50000"
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                  />
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">Min Price (R)</label>
+                  <input type="number" min="0" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="e.g. 50000" className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
-                    Max Price (R)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                    placeholder="e.g. 500000"
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                  />
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">Max Price (R)</label>
+                  <input type="number" min="0" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="e.g. 500000" className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
-                    Min Year
-                  </label>
-                  <input
-                    type="number"
-                    min="1900"
-                    max="2100"
-                    value={minYear}
-                    onChange={(e) => setMinYear(e.target.value)}
-                    placeholder="e.g. 2015"
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                  />
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">Min Year</label>
+                  <input type="number" min="1900" max="2100" value={minYear} onChange={(e) => setMinYear(e.target.value)} placeholder="e.g. 2015" className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
-                    Max Year
-                  </label>
-                  <input
-                    type="number"
-                    min="1900"
-                    max="2100"
-                    value={maxYear}
-                    onChange={(e) => setMaxYear(e.target.value)}
-                    placeholder="e.g. 2024"
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                  />
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">Max Year</label>
+                  <input type="number" min="1900" max="2100" value={maxYear} onChange={(e) => setMaxYear(e.target.value)} placeholder="e.g. 2024" className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
-                    Transmission
-                  </label>
-                  <select
-                    value={transmissionFilter}
-                    onChange={(e) => setTransmissionFilter(e.target.value)}
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                  >
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">Transmission</label>
+                  <select value={transmissionFilter} onChange={(e) => setTransmissionFilter(e.target.value)} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
                     <option value="">Any</option>
                     <option value="automatic">Automatic</option>
                     <option value="manual">Manual</option>
@@ -425,14 +381,8 @@ function MarketplaceContent() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
-                    Fuel Type
-                  </label>
-                  <select
-                    value={fuelFilter}
-                    onChange={(e) => setFuelFilter(e.target.value)}
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                  >
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">Fuel Type</label>
+                  <select value={fuelFilter} onChange={(e) => setFuelFilter(e.target.value)} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
                     <option value="">Any</option>
                     <option value="petrol">Petrol</option>
                     <option value="diesel">Diesel</option>
@@ -481,11 +431,21 @@ function MarketplaceContent() {
                     <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
                       {listing.category}
                     </div>
+
+                    {/* FEATURED BADGE */}
                     {listing.featured && (
                       <div className="absolute left-4 top-14 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
                         ⭐ FEATURED
                       </div>
                     )}
+
+                    {/* PRICE DROP BADGE */}
+                    {listing.hasPriceDrop && (
+                      <div className="absolute right-4 top-4 rounded-full bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-md animate-pulse">
+                        💰 PRICE DROP
+                      </div>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => toggleFavorite(listing.id)}
@@ -497,7 +457,28 @@ function MarketplaceContent() {
                   </div>
                   <div className="p-5">
                     <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">{listing.title}</h3>
-                    <div className="mt-3 text-2xl font-black text-[#9A7B37]">{listing.price}</div>
+
+                    {/* PRICE DISPLAY */}
+                    <div className="mt-3">
+                      {listing.hasPriceDrop ? (
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <span className="text-2xl font-black text-[#9A7B37]">{listing.price}</span>
+                          <span className="text-sm font-bold text-[#89939A] line-through">{listing.previousPriceFormatted}</span>
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-black text-green-700">
+                            -{listing.percentOff}%
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-2xl font-black text-[#9A7B37]">{listing.price}</div>
+                      )}
+
+                      {listing.hasPriceDrop && (
+                        <div className="mt-1 text-xs font-bold text-green-600">
+                          Save {listing.savingsFormatted}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
                         <div className="text-[#89939A]">Year</div>

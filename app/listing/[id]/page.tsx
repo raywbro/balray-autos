@@ -57,11 +57,8 @@ export default function ListingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [copied, setCopied] = useState(false);
-
-  // Fullscreen lightbox
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
-  // Report modal
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
@@ -88,13 +85,23 @@ export default function ListingDetailPage() {
         return;
       }
 
+      const price = Number(data.price);
+      const previous = data.previous_price ? Number(data.previous_price) : null;
+      const hasPriceDrop = previous !== null && previous > price;
+      const savings = hasPriceDrop ? previous - price : 0;
+      const percentOff = hasPriceDrop ? Math.round((savings / previous) * 100) : 0;
+
       const formatted = {
         id: data.id,
         title: `${data.year ? data.year + " " : ""}${data.make} ${data.model}`,
         category: categoryMap[data.category] || data.category,
         categoryKey: data.category,
-        price: `R${Number(data.price).toLocaleString()}`,
-        priceValue: Number(data.price),
+        price: `R${price.toLocaleString()}`,
+        priceValue: price,
+        previousPriceFormatted: previous ? `R${previous.toLocaleString()}` : null,
+        hasPriceDrop,
+        savingsFormatted: `R${savings.toLocaleString()}`,
+        percentOff,
         year: data.year ? data.year.toString() : "N/A",
         mileage: data.mileage || "N/A",
         location: data.location,
@@ -156,7 +163,6 @@ export default function ListingDetailPage() {
     if (id) fetchListing();
   }, [id, supabase]);
 
-  // Lightbox keyboard controls
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!lightboxOpen || !listing) return;
@@ -176,7 +182,6 @@ export default function ListingDetailPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  // Lock body scroll when lightbox open
   useEffect(() => {
     if (lightboxOpen) {
       document.body.style.overflow = "hidden";
@@ -296,7 +301,6 @@ export default function ListingDetailPage() {
 
             {/* LEFT COLUMN */}
             <div>
-              {/* MAIN IMAGE — Clickable */}
               <button
                 type="button"
                 onClick={() => setLightboxOpen(true)}
@@ -310,6 +314,14 @@ export default function ListingDetailPage() {
                 <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-4 py-2 text-sm font-bold text-white backdrop-blur">
                   {listing.category}
                 </div>
+
+                {/* PRICE DROP BADGE */}
+                {listing.hasPriceDrop && (
+                  <div className="absolute left-4 top-16 rounded-full bg-red-600 px-4 py-2 text-sm font-bold text-white shadow-lg animate-pulse">
+                    💰 PRICE DROP -{listing.percentOff}%
+                  </div>
+                )}
+
                 {listing.images.length > 1 && (
                   <div className="absolute right-4 top-4 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white backdrop-blur">
                     {activeImage + 1} / {listing.images.length}
@@ -320,7 +332,6 @@ export default function ListingDetailPage() {
                 </div>
               </button>
 
-              {/* THUMBNAILS */}
               {listing.images.length > 1 && (
                 <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
                   {listing.images.map((img: string, index: number) => (
@@ -339,7 +350,33 @@ export default function ListingDetailPage() {
                 </div>
               )}
 
-              {/* DESCRIPTION */}
+              {/* PRICE DROP BANNER */}
+              {listing.hasPriceDrop && (
+                <div className="mt-6 rounded-2xl border-2 border-red-300 bg-gradient-to-r from-red-50 to-orange-50 p-5">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-red-600 text-2xl text-white shadow-md">
+                      💰
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-xs font-black uppercase tracking-[0.14em] text-red-600">
+                        Price Dropped!
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-baseline gap-3">
+                        <span className="text-sm font-bold text-[#89939A] line-through">
+                          {listing.previousPriceFormatted}
+                        </span>
+                        <span className="text-2xl font-black text-[#34414A]">
+                          {listing.price}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-sm font-bold text-green-700">
+                        🎉 You save {listing.savingsFormatted} ({listing.percentOff}% off)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="mt-8 rounded-2xl border border-[#D5DBDF] bg-white p-6 sm:p-8">
                 <h2 className="text-2xl font-black text-[#34414A] mb-4">Description</h2>
                 <p className="text-sm leading-7 text-[#66737C] whitespace-pre-wrap">
@@ -347,7 +384,6 @@ export default function ListingDetailPage() {
                 </p>
               </div>
 
-              {/* SHARE BUTTONS */}
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <button
                   onClick={handleShare}
@@ -373,7 +409,6 @@ export default function ListingDetailPage() {
                 </button>
               </div>
 
-              {/* SIMILAR LISTINGS */}
               {similar.length > 0 && (
                 <div className="mt-12">
                   <div className="mb-5">
@@ -432,9 +467,30 @@ export default function ListingDetailPage() {
                 <h1 className="text-3xl font-black leading-tight text-[#34414A]">
                   {listing.title}
                 </h1>
-                <div className="mt-4 text-4xl font-black text-[#9A7B37]">
-                  {listing.price}
+
+                {/* PRICE DISPLAY */}
+                <div className="mt-4">
+                  {listing.hasPriceDrop ? (
+                    <div>
+                      <div className="flex flex-wrap items-baseline gap-3">
+                        <span className="text-4xl font-black text-[#9A7B37]">
+                          {listing.price}
+                        </span>
+                        <span className="text-lg font-bold text-[#89939A] line-through">
+                          {listing.previousPriceFormatted}
+                        </span>
+                      </div>
+                      <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-xs font-black text-green-700">
+                        💰 Save {listing.savingsFormatted} ({listing.percentOff}% off)
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-4xl font-black text-[#9A7B37]">
+                      {listing.price}
+                    </div>
+                  )}
                 </div>
+
                 <div className="mt-4 flex items-center justify-between text-sm font-bold text-[#66737C]">
                   <span>📍 {listing.location}</span>
                   <span className="rounded-full bg-[#FBF7EC] px-3 py-1 text-xs text-[#8F7130]">
@@ -519,13 +575,12 @@ export default function ListingDetailPage() {
         </div>
       </section>
 
-      {/* FULLSCREEN LIGHTBOX */}
+      {/* LIGHTBOX */}
       {lightboxOpen && (
         <div
           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-sm"
           onClick={() => setLightboxOpen(false)}
         >
-          {/* CLOSE */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -537,12 +592,10 @@ export default function ListingDetailPage() {
             ×
           </button>
 
-          {/* COUNTER */}
           <div className="absolute left-4 top-6 z-10 rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white backdrop-blur">
             {activeImage + 1} / {listing.images.length}
           </div>
 
-          {/* PREV */}
           {listing.images.length > 1 && (
             <button
               onClick={(e) => {
@@ -556,7 +609,6 @@ export default function ListingDetailPage() {
             </button>
           )}
 
-          {/* IMAGE */}
           <img
             src={listing.images[activeImage]}
             alt={listing.title}
@@ -564,7 +616,6 @@ export default function ListingDetailPage() {
             onClick={(e) => e.stopPropagation()}
           />
 
-          {/* NEXT */}
           {listing.images.length > 1 && (
             <button
               onClick={(e) => {
@@ -578,7 +629,6 @@ export default function ListingDetailPage() {
             </button>
           )}
 
-          {/* BOTTOM THUMBNAILS */}
           {listing.images.length > 1 && (
             <div className="absolute bottom-6 left-1/2 z-10 flex max-w-[90vw] -translate-x-1/2 gap-2 overflow-x-auto rounded-2xl bg-white/10 p-2 backdrop-blur">
               {listing.images.map((img: string, index: number) => (
@@ -598,7 +648,6 @@ export default function ListingDetailPage() {
             </div>
           )}
 
-          {/* HINT */}
           <div className="absolute top-6 right-20 z-10 hidden rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-white backdrop-blur md:block">
             Use ← → keys to navigate • ESC to close
           </div>

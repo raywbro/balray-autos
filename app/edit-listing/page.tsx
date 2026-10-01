@@ -69,8 +69,14 @@ export default function EditListingPage() {
     setSuccessMessage("");
 
     const formData = new FormData(e.currentTarget);
+    const newPrice = Number(formData.get("price"));
+    const oldPrice = Number(listing.price);
 
-    const updates = {
+    // Detect price drop and store previous price
+    const priceDropped = newPrice < oldPrice;
+    const previousPrice = priceDropped ? oldPrice : listing.previous_price || null;
+
+    const updates: any = {
       seller_name: formData.get("sellerName"),
       seller_phone: formData.get("phone"),
       seller_email: formData.get("email"),
@@ -80,7 +86,7 @@ export default function EditListingPage() {
       make: formData.get("make"),
       model: formData.get("model"),
       year: formData.get("year") ? Number(formData.get("year")) : null,
-      price: Number(formData.get("price")),
+      price: newPrice,
       mileage: formData.get("mileage"),
       location: formData.get("location"),
       transmission: formData.get("transmission"),
@@ -89,13 +95,25 @@ export default function EditListingPage() {
       status: "pending",
     };
 
+    // Only update previous_price when a drop occurs (preserve original "was" price for buyers)
+    if (priceDropped) {
+      updates.previous_price = previousPrice;
+    }
+
     const { error } = await supabase.from("listings").update(updates).eq("id", id);
 
     if (error) {
       setErrorMessage(error.message);
       setSaving(false);
     } else {
-      setSuccessMessage("Listing updated! It will need to be re-approved by an admin.");
+      if (priceDropped) {
+        const savings = oldPrice - newPrice;
+        setSuccessMessage(
+          `🎉 Listing updated! Price dropped by R${savings.toLocaleString()}. It will be re-approved by an admin.`
+        );
+      } else {
+        setSuccessMessage("Listing updated! It will need to be re-approved by an admin.");
+      }
       setSaving(false);
       setTimeout(() => router.push("/my-listings"), 2500);
     }
@@ -262,6 +280,9 @@ export default function EditListingPage() {
                   <div>
                     <label className="mb-2 block text-sm font-bold text-[#34414A]">Asking Price (R) *</label>
                     <input name="price" type="number" min="0" required defaultValue={listing.price} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+                    <p className="mt-2 text-xs text-[#89939A]">
+                      💡 Lower the price to trigger a &quot;Price Drop&quot; badge on your listing.
+                    </p>
                   </div>
                   <div>
                     <label className="mb-2 block text-sm font-bold text-[#34414A]">Mileage / Hours</label>
