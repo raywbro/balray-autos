@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 
 const categories = [
   {
@@ -70,7 +71,6 @@ export default function Home() {
     const fetchHomepageListings = async () => {
       const now = new Date().toISOString();
 
-      // FEATURED
       const { data: featuredData } = await supabase
         .from("listings")
         .select("*")
@@ -80,7 +80,6 @@ export default function Home() {
         .order("created_at", { ascending: false })
         .limit(3);
 
-      // LATEST
       const { data: latestData } = await supabase
         .from("listings")
         .select("*")
@@ -89,7 +88,6 @@ export default function Home() {
         .order("created_at", { ascending: false })
         .limit(6);
 
-      // HOT DEALS — listings with previous_price > price
       const { data: hotData } = await supabase
         .from("listings")
         .select("*")
@@ -129,7 +127,6 @@ export default function Home() {
       setFeaturedListings((featuredData || []).map(format));
       setLatestListings((latestData || []).map(format));
 
-      // Only keep listings where price actually dropped
       const formattedHot = (hotData || [])
         .map(format)
         .filter((item) => item.hasPriceDrop)
@@ -831,74 +828,7 @@ export default function Home() {
       </section>
 
       {/* FOOTER */}
-      <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid w-full gap-10 md:grid-cols-3">
-            <div className="min-w-0">
-              <img
-                src="/balray-autos-logo.png"
-                alt="Balray Autos"
-                className="h-12 w-auto max-w-[190px] object-contain"
-              />
-              <p className="mt-4 max-w-sm text-sm leading-6 text-[#68757D]">
-                Balray Autos is a South African automotive marketplace connecting buyers and sellers.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-bold text-[#34414A]">Marketplace</h3>
-              <div className="mt-4 flex flex-col gap-3 text-sm">
-                <Link href="/marketplace?category=Cars+%26+SUVs" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                  Cars & SUVs
-                </Link>
-                <Link href="/marketplace?category=Bakkies+%26+4x4s" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                  Bakkies & 4x4s
-                </Link>
-                <Link href="/marketplace?category=Motorcycles" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                  Motorcycles
-                </Link>
-                <Link href="/marketplace?category=Trucks+%26+Commercial" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                  Trucks & Commercial
-                </Link>
-                <Link href="/marketplace?category=Machinery+%26+Equipment" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                  Machinery & Equipment
-                </Link>
-                <Link href="/marketplace?category=Parts+%26+Accessories" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                  Parts & Accessories
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-bold text-[#34414A]">Company</h3>
-              <div className="mt-4 flex flex-col gap-3 text-sm">
-                <Link href="/about" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                  About Balray Autos
-                </Link>
-                <Link href="/contact" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                  Contact
-                </Link>
-                <Link href="/blog" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                  Blog
-                </Link>
-                <Link href="/sell" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                  Sell Your Vehicle
-                </Link>
-                <Link href="/terms" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                  Terms & Conditions
-                </Link>
-                <Link href="/privacy" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                  Privacy Policy
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-10 border-t border-[#D3D9DD] pt-6 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
