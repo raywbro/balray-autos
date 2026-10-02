@@ -79,8 +79,17 @@ export default function ListingDetailPage() {
 
   useEffect(() => {
     const fetchListing = async () => {
+      // 1. Determine if the visitor is logged in
+      const { data: { user } } = await supabase.auth.getUser();
+      const isLoggedIn = !!user;
+
+      // 2. Query the correct source:
+      //    - Logged in  → full 'listings' table (includes contact fields)
+      //    - Guest      → 'public_listings' view (no contact fields)
+      const source = isLoggedIn ? "listings" : "public_listings";
+
       const { data, error } = await supabase
-        .from("listings")
+        .from(source)
         .select("*")
         .eq("id", id)
         .single();
@@ -115,12 +124,14 @@ export default function ListingDetailPage() {
         fuel: fuelMap[data.fuel] || data.fuel || "N/A",
         condition: data.condition,
         description: data.description,
-        sellerName: data.seller_name,
-        sellerPhone: data.seller_phone,
-        sellerEmail: data.seller_email,
-        sellerType: data.seller_type,
+        // These are only present if isLoggedIn (i.e. fetched from 'listings')
+        sellerName: (data as any).seller_name || null,
+        sellerPhone: (data as any).seller_phone || null,
+        sellerEmail: (data as any).seller_email || null,
+        sellerType: (data as any).seller_type || null,
         sellerId: data.user_id,
         views: data.views || 0,
+        isLoggedIn,
         images:
           data.images && data.images.length > 0
             ? data.images
@@ -131,9 +142,10 @@ export default function ListingDetailPage() {
       setLoading(false);
       saveRecentlyViewed(data.id);
 
+      // 3. Fetch similar listings from the same source for consistency
       const now = new Date().toISOString();
       const { data: similarData } = await supabase
-        .from("listings")
+        .from(source)
         .select("*")
         .eq("category", data.category)
         .eq("status", "active")
@@ -143,7 +155,7 @@ export default function ListingDetailPage() {
         .order("created_at", { ascending: false })
         .limit(3);
 
-      const formattedSimilar = (similarData || []).map((item) => ({
+      const formattedSimilar = (similarData || []).map((item: any) => ({
         id: item.id,
         title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
         category: categoryMap[item.category] || item.category,
@@ -300,11 +312,14 @@ export default function ListingDetailPage() {
   );
   const preApprovalUrl = `https://wa.me/27815973009?text=${preApprovalMessage}`;
 
-  const whatsappNumber = cleanPhone(listing.sellerPhone);
+  // Only build WhatsApp URL if the guest is logged in
+  const whatsappNumber = listing.sellerPhone ? cleanPhone(listing.sellerPhone) : "";
   const whatsappMessage = encodeURIComponent(
-    `Hi ${listing.sellerName}, I saw your ${listing.title} listed on Balray Autos for ${listing.price}. Is it still available?`
+    `Hi ${listing.sellerName || "there"}, I saw your ${listing.title} listed on Balray Autos for ${listing.price}. Is it still available?`
   );
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
+  const whatsappUrl = listing.sellerPhone
+    ? `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`
+    : "#";
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
@@ -713,46 +728,78 @@ export default function ListingDetailPage() {
                 </div>
               </div>
 
+              {/* CONTACT SELLER — HIDDEN FROM GUESTS */}
               <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-6 sm:p-8">
                 <h3 className="text-lg font-black text-[#8F7130] mb-2">Contact Seller</h3>
 
-                <Link
-                  href={`/seller/${listing.sellerId}`}
-                  className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-[#8F7130] hover:underline"
-                >
-                  {listing.sellerName} ({listing.sellerType}) →
-                </Link>
+                {listing.isLoggedIn ? (
+                  <>
+                    {listing.sellerName && (
+                      <Link
+                        href={`/seller/${listing.sellerId}`}
+                        className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-[#8F7130] hover:underline"
+                      >
+                        {listing.sellerName} ({listing.sellerType}) →
+                      </Link>
+                    )}
 
-                <div className="flex flex-col gap-3">
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full rounded-xl bg-[#25D366] px-6 py-4 text-center text-sm font-bold text-white shadow-md transition hover:bg-[#20BD5A]"
-                  >
-                    💬 WhatsApp Seller
-                  </a>
+                    <div className="flex flex-col gap-3">
+                      <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full rounded-xl bg-[#25D366] px-6 py-4 text-center text-sm font-bold text-white shadow-md transition hover:bg-[#20BD5A]"
+                      >
+                        💬 WhatsApp Seller
+                      </a>
 
-                  <a
-                    href={`tel:${listing.sellerPhone}`}
-                    className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-center text-sm font-bold text-white shadow-md hover:brightness-105"
-                  >
-                    📞 Call {listing.sellerPhone}
-                  </a>
+                      <a
+                        href={`tel:${listing.sellerPhone}`}
+                        className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-center text-sm font-bold text-white shadow-md hover:brightness-105"
+                      >
+                        📞 Call {listing.sellerPhone}
+                      </a>
 
-                  {listing.sellerEmail && (
-                    <a
-                      href={`mailto:${listing.sellerEmail}`}
-                      className="w-full rounded-xl border border-[#B08D3C] bg-white px-6 py-4 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
-                    >
-                      ✉️ Email Seller
-                    </a>
-                  )}
-                </div>
+                      {listing.sellerEmail && (
+                        <a
+                          href={`mailto:${listing.sellerEmail}`}
+                          className="w-full rounded-xl border border-[#B08D3C] bg-white px-6 py-4 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+                        >
+                          ✉️ Email Seller
+                        </a>
+                      )}
+                    </div>
 
-                <p className="mt-4 text-center text-xs text-[#8F7130]/70">
-                  Always meet in a safe public place when buying a vehicle.
-                </p>
+                    <p className="mt-4 text-center text-xs text-[#8F7130]/70">
+                      Always meet in a safe public place when buying a vehicle.
+                    </p>
+                  </>
+                ) : (
+                  <div className="rounded-xl border border-[#D3B86A]/60 bg-white p-6 text-center">
+                    <div className="text-3xl">🔒</div>
+                    <h4 className="mt-3 text-base font-black text-[#34414A]">
+                      Log in to see contact details
+                    </h4>
+                    <p className="mt-2 text-xs leading-5 text-[#66737C]">
+                      Create a free account to contact sellers directly via
+                      WhatsApp, phone, or email.
+                    </p>
+                    <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                      <Link
+                        href="/login"
+                        className="flex-1 rounded-xl bg-[#34414A] px-5 py-3 text-center text-sm font-bold text-white hover:bg-[#4A5962]"
+                      >
+                        Log In
+                      </Link>
+                      <Link
+                        href="/signup"
+                        className="flex-1 rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+                      >
+                        Sign Up Free
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
