@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -319,32 +320,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <img
-                src="/balray-autos-logo.png"
-                alt="Balray Autos"
-                className="h-11 w-auto max-w-[180px] object-contain"
-              />
-              <p className="mt-3 text-sm text-[#68757D]">
-                South African automotive marketplace.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-5 text-sm font-semibold">
-              <Link href="/" className="text-[#68757D] hover:text-[#9A7B37]">Home</Link>
-              <Link href="/marketplace" className="text-[#68757D] hover:text-[#9A7B37]">Marketplace</Link>
-              <Link href="/sell" className="text-[#68757D] hover:text-[#9A7B37]">Sell</Link>
-              <Link href="/about" className="text-[#68757D] hover:text-[#9A7B37]">About</Link>
-              <Link href="/contact" className="text-[#68757D] hover:text-[#9A7B37]">Contact</Link>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-[#D3D9DD] pt-5 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
