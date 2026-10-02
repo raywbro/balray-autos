@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 
 export default function BlogPostPage() {
   const [post, setPost] = useState<any>(null);
@@ -19,7 +20,6 @@ export default function BlogPostPage() {
 
   useEffect(() => {
     const fetchPost = async () => {
-      // Fetch the post by slug
       const { data, error } = await supabase
         .from("blog_posts")
         .select("*")
@@ -37,14 +37,12 @@ export default function BlogPostPage() {
       setPost(data);
       setLoading(false);
 
-      // Increment view count
       try {
         await supabase.rpc("increment_post_view", { post_id: data.id });
       } catch (err) {
         console.error("Error incrementing views:", err);
       }
 
-      // Fetch other recent posts (excluding this one)
       const { data: relatedData } = await supabase
         .from("blog_posts")
         .select("id, title, slug, cover_image, excerpt, created_at, views")
@@ -109,6 +107,7 @@ export default function BlogPostPage() {
             Back to Blog
           </Link>
         </div>
+        <Footer />
       </main>
     );
   }
@@ -163,7 +162,6 @@ export default function BlogPostPage() {
       <section className="w-full bg-[#F7F8F9] py-12">
         <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
 
-          {/* COVER IMAGE */}
           {post.cover_image && (
             <div className="mb-10 overflow-hidden rounded-3xl border border-[#D5DBDF] bg-white shadow-sm">
               <img
@@ -174,9 +172,7 @@ export default function BlogPostPage() {
             </div>
           )}
 
-          {/* ARTICLE CARD */}
           <article className="rounded-3xl border border-[#D5DBDF] bg-white p-6 shadow-sm sm:p-10">
-            {/* EXCERPT */}
             {post.excerpt && (
               <div className="mb-8 border-l-4 border-[#B08D3C] bg-[#FBF7EC] p-5 italic">
                 <p className="text-base leading-7 text-[#8F7130]">
@@ -185,13 +181,11 @@ export default function BlogPostPage() {
               </div>
             )}
 
-            {/* CONTENT */}
             <div className="prose-content">
               {post.content.split(/\n\n+/).map((paragraph: string, idx: number) => {
                 const trimmed = paragraph.trim();
                 if (!trimmed) return null;
 
-                // Headers: lines that are all caps and short (< 80 chars)
                 const isHeader =
                   trimmed.length < 80 &&
                   trimmed === trimmed.toUpperCase() &&
@@ -209,7 +203,6 @@ export default function BlogPostPage() {
                   );
                 }
 
-                // Lists: lines starting with "- " or "• "
                 if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
                   const items = trimmed
                     .split("\n")
@@ -230,7 +223,6 @@ export default function BlogPostPage() {
                   );
                 }
 
-                // Default paragraph
                 return (
                   <p
                     key={idx}
@@ -242,7 +234,6 @@ export default function BlogPostPage() {
               })}
             </div>
 
-            {/* SHARE BAR */}
             <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-[#E1E5E8] pt-8">
               <div className="text-sm font-bold text-[#66737C]">
                 Found this helpful? Share it!
@@ -268,7 +259,6 @@ export default function BlogPostPage() {
             </div>
           </article>
 
-          {/* RELATED POSTS */}
           {relatedPosts.length > 0 && (
             <div className="mt-14">
               <div className="mb-6">
@@ -318,7 +308,6 @@ export default function BlogPostPage() {
             </div>
           )}
 
-          {/* CTA */}
           <div className="mt-14 rounded-3xl border-2 border-[#B08D3C] bg-gradient-to-br from-[#FBF7EC] to-[#F7F8F9] p-8 text-center sm:p-12">
             <div className="text-4xl">🚗</div>
             <h2 className="mt-4 text-2xl font-black text-[#34414A] sm:text-3xl">
@@ -346,27 +335,7 @@ export default function BlogPostPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <img src="/balray-autos-logo.png" alt="Balray Autos" className="h-11 w-auto max-w-[180px] object-contain" />
-              <p className="mt-3 text-sm text-[#68757D]">South African automotive marketplace.</p>
-            </div>
-            <div className="flex flex-wrap gap-5 text-sm font-semibold">
-              <Link href="/" className="text-[#68757D] hover:text-[#9A7B37]">Home</Link>
-              <Link href="/marketplace" className="text-[#68757D] hover:text-[#9A7B37]">Marketplace</Link>
-              <Link href="/blog" className="text-[#68757D] hover:text-[#9A7B37]">Blog</Link>
-              <Link href="/about" className="text-[#68757D] hover:text-[#9A7B37]">About</Link>
-              <Link href="/contact" className="text-[#68757D] hover:text-[#9A7B37]">Contact</Link>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-[#D3D9DD] pt-5 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
