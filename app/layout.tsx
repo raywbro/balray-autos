@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import ServiceWorkerRegister from "@/app/components/ServiceWorkerRegister";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -45,8 +46,17 @@ export const metadata: Metadata = {
   publisher: "Balray Autos",
   applicationName: "Balray Autos",
   category: "automotive",
+  manifest: "/manifest.json",
   verification: {
     google: "9iebg1kzPXdgC60n1nv75vW2Mi6dm",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Balray Autos",
+  },
+  formatDetection: {
+    telephone: false,
   },
   openGraph: {
     type: "website",
@@ -88,6 +98,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#34414A",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -99,6 +116,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <ServiceWorkerRegister />
       </body>
       {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />

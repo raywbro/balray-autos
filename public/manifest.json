@@ -1,0 +1,45 @@
+{
+  "name": "Balray Autos — South African Automotive Marketplace",
+  "short_name": "Balray Autos",
+  "description": "Buy and sell cars, bakkies, motorcycles, trucks, machinery and parts across South Africa.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F8F9",
+  "theme_color": "#34414A",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/balray-autos-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/balray-autos-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/balray-autos-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Browse Marketplace",
+      "url": "/marketplace"
+    },
+    {
+      "name": "Sell Your Vehicle",
+      "url": "/sell"
+    },
+    {
+      "name": "My Listings",
+      "url": "/my-listings"
+    }
+  ]
+}
