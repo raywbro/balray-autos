@@ -45,13 +45,23 @@ const socialLinks = [
   },
 ];
 
+// Top SA cities for footer links
+const FOOTER_CITIES = [
+  { slug: "johannesburg", name: "Johannesburg" },
+  { slug: "cape-town", name: "Cape Town" },
+  { slug: "durban", name: "Durban" },
+  { slug: "pretoria", name: "Pretoria" },
+  { slug: "gqeberha", name: "Gqeberha" },
+  { slug: "bloemfontein", name: "Bloemfontein" },
+];
+
 export default function Footer() {
   return (
     <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
       <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid w-full gap-10 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid w-full gap-10 md:grid-cols-2 lg:grid-cols-5">
           {/* BRAND + SOCIALS */}
-          <div className="min-w-0 lg:col-span-1">
+          <div className="min-w-0 lg:col-span-2">
             <img
               src="/balray-autos-logo.png"
               alt="Balray Autos"
@@ -62,7 +72,6 @@ export default function Footer() {
               sellers.
             </p>
 
-            {/* SOCIAL ICONS */}
             <div className="mt-5 flex flex-wrap gap-2">
               {socialLinks.map((social) => (
                 <a
@@ -80,7 +89,29 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* MARKETPLACE LINKS */}
+          {/* CITIES */}
+          <div>
+            <h3 className="font-bold text-[#34414A]">Browse by City</h3>
+            <div className="mt-4 flex flex-col gap-3 text-sm">
+              {FOOTER_CITIES.map((city) => (
+                <Link
+                  key={city.slug}
+                  href={`/cars-for-sale/${city.slug}`}
+                  className="text-[#68757D] transition hover:text-[#9A7B37]"
+                >
+                  Cars for Sale in {city.name}
+                </Link>
+              ))}
+              <Link
+                href="/cars-for-sale"
+                className="font-bold text-[#9A7B37] transition hover:underline"
+              >
+                View All Cities →
+              </Link>
+            </div>
+          </div>
+
+          {/* MARKETPLACE */}
           <div>
             <h3 className="font-bold text-[#34414A]">Marketplace</h3>
             <div className="mt-4 flex flex-col gap-3 text-sm">
@@ -147,46 +178,34 @@ export default function Footer() {
               </Link>
             </div>
           </div>
+        </div>
 
-          {/* CONTACT */}
-          <div>
-            <h3 className="font-bold text-[#34414A]">Get in Touch</h3>
-            <div className="mt-4 flex flex-col gap-3 text-sm">
-              <a
-                href="mailto:balrayautos@gmail.com"
-                className="flex items-center gap-2 text-[#68757D] transition hover:text-[#9A7B37]"
-              >
+        {/* CONTACT BAR */}
+        <div className="mt-10 rounded-2xl border border-[#D5DBDF] bg-white p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-[#34414A]">
+              <a href="mailto:balrayautos@gmail.com" className="flex items-center gap-2 hover:text-[#9A7B37]">
                 ✉️ balrayautos@gmail.com
               </a>
-              <a
-                href="tel:+27815973009"
-                className="flex items-center gap-2 text-[#68757D] transition hover:text-[#9A7B37]"
-              >
+              <a href="tel:+27815973009" className="flex items-center gap-2 hover:text-[#9A7B37]">
                 📞 +27 81 597 3009
               </a>
               <a
                 href="https://wa.me/27815973009"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-[#68757D] transition hover:text-[#9A7B37]"
+                className="flex items-center gap-2 text-[#25D366] hover:underline"
               >
                 💬 WhatsApp Us
               </a>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <a
-                  href="https://instagram.com/balrayautos"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-bold text-[#9A7B37] hover:underline"
-                >
-                  @balrayautos on Instagram
-                </a>
-              </div>
+            </div>
+            <div className="text-xs font-bold text-[#89939A]">
+              @balrayautos on Instagram • Facebook • X
             </div>
           </div>
         </div>
 
-        <div className="mt-10 border-t border-[#D3D9DD] pt-6 text-center text-sm text-[#7A858C]">
+        <div className="mt-8 border-t border-[#D3D9DD] pt-6 text-center text-sm text-[#7A858C]">
           © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
         </div>
       </div>
