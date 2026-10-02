@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 
 const SITE_URL = "https://www.balrayautos.co.za";
 
-// Keep this list in sync with the CITIES list in app/cars-for-sale/page.tsx
+// Keep in sync with CITIES in app/cars-for-sale/page.tsx
 const CITIES = [
   "johannesburg",
   "cape-town",
@@ -27,6 +27,53 @@ const CITIES = [
   "george",
 ];
 
+// Keep in sync with BRANDS in app/brands/page.tsx
+const BRANDS = [
+  "toyota",
+  "volkswagen",
+  "ford",
+  "nissan",
+  "hyundai",
+  "kia",
+  "honda",
+  "mazda",
+  "isuzu",
+  "suzuki",
+  "bmw",
+  "mercedes-benz",
+  "audi",
+  "land-rover",
+  "jeep",
+  "volvo",
+  "lexus",
+  "porsche",
+  "jaguar",
+  "mini",
+  "renault",
+  "chevrolet",
+  "peugeot",
+  "citroen",
+  "fiat",
+  "opel",
+  "datsun",
+  "mahindra",
+  "mg",
+  "chery",
+  "haval",
+  "gwm",
+  "omoda",
+  "jac",
+  "subaru",
+  "yamaha",
+  "kawasaki",
+  "harley",
+  "scania",
+  "man",
+  "jcb",
+  "caterpillar",
+  "kubota",
+];
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [
@@ -44,6 +91,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/cars-for-sale`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/brands`,
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.9,
@@ -100,6 +153,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  // Brand pages
+  const brandPages: MetadataRoute.Sitemap = BRANDS.map((slug) => ({
+    url: `${SITE_URL}/brands/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: "daily" as const,
+    priority: 0.8,
+  }));
+
   // Fetch all active listings
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -133,5 +194,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...cityPages, ...listingPages, ...blogPages];
+  return [
+    ...staticPages,
+    ...cityPages,
+    ...brandPages,
+    ...listingPages,
+    ...blogPages,
+  ];
 }
