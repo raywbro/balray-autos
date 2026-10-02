@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Force metadata to be rendered in the <head> for these bots.
-  // This is a workaround for a known issue in Next.js 16.
+  // Force metadata (title, description, verification tags, etc.)
+  // to render inside the <head> for all bots (including Google's
+  // verification crawler). This is a workaround for a Next.js 16
+  // issue where metadata is rendered inside <body> for dynamic pages.
   htmlLimitedBots: /.*/,
 };
 
