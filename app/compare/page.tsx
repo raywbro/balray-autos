@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -57,7 +58,6 @@ export default function ComparePage() {
           return;
         }
 
-        // Preserve order from localStorage
         const ordered = storedIds
           .map((id: string) => data.find((item: any) => item.id === id))
           .filter(Boolean);
@@ -114,7 +114,6 @@ export default function ComparePage() {
     );
   }
 
-  // Determine best value per row (lowest price, highest year, etc.)
   const lowestPrice = listings.length > 0 ? Math.min(...listings.map((l) => l.priceValue)) : 0;
   const newestYear = listings.length > 0 ? Math.max(...listings.map((l) => l.yearValue)) : 0;
 
@@ -160,7 +159,6 @@ export default function ComparePage() {
             </div>
           ) : (
             <>
-              {/* HEADER ACTIONS */}
               <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div className="text-sm font-bold text-[#66737C]">
                   Comparing {listings.length} vehicle{listings.length === 1 ? "" : "s"}
@@ -173,7 +171,6 @@ export default function ComparePage() {
                 </button>
               </div>
 
-              {/* COMPARISON TABLE */}
               <div className="overflow-x-auto rounded-2xl border border-[#D5DBDF] bg-white shadow-sm">
                 <table className="w-full min-w-[700px] border-collapse">
                   <thead>
@@ -214,7 +211,6 @@ export default function ComparePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {/* PRICE */}
                     <tr>
                       <td className="border-b border-r border-[#E1E5E8] bg-[#F7F8F9] p-4 text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                         Price
@@ -238,7 +234,6 @@ export default function ComparePage() {
                       ))}
                     </tr>
 
-                    {/* YEAR */}
                     <tr>
                       <td className="border-b border-r border-[#E1E5E8] bg-[#F7F8F9] p-4 text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                         Year
@@ -262,7 +257,6 @@ export default function ComparePage() {
                       ))}
                     </tr>
 
-                    {/* MAKE */}
                     <tr>
                       <td className="border-b border-r border-[#E1E5E8] bg-[#F7F8F9] p-4 text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                         Make
@@ -277,7 +271,6 @@ export default function ComparePage() {
                       ))}
                     </tr>
 
-                    {/* MODEL */}
                     <tr>
                       <td className="border-b border-r border-[#E1E5E8] bg-[#F7F8F9] p-4 text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                         Model
@@ -292,7 +285,6 @@ export default function ComparePage() {
                       ))}
                     </tr>
 
-                    {/* CATEGORY */}
                     <tr>
                       <td className="border-b border-r border-[#E1E5E8] bg-[#F7F8F9] p-4 text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                         Category
@@ -307,7 +299,6 @@ export default function ComparePage() {
                       ))}
                     </tr>
 
-                    {/* MILEAGE */}
                     <tr>
                       <td className="border-b border-r border-[#E1E5E8] bg-[#F7F8F9] p-4 text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                         Mileage
@@ -322,7 +313,6 @@ export default function ComparePage() {
                       ))}
                     </tr>
 
-                    {/* CONDITION */}
                     <tr>
                       <td className="border-b border-r border-[#E1E5E8] bg-[#F7F8F9] p-4 text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                         Condition
@@ -337,7 +327,6 @@ export default function ComparePage() {
                       ))}
                     </tr>
 
-                    {/* TRANSMISSION */}
                     <tr>
                       <td className="border-b border-r border-[#E1E5E8] bg-[#F7F8F9] p-4 text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                         Transmission
@@ -352,7 +341,6 @@ export default function ComparePage() {
                       ))}
                     </tr>
 
-                    {/* FUEL */}
                     <tr>
                       <td className="border-b border-r border-[#E1E5E8] bg-[#F7F8F9] p-4 text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                         Fuel
@@ -367,7 +355,6 @@ export default function ComparePage() {
                       ))}
                     </tr>
 
-                    {/* LOCATION */}
                     <tr>
                       <td className="border-r border-[#E1E5E8] bg-[#F7F8F9] p-4 text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                         Location
@@ -385,7 +372,6 @@ export default function ComparePage() {
                 </table>
               </div>
 
-              {/* TIPS */}
               <div className="mt-8 rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-6">
                 <h3 className="text-lg font-black text-[#8F7130]">
                   💡 Comparison Tips
@@ -401,26 +387,7 @@ export default function ComparePage() {
         </div>
       </section>
 
-      <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <img src="/balray-autos-logo.png" alt="Balray Autos" className="h-11 w-auto max-w-[180px] object-contain" />
-              <p className="mt-3 text-sm text-[#68757D]">South African automotive marketplace.</p>
-            </div>
-            <div className="flex flex-wrap gap-5 text-sm font-semibold">
-              <Link href="/" className="text-[#68757D] hover:text-[#9A7B37]">Home</Link>
-              <Link href="/marketplace" className="text-[#68757D] hover:text-[#9A7B37]">Marketplace</Link>
-              <Link href="/compare" className="text-[#68757D] hover:text-[#9A7B37]">Compare</Link>
-              <Link href="/about" className="text-[#68757D] hover:text-[#9A7B37]">About</Link>
-              <Link href="/contact" className="text-[#68757D] hover:text-[#9A7B37]">Contact</Link>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-[#D3D9DD] pt-5 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
