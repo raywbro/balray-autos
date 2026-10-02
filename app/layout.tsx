@@ -39,6 +39,9 @@ export const metadata: Metadata = {
   publisher: "Balray Autos",
   applicationName: "Balray Autos",
   category: "automotive",
+  verification: {
+    google: "9iebg1kzPXdgC60n1nv75vW2Mi6dm",
+  },
   openGraph: {
     type: "website",
     locale: "en_ZA",
