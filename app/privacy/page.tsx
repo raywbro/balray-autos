@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 
 export default function PrivacyPage() {
   return (
@@ -42,7 +43,7 @@ export default function PrivacyPage() {
               <h2 className="text-xl font-black text-[#34414A]">2. Information We Collect</h2>
               <p className="mt-3">When you use Balray Autos, we collect:</p>
               <ul className="mt-3 list-disc space-y-2 pl-6">
-                <li><strong>Account information:</strong> Your email address and password (securely encrypted).</li>
+                <li><strong>Account information:</strong> Your email address, phone number, and password (securely encrypted).</li>
                 <li><strong>Listing information:</strong> Name, phone number, email, vehicle details, photos, and location you provide when listing.</li>
                 <li><strong>Usage data:</strong> General information about how you use our platform.</li>
               </ul>
@@ -55,6 +56,7 @@ export default function PrivacyPage() {
                 <li>To display your listings to potential buyers.</li>
                 <li>To allow buyers to contact you about your listing.</li>
                 <li>To improve and secure our platform.</li>
+                <li>To prevent fraud and duplicate accounts.</li>
               </ul>
             </div>
 
@@ -145,26 +147,7 @@ export default function PrivacyPage() {
         </div>
       </section>
 
-      <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <img src="/balray-autos-logo.png" alt="Balray Autos" className="h-11 w-auto max-w-[180px] object-contain" />
-              <p className="mt-3 text-sm text-[#68757D]">South African automotive marketplace.</p>
-            </div>
-            <div className="flex flex-wrap gap-5 text-sm font-semibold">
-              <Link href="/" className="text-[#68757D] hover:text-[#9A7B37]">Home</Link>
-              <Link href="/marketplace" className="text-[#68757D] hover:text-[#9A7B37]">Marketplace</Link>
-              <Link href="/terms" className="text-[#68757D] hover:text-[#9A7B37]">Terms</Link>
-              <Link href="/privacy" className="text-[#68757D] hover:text-[#9A7B37]">Privacy</Link>
-              <Link href="/contact" className="text-[#68757D] hover:text-[#9A7B37]">Contact</Link>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-[#D3D9DD] pt-5 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
