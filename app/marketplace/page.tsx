@@ -2,11 +2,17 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useState, useEffect, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSearchParams, useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
+
+// Lazy-loaded — only downloads when compareList is not empty
+const CompareBar = dynamic(() => import("@/app/components/CompareBar"), {
+  ssr: false,
+});
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -42,7 +48,6 @@ function MarketplaceContent() {
   const [search, setSearch] = useState(initialSearch);
   const [sortBy, setSortBy] = useState("featured");
   const [showFilters, setShowFilters] = useState(false);
-
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [minYear, setMinYear] = useState("");
@@ -92,7 +97,6 @@ function MarketplaceContent() {
           const hasPriceDrop = previous !== null && previous > price;
           const savings = hasPriceDrop ? previous - price : 0;
           const percentOff = hasPriceDrop ? Math.round((savings / previous) * 100) : 0;
-
           return {
             id: item.id,
             title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
@@ -186,15 +190,7 @@ function MarketplaceContent() {
     setSelectedCategory("All");
   };
 
-  const categories = [
-    "All",
-    "Cars & SUVs",
-    "Bakkies & 4x4s",
-    "Motorcycles",
-    "Trucks & Commercial",
-    "Machinery & Equipment",
-    "Parts & Accessories",
-  ];
+  const categories = ["All", "Cars & SUVs", "Bakkies & 4x4s", "Motorcycles", "Trucks & Commercial", "Machinery & Equipment", "Parts & Accessories"];
 
   const activeFilterCount =
     (minPrice ? 1 : 0) + (maxPrice ? 1 : 0) + (minYear ? 1 : 0) +
@@ -414,47 +410,26 @@ function MarketplaceContent() {
                   }`}
                 >
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-                    <Image
-                      src={listing.image}
-                      alt={listing.title}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                      quality={75}
-                    />
-                    <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
-                      {listing.category}
-                    </div>
+                    <Image src={listing.image} alt={listing.title} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" quality={75} />
+                    <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">{listing.category}</div>
                     {listing.featured && (
-                      <div className="absolute left-4 top-14 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
-                        ⭐ FEATURED
-                      </div>
+                      <div className="absolute left-4 top-14 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">⭐ FEATURED</div>
                     )}
                     {listing.hasPriceDrop && (
-                      <div className="absolute right-4 top-4 rounded-full bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-md animate-pulse">
-                        💰 PRICE DROP
-                      </div>
+                      <div className="absolute right-4 top-4 rounded-full bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-md animate-pulse">💰 PRICE DROP</div>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => toggleFavorite(listing.id)}
-                      className="absolute bottom-4 right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-xl shadow-md backdrop-blur transition hover:bg-white hover:scale-105"
-                      aria-label="Save to favorites"
-                    >
+                    <button type="button" onClick={() => toggleFavorite(listing.id)} className="absolute bottom-4 right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-xl shadow-md backdrop-blur transition hover:bg-white hover:scale-105" aria-label="Save to favorites">
                       {favorites.includes(listing.id) ? "❤️" : "🤍"}
                     </button>
                   </div>
                   <div className="p-5">
                     <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">{listing.title}</h3>
-
                     <div className="mt-3">
                       {listing.hasPriceDrop ? (
                         <div className="flex flex-wrap items-baseline gap-2">
                           <span className="text-2xl font-black text-[#9A7B37]">{listing.price}</span>
                           <span className="text-sm font-bold text-[#89939A] line-through">{listing.previousPriceFormatted}</span>
-                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-black text-green-700">
-                            -{listing.percentOff}%
-                          </span>
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-black text-green-700">-{listing.percentOff}%</span>
                         </div>
                       ) : (
                         <div className="text-2xl font-black text-[#9A7B37]">{listing.price}</div>
@@ -463,7 +438,6 @@ function MarketplaceContent() {
                         <div className="mt-1 text-xs font-bold text-green-600">Save {listing.savingsFormatted}</div>
                       )}
                     </div>
-
                     <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
                         <div className="text-[#89939A]">Year</div>
@@ -486,9 +460,7 @@ function MarketplaceContent() {
                       <div className="text-sm text-[#66737C]">📍 {listing.location}</div>
                     </div>
                     <div className="mt-5 grid grid-cols-2 gap-2">
-                      <Link href={`/listing/${listing.id}`} className="rounded-xl border border-[#B08D3C] bg-white px-4 py-3 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]">
-                        View
-                      </Link>
+                      <Link href={`/listing/${listing.id}`} className="rounded-xl border border-[#B08D3C] bg-white px-4 py-3 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]">View</Link>
                       <button
                         type="button"
                         onClick={() => toggleCompare(listing.id)}
@@ -531,38 +503,13 @@ function MarketplaceContent() {
         </div>
       </section>
 
-      {compareList.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 z-40 w-[95%] max-w-3xl -translate-x-1/2 rounded-2xl border-2 border-[#B08D3C] bg-white p-4 shadow-2xl">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-lg text-white">
-                ⚖️
-              </div>
-              <div>
-                <div className="text-sm font-black text-[#34414A]">
-                  {compareList.length} vehicle{compareList.length === 1 ? "" : "s"} to compare
-                </div>
-                <div className="text-xs text-[#66737C]">Compare up to 4 side-by-side</div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setCompareList([]);
-                  localStorage.removeItem("balray_compare");
-                }}
-                className="rounded-xl border border-[#D5DBDF] bg-white px-4 py-2.5 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
-              >
-                Clear
-              </button>
-              <Link href="/compare" className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-2.5 text-sm font-bold text-white shadow-md hover:brightness-105">
-                Compare Now →
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+      <CompareBar
+        compareList={compareList}
+        onClear={() => {
+          setCompareList([]);
+          localStorage.removeItem("balray_compare");
+        }}
+      />
 
       {compareToast && (
         <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-[#34414A] px-6 py-3 text-sm font-bold text-white shadow-lg">
