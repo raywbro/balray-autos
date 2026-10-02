@@ -5,15 +5,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
-
-const categoryMap: Record<string, string> = {
-  cars: "Cars & SUVs",
-  bakkies: "Bakkies & 4x4s",
-  motorcycles: "Motorcycles",
-  trucks: "Trucks & Commercial",
-  machinery: "Machinery & Equipment",
-  parts: "Parts & Accessories",
-};
+import Footer from "@/app/components/Footer";
 
 export default function AnalyticsPage() {
   const [user, setUser] = useState<any>(null);
@@ -33,7 +25,6 @@ export default function AnalyticsPage() {
       }
       setUser(user);
 
-      // Fetch all of the seller's listings
       const { data: listingsData } = await supabase
         .from("listings")
         .select("*")
@@ -48,7 +39,6 @@ export default function AnalyticsPage() {
 
       setListings(listingsData);
 
-      // Fetch favorites counts for each listing
       const listingIds = listingsData.map((l) => l.id);
       const { data: favsData } = await supabase
         .from("favorites")
@@ -79,7 +69,6 @@ export default function AnalyticsPage() {
 
   if (!user) return null;
 
-  // Calculate overall stats
   const totalListings = listings.length;
   const activeListings = listings.filter((l) => l.status === "active").length;
   const soldListings = listings.filter((l) => l.status === "sold").length;
@@ -89,12 +78,10 @@ export default function AnalyticsPage() {
   const avgViewsPerListing = totalListings > 0 ? Math.round(totalViews / totalListings) : 0;
   const conversionRate = totalViews > 0 ? ((totalFavorites / totalViews) * 100).toFixed(1) : "0.0";
 
-  // Top 5 listings by views
   const topListings = [...listings]
     .sort((a, b) => (b.views || 0) - (a.views || 0))
     .slice(0, 5);
 
-  // Recent price drops (listings with previous_price)
   const priceDrops = listings.filter(
     (l) => l.previous_price && Number(l.previous_price) > Number(l.price)
   );
@@ -222,7 +209,6 @@ export default function AnalyticsPage() {
 
               {/* TOP PERFORMERS */}
               <div className="mt-10 grid gap-6 lg:grid-cols-2">
-                {/* TOP LISTINGS */}
                 <div className="rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm">
                   <h2 className="text-xl font-black text-[#34414A] mb-1">
                     🔥 Your Top Performing Listings
@@ -282,7 +268,6 @@ export default function AnalyticsPage() {
                   )}
                 </div>
 
-                {/* PRICE DROPS */}
                 <div className="rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm">
                   <h2 className="text-xl font-black text-[#34414A] mb-1">
                     💰 Recent Price Drops
@@ -389,26 +374,7 @@ export default function AnalyticsPage() {
         </div>
       </section>
 
-      <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <img src="/balray-autos-logo.png" alt="Balray Autos" className="h-11 w-auto max-w-[180px] object-contain" />
-              <p className="mt-3 text-sm text-[#68757D]">South African automotive marketplace.</p>
-            </div>
-            <div className="flex flex-wrap gap-5 text-sm font-semibold">
-              <Link href="/" className="text-[#68757D] hover:text-[#9A7B37]">Home</Link>
-              <Link href="/marketplace" className="text-[#68757D] hover:text-[#9A7B37]">Marketplace</Link>
-              <Link href="/my-listings" className="text-[#68757D] hover:text-[#9A7B37]">My Listings</Link>
-              <Link href="/analytics" className="text-[#68757D] hover:text-[#9A7B37]">Analytics</Link>
-              <Link href="/contact" className="text-[#68757D] hover:text-[#9A7B37]">Contact</Link>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-[#D3D9DD] pt-5 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
