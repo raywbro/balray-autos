@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 
 export default function TermsPage() {
   return (
@@ -54,8 +55,9 @@ export default function TermsPage() {
               <h2 className="text-xl font-black text-[#34414A]">3. User Accounts</h2>
               <p className="mt-3">
                 To post listings, you must create an account with a valid email
-                address. You are responsible for keeping your login credentials
-                safe. Any activity on your account is your responsibility.
+                address and phone number. You are responsible for keeping your
+                login credentials safe. Any activity on your account is your
+                responsibility.
               </p>
             </div>
 
@@ -94,6 +96,7 @@ export default function TermsPage() {
                 <li>Using the platform for fraud or scams.</li>
                 <li>Harassing other users or misusing contact information.</li>
                 <li>Attempting to hack, scrape, or damage the platform.</li>
+                <li>Creating multiple accounts with false information.</li>
               </ul>
             </div>
 
@@ -140,26 +143,7 @@ export default function TermsPage() {
         </div>
       </section>
 
-      <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <img src="/balray-autos-logo.png" alt="Balray Autos" className="h-11 w-auto max-w-[180px] object-contain" />
-              <p className="mt-3 text-sm text-[#68757D]">South African automotive marketplace.</p>
-            </div>
-            <div className="flex flex-wrap gap-5 text-sm font-semibold">
-              <Link href="/" className="text-[#68757D] hover:text-[#9A7B37]">Home</Link>
-              <Link href="/marketplace" className="text-[#68757D] hover:text-[#9A7B37]">Marketplace</Link>
-              <Link href="/terms" className="text-[#68757D] hover:text-[#9A7B37]">Terms</Link>
-              <Link href="/privacy" className="text-[#68757D] hover:text-[#9A7B37]">Privacy</Link>
-              <Link href="/contact" className="text-[#68757D] hover:text-[#9A7B37]">Contact</Link>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-[#D3D9DD] pt-5 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
