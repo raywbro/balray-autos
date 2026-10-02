@@ -45,7 +45,7 @@ const socialLinks = [
   },
 ];
 
-// Top SA cities for footer links
+// Top cities for footer links
 const FOOTER_CITIES = [
   { slug: "johannesburg", name: "Johannesburg" },
   { slug: "cape-town", name: "Cape Town" },
@@ -55,21 +55,34 @@ const FOOTER_CITIES = [
   { slug: "bloemfontein", name: "Bloemfontein" },
 ];
 
+// Top brands for footer links
+const FOOTER_BRANDS = [
+  { slug: "toyota", name: "Toyota" },
+  { slug: "volkswagen", name: "Volkswagen" },
+  { slug: "ford", name: "Ford" },
+  { slug: "bmw", name: "BMW" },
+  { slug: "mercedes-benz", name: "Mercedes-Benz" },
+  { slug: "audi", name: "Audi" },
+  { slug: "nissan", name: "Nissan" },
+  { slug: "hyundai", name: "Hyundai" },
+];
+
 export default function Footer() {
   return (
     <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
       <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid w-full gap-10 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid w-full gap-10 md:grid-cols-2 lg:grid-cols-6">
           {/* BRAND + SOCIALS */}
-          <div className="min-w-0 lg:col-span-2">
+          <div className="min-w-0 md:col-span-2 lg:col-span-2">
             <img
               src="/balray-autos-logo.png"
               alt="Balray Autos"
               className="h-12 w-auto max-w-[190px] object-contain"
             />
             <p className="mt-4 max-w-sm text-sm leading-6 text-[#68757D]">
-              South African automotive marketplace connecting buyers and
-              sellers.
+              South Africa&apos;s automotive marketplace connecting buyers and
+              sellers of cars, bakkies, motorcycles, trucks, machinery, and
+              parts.
             </p>
 
             <div className="mt-5 flex flex-wrap gap-2">
@@ -89,6 +102,28 @@ export default function Footer() {
             </div>
           </div>
 
+          {/* POPULAR BRANDS */}
+          <div>
+            <h3 className="font-bold text-[#34414A]">Popular Brands</h3>
+            <div className="mt-4 flex flex-col gap-3 text-sm">
+              {FOOTER_BRANDS.map((brand) => (
+                <Link
+                  key={brand.slug}
+                  href={`/brands/${brand.slug}`}
+                  className="text-[#68757D] transition hover:text-[#9A7B37]"
+                >
+                  {brand.name} for Sale
+                </Link>
+              ))}
+              <Link
+                href="/brands"
+                className="font-bold text-[#9A7B37] transition hover:underline"
+              >
+                View All Brands →
+              </Link>
+            </div>
+          </div>
+
           {/* CITIES */}
           <div>
             <h3 className="font-bold text-[#34414A]">Browse by City</h3>
@@ -99,7 +134,7 @@ export default function Footer() {
                   href={`/cars-for-sale/${city.slug}`}
                   className="text-[#68757D] transition hover:text-[#9A7B37]"
                 >
-                  Cars for Sale in {city.name}
+                  {city.name}
                 </Link>
               ))}
               <Link
@@ -159,7 +194,7 @@ export default function Footer() {
             <h3 className="font-bold text-[#34414A]">Company</h3>
             <div className="mt-4 flex flex-col gap-3 text-sm">
               <Link href="/about" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                About Balray Autos
+                About
               </Link>
               <Link href="/blog" className="text-[#68757D] transition hover:text-[#9A7B37]">
                 Blog
@@ -171,10 +206,10 @@ export default function Footer() {
                 Contact
               </Link>
               <Link href="/terms" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                Terms & Conditions
+                Terms
               </Link>
               <Link href="/privacy" className="text-[#68757D] transition hover:text-[#9A7B37]">
-                Privacy Policy
+                Privacy
               </Link>
             </div>
           </div>
