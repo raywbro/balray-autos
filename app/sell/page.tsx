@@ -75,9 +75,49 @@ export default function SellPage() {
     setErrorMessage("");
 
     const formData = new FormData(event.currentTarget);
+
+    const make = (formData.get("make") as string)?.trim();
+    const model = (formData.get("model") as string)?.trim();
+    const year = formData.get("year") ? Number(formData.get("year")) : null;
+    const price = Number(formData.get("price"));
+
+    // ------------------------------
+    // DUPLICATE PRE-CHECK
+    // ------------------------------
+    try {
+      let query = supabase
+        .from("listings")
+        .select("id")
+        .eq("user_id", user.id)
+        .ilike("make", make)
+        .ilike("model", model)
+        .eq("price", price)
+        .in("status", ["pending", "active"]);
+
+      if (year !== null) {
+        query = query.eq("year", year);
+      } else {
+        query = query.is("year", null);
+      }
+
+      const { data: existing } = await query.maybeSingle();
+
+      if (existing) {
+        setErrorMessage(
+          "You already have a live listing for this exact vehicle (same make, model, year, and price). Please edit your existing listing instead of posting a new one."
+        );
+        setUploading(false);
+        return;
+      }
+    } catch (err) {
+      console.error("Duplicate check failed:", err);
+      // Continue — the DB constraint will catch it as a fallback
+    }
+
     const imageUrls: string[] = [];
 
     try {
+      // Upload images
       if (selectedFiles.length > 0) {
         for (let i = 0; i < selectedFiles.length; i++) {
           const file = selectedFiles[i];
@@ -124,10 +164,10 @@ export default function SellPage() {
         seller_type: formData.get("sellerType"),
         category: formData.get("category"),
         condition: formData.get("condition"),
-        make: formData.get("make"),
-        model: formData.get("model"),
-        year: formData.get("year") ? Number(formData.get("year")) : null,
-        price: Number(formData.get("price")),
+        make,
+        model,
+        year,
+        price,
         mileage: formData.get("mileage"),
         location: formData.get("location"),
         transmission: formData.get("transmission"),
@@ -137,8 +177,45 @@ export default function SellPage() {
         status: "pending",
       };
 
-      const { error: dbError } = await supabase.from("listings").insert([newListing]);
-      if (dbError) throw dbError;
+      const { data: inserted, error: dbError } = await supabase
+        .from("listings")
+        .insert([newListing])
+        .select()
+        .single();
+
+      if (dbError) {
+        // Handle the DB constraint error gracefully
+        if (
+          dbError.message?.includes("listings_dedupe_idx") ||
+          dbError.code === "23505" ||
+          dbError.message?.toLowerCase().includes("duplicate")
+        ) {
+          throw new Error(
+            "You already have a live listing for this exact vehicle. Please edit your existing listing instead."
+          );
+        }
+        throw dbError;
+      }
+
+      // Send admin notification (silent fail)
+      try {
+        await fetch("/api/notify-admin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            listingId: inserted?.id,
+            sellerName: newListing.seller_name,
+            sellerEmail: newListing.seller_email,
+            sellerPhone: newListing.seller_phone,
+            listingTitle: `${newListing.year || ""} ${newListing.make} ${newListing.model}`.trim(),
+            listingPrice: `R${newListing.price.toLocaleString()}`,
+            category: newListing.category,
+            location: newListing.location,
+          }),
+        });
+      } catch (err) {
+        console.error("Admin notification failed (silent):", err);
+      }
 
       previews.forEach((url) => URL.revokeObjectURL(url));
 
@@ -223,7 +300,7 @@ export default function SellPage() {
 
               {errorMessage && (
                 <div className="bg-red-50 p-4 text-center text-sm font-bold text-red-600 border-b border-red-200">
-                  Error: {errorMessage}
+                  ⚠️ {errorMessage}
                 </div>
               )}
 
@@ -353,7 +430,7 @@ export default function SellPage() {
                   </div>
                 </div>
 
-                {/* IMAGES WITH PREVIEW */}
+                {/* IMAGES */}
                 <div className="border-t border-[#E1E5E8] pt-10">
                   <div className="mb-5">
                     <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">04</div>
