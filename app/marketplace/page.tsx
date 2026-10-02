@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -75,7 +76,7 @@ function MarketplaceContent() {
     const fetchListings = async () => {
       const now = new Date().toISOString();
       const { data, error } = await supabase
-        .from("listings")
+        .from("public_listings")
         .select("*")
         .eq("status", "active")
         .or(`expires_at.is.null,expires_at.gt.${now}`)
@@ -85,7 +86,7 @@ function MarketplaceContent() {
       if (error) {
         console.error("Error fetching listings:", error);
       } else {
-        const formattedListings = data.map((item) => {
+        const formattedListings = (data || []).map((item: any) => {
           const price = Number(item.price);
           const previous = item.previous_price ? Number(item.previous_price) : null;
           const hasPriceDrop = previous !== null && previous > price;
@@ -132,7 +133,7 @@ function MarketplaceContent() {
           .from("favorites")
           .select("listing_id")
           .eq("user_id", user.id);
-        setFavorites((data || []).map((f) => f.listing_id));
+        setFavorites((data || []).map((f: any) => f.listing_id));
       }
     };
 
@@ -145,27 +146,18 @@ function MarketplaceContent() {
       router.push("/login");
       return;
     }
-
     const isFav = favorites.includes(listingId);
-
     if (isFav) {
       setFavorites(favorites.filter((id) => id !== listingId));
-      await supabase
-        .from("favorites")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("listing_id", listingId);
+      await supabase.from("favorites").delete().eq("user_id", user.id).eq("listing_id", listingId);
     } else {
       setFavorites([...favorites, listingId]);
-      await supabase
-        .from("favorites")
-        .insert({ user_id: user.id, listing_id: listingId });
+      await supabase.from("favorites").insert({ user_id: user.id, listing_id: listingId });
     }
   };
 
   const toggleCompare = (listingId: string) => {
     let newList: string[];
-
     if (compareList.includes(listingId)) {
       newList = compareList.filter((id) => id !== listingId);
       setCompareToast("Removed from comparison");
@@ -178,7 +170,6 @@ function MarketplaceContent() {
       newList = [...compareList, listingId];
       setCompareToast("Added to comparison ✓");
     }
-
     setCompareList(newList);
     localStorage.setItem("balray_compare", JSON.stringify(newList));
     setTimeout(() => setCompareToast(""), 2500);
@@ -206,16 +197,11 @@ function MarketplaceContent() {
   ];
 
   const activeFilterCount =
-    (minPrice ? 1 : 0) +
-    (maxPrice ? 1 : 0) +
-    (minYear ? 1 : 0) +
-    (maxYear ? 1 : 0) +
-    (transmissionFilter ? 1 : 0) +
-    (fuelFilter ? 1 : 0);
+    (minPrice ? 1 : 0) + (maxPrice ? 1 : 0) + (minYear ? 1 : 0) +
+    (maxYear ? 1 : 0) + (transmissionFilter ? 1 : 0) + (fuelFilter ? 1 : 0);
 
   const filteredListings = listings.filter((listing) => {
-    const matchesCategory =
-      selectedCategory === "All" || listing.category === selectedCategory;
+    const matchesCategory = selectedCategory === "All" || listing.category === selectedCategory;
     const searchText = search.toLowerCase().trim();
     const matchesSearch =
       searchText === "" ||
@@ -226,38 +212,20 @@ function MarketplaceContent() {
     const matchesMaxPrice = maxPrice === "" || listing.priceValue <= Number(maxPrice);
     const matchesMinYear = minYear === "" || listing.yearValue >= Number(minYear);
     const matchesMaxYear = maxYear === "" || listing.yearValue <= Number(maxYear);
-    const matchesTransmission =
-      transmissionFilter === "" || listing.transmissionKey === transmissionFilter;
+    const matchesTransmission = transmissionFilter === "" || listing.transmissionKey === transmissionFilter;
     const matchesFuel = fuelFilter === "" || listing.fuelKey === fuelFilter;
-
-    return (
-      matchesCategory &&
-      matchesSearch &&
-      matchesMinPrice &&
-      matchesMaxPrice &&
-      matchesMinYear &&
-      matchesMaxYear &&
-      matchesTransmission &&
-      matchesFuel
-    );
+    return matchesCategory && matchesSearch && matchesMinPrice && matchesMaxPrice && matchesMinYear && matchesMaxYear && matchesTransmission && matchesFuel;
   });
 
   const sortedListings = [...filteredListings].sort((a, b) => {
     switch (sortBy) {
-      case "price-low":
-        return a.priceValue - b.priceValue;
-      case "price-high":
-        return b.priceValue - a.priceValue;
-      case "newest":
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      case "oldest":
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      case "popular":
-        return b.views - a.views;
-      case "year-new":
-        return b.yearValue - a.yearValue;
-      case "year-old":
-        return a.yearValue - b.yearValue;
+      case "price-low": return a.priceValue - b.priceValue;
+      case "price-high": return b.priceValue - a.priceValue;
+      case "newest": return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      case "oldest": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      case "popular": return b.views - a.views;
+      case "year-new": return b.yearValue - a.yearValue;
+      case "year-old": return a.yearValue - b.yearValue;
       case "featured":
       default:
         if (a.featured && !b.featured) return -1;
@@ -268,7 +236,6 @@ function MarketplaceContent() {
 
   return (
     <>
-      {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-[24px] border-[#D9DEE2]/70" />
         <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full border-[20px] border-[#C5CDD2]/50" />
@@ -289,7 +256,6 @@ function MarketplaceContent() {
         </div>
       </section>
 
-      {/* SEARCH */}
       <section className="w-full bg-[#34414A]">
         <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
@@ -307,7 +273,6 @@ function MarketplaceContent() {
         </div>
       </section>
 
-      {/* CATEGORY FILTERS */}
       <section className="w-full bg-[#F7F8F9]">
         <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="flex w-full gap-2 overflow-x-auto pb-3">
@@ -356,9 +321,7 @@ function MarketplaceContent() {
               </button>
 
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
-                  Sort:
-                </label>
+                <label className="text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">Sort:</label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
@@ -381,7 +344,6 @@ function MarketplaceContent() {
             </div>
           </div>
 
-          {/* ADVANCED FILTERS PANEL */}
           {showFilters && (
             <div className="mt-6 rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm">
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -426,15 +388,9 @@ function MarketplaceContent() {
 
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#E1E5E8] pt-5">
                 <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
-                  {activeFilterCount > 0
-                    ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} applied`
-                    : "No filters applied"}
+                  {activeFilterCount > 0 ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} applied` : "No filters applied"}
                 </div>
-                <button
-                  type="button"
-                  onClick={clearAllFilters}
-                  className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-2.5 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
-                >
+                <button type="button" onClick={clearAllFilters} className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-2.5 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]">
                   ✕ Clear All Filters
                 </button>
               </div>
@@ -458,23 +414,27 @@ function MarketplaceContent() {
                   }`}
                 >
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-                    <img src={listing.image} alt={listing.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                    <Image
+                      src={listing.image}
+                      alt={listing.title}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition duration-500 group-hover:scale-105"
+                      quality={75}
+                    />
                     <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
                       {listing.category}
                     </div>
-
                     {listing.featured && (
                       <div className="absolute left-4 top-14 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
                         ⭐ FEATURED
                       </div>
                     )}
-
                     {listing.hasPriceDrop && (
                       <div className="absolute right-4 top-4 rounded-full bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-md animate-pulse">
                         💰 PRICE DROP
                       </div>
                     )}
-
                     <button
                       type="button"
                       onClick={() => toggleFavorite(listing.id)}
@@ -499,11 +459,8 @@ function MarketplaceContent() {
                       ) : (
                         <div className="text-2xl font-black text-[#9A7B37]">{listing.price}</div>
                       )}
-
                       {listing.hasPriceDrop && (
-                        <div className="mt-1 text-xs font-bold text-green-600">
-                          Save {listing.savingsFormatted}
-                        </div>
+                        <div className="mt-1 text-xs font-bold text-green-600">Save {listing.savingsFormatted}</div>
                       )}
                     </div>
 
@@ -525,16 +482,11 @@ function MarketplaceContent() {
                         <div className="mt-1 font-bold text-[#34414A]">{listing.fuel}</div>
                       </div>
                     </div>
-
                     <div className="mt-4 border-t border-[#E1E5E8] pt-4">
                       <div className="text-sm text-[#66737C]">📍 {listing.location}</div>
                     </div>
-
                     <div className="mt-5 grid grid-cols-2 gap-2">
-                      <Link
-                        href={`/listing/${listing.id}`}
-                        className="rounded-xl border border-[#B08D3C] bg-white px-4 py-3 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
-                      >
+                      <Link href={`/listing/${listing.id}`} className="rounded-xl border border-[#B08D3C] bg-white px-4 py-3 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]">
                         View
                       </Link>
                       <button
@@ -566,7 +518,6 @@ function MarketplaceContent() {
         </div>
       </section>
 
-      {/* SELL SECTION */}
       <section className="w-full bg-gradient-to-r from-[#E6EAED] via-[#F7F8F9] to-[#DCE2E6]">
         <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:px-8 lg:py-16">
           <div>
@@ -580,7 +531,6 @@ function MarketplaceContent() {
         </div>
       </section>
 
-      {/* FLOATING COMPARE BAR */}
       {compareList.length > 0 && (
         <div className="fixed bottom-4 left-1/2 z-40 w-[95%] max-w-3xl -translate-x-1/2 rounded-2xl border-2 border-[#B08D3C] bg-white p-4 shadow-2xl">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -592,9 +542,7 @@ function MarketplaceContent() {
                 <div className="text-sm font-black text-[#34414A]">
                   {compareList.length} vehicle{compareList.length === 1 ? "" : "s"} to compare
                 </div>
-                <div className="text-xs text-[#66737C]">
-                  Compare up to 4 side-by-side
-                </div>
+                <div className="text-xs text-[#66737C]">Compare up to 4 side-by-side</div>
               </div>
             </div>
             <div className="flex gap-2">
@@ -608,10 +556,7 @@ function MarketplaceContent() {
               >
                 Clear
               </button>
-              <Link
-                href="/compare"
-                className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-2.5 text-sm font-bold text-white shadow-md hover:brightness-105"
-              >
+              <Link href="/compare" className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-2.5 text-sm font-bold text-white shadow-md hover:brightness-105">
                 Compare Now →
               </Link>
             </div>
@@ -619,7 +564,6 @@ function MarketplaceContent() {
         </div>
       )}
 
-      {/* TOAST */}
       {compareToast && (
         <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-[#34414A] px-6 py-3 text-sm font-bold text-white shadow-lg">
           {compareToast}
@@ -633,14 +577,15 @@ export default function MarketplacePage() {
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
       <Navbar />
-      <Suspense fallback={
-        <div className="min-h-screen w-full flex items-center justify-center">
-          <div className="text-lg font-bold animate-pulse text-[#9A7B37]">Loading marketplace...</div>
-        </div>
-      }>
+      <Suspense
+        fallback={
+          <div className="min-h-screen w-full flex items-center justify-center">
+            <div className="text-lg font-bold animate-pulse text-[#9A7B37]">Loading marketplace...</div>
+          </div>
+        }
+      >
         <MarketplaceContent />
       </Suspense>
-
       <Footer />
     </main>
   );
