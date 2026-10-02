@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -33,7 +34,6 @@ export default function FavoritesPage() {
       }
       setUser(user);
 
-      // Get all favorite listing IDs for this user
       const { data: favs, error: favError } = await supabase
         .from("favorites")
         .select("listing_id, created_at")
@@ -48,7 +48,6 @@ export default function FavoritesPage() {
 
       const listingIds = favs.map((f) => f.listing_id);
 
-      // Fetch the actual listings
       const { data, error } = await supabase
         .from("listings")
         .select("*")
@@ -58,7 +57,6 @@ export default function FavoritesPage() {
       if (error) {
         setMessage(error.message);
       } else {
-        // Preserve favorites order
         const orderedListings = favs
           .map((fav) => data?.find((l) => l.id === fav.listing_id))
           .filter(Boolean)
@@ -237,27 +235,7 @@ export default function FavoritesPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="w-full border-t border-[#D4DADF] bg-[#EEF1F3]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <img src="/balray-autos-logo.png" alt="Balray Autos" className="h-11 w-auto max-w-[180px] object-contain" />
-              <p className="mt-3 text-sm text-[#68757D]">South African automotive marketplace.</p>
-            </div>
-            <div className="flex flex-wrap gap-5 text-sm font-semibold">
-              <Link href="/" className="text-[#68757D] hover:text-[#9A7B37]">Home</Link>
-              <Link href="/marketplace" className="text-[#68757D] hover:text-[#9A7B37]">Marketplace</Link>
-              <Link href="/sell" className="text-[#68757D] hover:text-[#9A7B37]">Sell</Link>
-              <Link href="/favorites" className="text-[#68757D] hover:text-[#9A7B37]">Favorites</Link>
-              <Link href="/contact" className="text-[#68757D] hover:text-[#9A7B37]">Contact</Link>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-[#D3D9DD] pt-5 text-center text-sm text-[#7A858C]">
-            © {new Date().getFullYear()} Balray Autos (Pty) Ltd. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
