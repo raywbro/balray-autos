@@ -1,12 +1,10 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
+import HomeSearchForm from "@/app/components/HomeSearchForm";
+import RecentlyViewedSection from "@/app/components/RecentlyViewedSection";
 
 const categories = [
   { title: "Cars & SUVs", description: "Everyday cars, luxury vehicles and SUVs.", href: "/marketplace?category=Cars+%26+SUVs", icon: "🚗" },
@@ -26,145 +24,91 @@ const categoryMap: Record<string, string> = {
   parts: "Parts & Accessories",
 };
 
-export default function Home() {
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [featuredListings, setFeaturedListings] = useState<any[]>([]);
-  const [latestListings, setLatestListings] = useState<any[]>([]);
-  const [hotDeals, setHotDeals] = useState<any[]>([]);
-  const [recentlyViewed, setRecentlyViewed] = useState<any[]>([]);
-  const [loadingListings, setLoadingListings] = useState(true);
-  const [loadingRecent, setLoadingRecent] = useState(true);
-  const router = useRouter();
-  const supabase = createClient();
+type ListingFormatted = {
+  id: string;
+  title: string;
+  category: string;
+  price: string;
+  priceValue: number;
+  previousPriceFormatted: string | null;
+  hasPriceDrop: boolean;
+  savingsFormatted: string;
+  percentOff: number;
+  location: string;
+  mileage: string;
+  featured: boolean;
+  image: string;
+};
 
-  useEffect(() => {
-    const fetchHomepageListings = async () => {
-      const now = new Date().toISOString();
+function formatListing(item: any): ListingFormatted {
+  const price = Number(item.price);
+  const previous = item.previous_price ? Number(item.previous_price) : null;
+  const hasPriceDrop = previous !== null && previous > price;
+  const savings = hasPriceDrop ? previous - price : 0;
+  const percentOff = hasPriceDrop ? Math.round((savings / previous) * 100) : 0;
 
-      const { data: featuredData } = await supabase
-        .from("listings")
-        .select("*")
-        .eq("status", "active")
-        .eq("featured", true)
-        .or(`expires_at.is.null,expires_at.gt.${now}`)
-        .order("created_at", { ascending: false })
-        .limit(3);
-
-      const { data: latestData } = await supabase
-        .from("listings")
-        .select("*")
-        .eq("status", "active")
-        .or(`expires_at.is.null,expires_at.gt.${now}`)
-        .order("created_at", { ascending: false })
-        .limit(6);
-
-      const { data: hotData } = await supabase
-        .from("listings")
-        .select("*")
-        .eq("status", "active")
-        .not("previous_price", "is", null)
-        .or(`expires_at.is.null,expires_at.gt.${now}`)
-        .order("created_at", { ascending: false })
-        .limit(12);
-
-      const format = (item: any) => {
-        const price = Number(item.price);
-        const previous = item.previous_price ? Number(item.previous_price) : null;
-        const hasPriceDrop = previous !== null && previous > price;
-        const savings = hasPriceDrop ? previous - price : 0;
-        const percentOff = hasPriceDrop ? Math.round((savings / previous) * 100) : 0;
-
-        return {
-          id: item.id,
-          title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
-          category: categoryMap[item.category] || item.category,
-          price: `R${price.toLocaleString()}`,
-          priceValue: price,
-          previousPriceFormatted: previous ? `R${previous.toLocaleString()}` : null,
-          hasPriceDrop,
-          savingsFormatted: `R${savings.toLocaleString()}`,
-          percentOff,
-          location: item.location,
-          mileage: item.mileage || "N/A",
-          featured: item.featured || false,
-          image:
-            item.images && item.images.length > 0
-              ? item.images[0]
-              : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
-        };
-      };
-
-      setFeaturedListings((featuredData || []).map(format));
-      setLatestListings((latestData || []).map(format));
-
-      const formattedHot = (hotData || [])
-        .map(format)
-        .filter((item) => item.hasPriceDrop)
-        .sort((a, b) => b.percentOff - a.percentOff)
-        .slice(0, 6);
-
-      setHotDeals(formattedHot);
-      setLoadingListings(false);
-    };
-
-    const fetchRecentlyViewed = async () => {
-      try {
-        const stored = JSON.parse(localStorage.getItem("balray_recently_viewed") || "[]");
-        if (!stored || stored.length === 0) {
-          setLoadingRecent(false);
-          return;
-        }
-
-        const now = new Date().toISOString();
-        const { data } = await supabase
-          .from("listings")
-          .select("*")
-          .in("id", stored)
-          .eq("status", "active")
-          .or(`expires_at.is.null,expires_at.gt.${now}`);
-
-        const ordered = stored
-          .map((id: string) => (data || []).find((item: any) => item.id === id))
-          .filter(Boolean);
-
-        const formatted = ordered.map((item: any) => ({
-          id: item.id,
-          title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
-          category: categoryMap[item.category] || item.category,
-          price: `R${Number(item.price).toLocaleString()}`,
-          location: item.location,
-          mileage: item.mileage || "N/A",
-          featured: item.featured || false,
-          image:
-            item.images && item.images.length > 0
-              ? item.images[0]
-              : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
-        }));
-
-        setRecentlyViewed(formatted);
-      } catch (err) {
-        console.error("Error loading recently viewed:", err);
-      }
-      setLoadingRecent(false);
-    };
-
-    fetchHomepageListings();
-    fetchRecentlyViewed();
-  }, [supabase]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams();
-    if (search.trim()) params.set("q", search.trim());
-    if (selectedCategory) params.set("category", selectedCategory);
-    router.push(`/marketplace?${params.toString()}`);
+  return {
+    id: item.id,
+    title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
+    category: categoryMap[item.category] || item.category,
+    price: `R${price.toLocaleString()}`,
+    priceValue: price,
+    previousPriceFormatted: previous ? `R${previous.toLocaleString()}` : null,
+    hasPriceDrop,
+    savingsFormatted: `R${savings.toLocaleString()}`,
+    percentOff,
+    location: item.location,
+    mileage: item.mileage || "N/A",
+    featured: item.featured || false,
+    image:
+      item.images && item.images.length > 0
+        ? item.images[0]
+        : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
   };
+}
 
-  const clearRecentlyViewed = () => {
-    localStorage.removeItem("balray_recently_viewed");
-    setRecentlyViewed([]);
-  };
+export default async function Home() {
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  );
+
+  const now = new Date().toISOString();
+
+  // Fetch everything in parallel on the server
+  const [featuredRes, latestRes, hotRes] = await Promise.all([
+    supabase
+      .from("public_listings")
+      .select("*")
+      .eq("status", "active")
+      .eq("featured", true)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order("created_at", { ascending: false })
+      .limit(3),
+    supabase
+      .from("public_listings")
+      .select("*")
+      .eq("status", "active")
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order("created_at", { ascending: false })
+      .limit(6),
+    supabase
+      .from("public_listings")
+      .select("*")
+      .eq("status", "active")
+      .not("previous_price", "is", null)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order("created_at", { ascending: false })
+      .limit(12),
+  ]);
+
+  const featuredListings = (featuredRes.data || []).map(formatListing);
+  const latestListings = (latestRes.data || []).map(formatListing);
+  const hotDeals = (hotRes.data || [])
+    .map(formatListing)
+    .filter((x) => x.hasPriceDrop)
+    .sort((a, b) => b.percentOff - a.percentOff)
+    .slice(0, 6);
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
@@ -222,9 +166,8 @@ export default function Home() {
                 <div className="pointer-events-none absolute -bottom-14 -left-12 h-36 w-36 rounded-full border-[14px] border-[#C3CBD0]/50" />
                 <div className="absolute left-10 right-10 top-8 h-[2px] bg-gradient-to-r from-transparent via-[#B08D3C] to-transparent" />
 
-                {/* LCP IMAGE — preloaded for fast paint */}
                 <Image
-                  src="/balray-autos-logo.png"
+                  src="/balray-autos-logo.webp"
                   alt="Balray Autos logo"
                   width={400}
                   height={200}
@@ -249,47 +192,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SEARCH */}
-      <section className="w-full bg-[#34414A]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
-          <div className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#D2B66A]">
-            Marketplace Search
-          </div>
-
-          <form onSubmit={handleSearch} className="grid w-full gap-3 lg:grid-cols-[minmax(0,1fr)_240px_170px]">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search vehicles, makes, models..."
-              aria-label="Search vehicles"
-              className="min-w-0 w-full rounded-xl border border-white/10 bg-[#FAFBFC] px-4 py-4 text-sm text-[#34414A] outline-none placeholder:text-[#879198] focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-            />
-
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              aria-label="Select category"
-              className="min-w-0 w-full rounded-xl border border-white/10 bg-[#FAFBFC] px-4 py-4 text-sm font-medium text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-            >
-              <option value="">All Categories</option>
-              <option value="Cars & SUVs">Cars & SUVs</option>
-              <option value="Bakkies & 4x4s">Bakkies & 4x4s</option>
-              <option value="Motorcycles">Motorcycles</option>
-              <option value="Trucks & Commercial">Trucks & Commercial</option>
-              <option value="Machinery & Equipment">Machinery & Equipment</option>
-              <option value="Parts & Accessories">Parts & Accessories</option>
-            </select>
-
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-5 py-4 text-center text-sm font-bold text-white transition hover:brightness-105"
-            >
-              Search
-            </button>
-          </form>
-        </div>
-      </section>
+      {/* SEARCH — CLIENT COMPONENT */}
+      <HomeSearchForm />
 
       {/* HOT DEALS */}
       {hotDeals.length > 0 && (
@@ -357,44 +261,8 @@ export default function Home() {
         </section>
       )}
 
-      {/* RECENTLY VIEWED */}
-      {!loadingRecent && recentlyViewed.length > 0 && (
-        <section className="w-full border-b border-[#D3B86A]/30 bg-[#FBF7EC] py-12">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">👀 Continue Browsing</div>
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-[#34414A] sm:text-3xl">Recently Viewed</h2>
-              </div>
-              <button onClick={clearRecentlyViewed} className="self-start text-sm font-bold text-[#9A7B37] hover:underline sm:self-end">
-                Clear History
-              </button>
-            </div>
-
-            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {recentlyViewed.slice(0, 4).map((listing) => (
-                <Link key={listing.id} href={`/listing/${listing.id}`} className="group overflow-hidden rounded-2xl border border-[#D5DBDF] bg-white shadow-sm transition hover:-translate-y-1 hover:border-[#B08D3C]/60 hover:shadow-lg">
-                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-                    <Image
-                      src={listing.image}
-                      alt={listing.title}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                      quality={75}
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="line-clamp-2 min-h-[44px] text-base font-extrabold leading-6 text-[#34414A]">{listing.title}</h3>
-                    <div className="mt-2 text-lg font-black text-[#9A7B37]">{listing.price}</div>
-                    <div className="mt-1 text-xs text-[#66737C]">📍 {listing.location}</div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* RECENTLY VIEWED — CLIENT COMPONENT */}
+      <RecentlyViewedSection />
 
       {/* FEATURED LISTINGS */}
       {featuredListings.length > 0 && (
@@ -452,39 +320,31 @@ export default function Home() {
               <Link href="/marketplace" className="text-sm font-bold text-[#9A7B37] hover:underline">View All →</Link>
             </div>
 
-            {loadingListings ? (
-              <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="h-80 animate-pulse rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9]" />
-                ))}
-              </div>
-            ) : (
-              <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {latestListings.map((listing) => (
-                  <article key={listing.id} className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${listing.featured ? "border-2 border-[#B08D3C]" : "border border-[#D5DBDF] hover:border-[#B08D3C]/60 hover:shadow-[0_20px_50px_rgba(52,65,74,0.12)]"}`}>
-                    <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-                      <Image
-                        src={listing.image}
-                        alt={listing.title}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover transition duration-500 group-hover:scale-105"
-                        quality={75}
-                      />
-                      <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">{listing.category}</div>
-                    </div>
-                    <div className="p-5">
-                      <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">{listing.title}</h3>
-                      <div className="mt-3 text-2xl font-black text-[#9A7B37]">{listing.price}</div>
-                      <div className="mt-3 text-sm text-[#66737C]">📍 {listing.location} • {listing.mileage}</div>
-                      <Link href={`/listing/${listing.id}`} className="mt-5 block w-full rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]">
-                        View Listing
-                      </Link>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {latestListings.map((listing) => (
+                <article key={listing.id} className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${listing.featured ? "border-2 border-[#B08D3C]" : "border border-[#D5DBDF] hover:border-[#B08D3C]/60 hover:shadow-[0_20px_50px_rgba(52,65,74,0.12)]"}`}>
+                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
+                    <Image
+                      src={listing.image}
+                      alt={listing.title}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition duration-500 group-hover:scale-105"
+                      quality={75}
+                    />
+                    <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">{listing.category}</div>
+                  </div>
+                  <div className="p-5">
+                    <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">{listing.title}</h3>
+                    <div className="mt-3 text-2xl font-black text-[#9A7B37]">{listing.price}</div>
+                    <div className="mt-3 text-sm text-[#66737C]">📍 {listing.location} • {listing.mileage}</div>
+                    <Link href={`/listing/${listing.id}`} className="mt-5 block w-full rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]">
+                      View Listing
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
       )}
