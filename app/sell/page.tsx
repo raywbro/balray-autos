@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import imageCompression from "browser-image-compression";
+
+const CameraCapture = dynamic(() => import("@/app/components/CameraCapture"), {
+  ssr: false,
+});
 
 export default function SellPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -17,6 +23,7 @@ export default function SellPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [showCamera, setShowCamera] = useState(false);
 
   const router = useRouter();
   const supabase = createClient();
@@ -38,6 +45,18 @@ export default function SellPage() {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
+    const combined = [...selectedFiles, ...files].slice(0, 10);
+    setSelectedFiles(combined);
+
+    const newPreviews: string[] = [];
+    combined.forEach((file) => {
+      newPreviews.push(URL.createObjectURL(file));
+    });
+    previews.forEach((url) => URL.revokeObjectURL(url));
+    setPreviews(newPreviews);
+  };
+
+  const handlePhotosCaptured = (files: File[]) => {
     const combined = [...selectedFiles, ...files].slice(0, 10);
     setSelectedFiles(combined);
 
@@ -81,9 +100,7 @@ export default function SellPage() {
     const year = formData.get("year") ? Number(formData.get("year")) : null;
     const price = Number(formData.get("price"));
 
-    // ------------------------------
-    // DUPLICATE PRE-CHECK
-    // ------------------------------
+    // Duplicate pre-check
     try {
       let query = supabase
         .from("listings")
@@ -104,20 +121,18 @@ export default function SellPage() {
 
       if (existing) {
         setErrorMessage(
-          "You already have a live listing for this exact vehicle (same make, model, year, and price). Please edit your existing listing instead of posting a new one."
+          "You already have a live listing for this exact vehicle. Please edit your existing listing instead."
         );
         setUploading(false);
         return;
       }
     } catch (err) {
       console.error("Duplicate check failed:", err);
-      // Continue — the DB constraint will catch it as a fallback
     }
 
     const imageUrls: string[] = [];
 
     try {
-      // Upload images
       if (selectedFiles.length > 0) {
         for (let i = 0; i < selectedFiles.length; i++) {
           const file = selectedFiles[i];
@@ -184,7 +199,6 @@ export default function SellPage() {
         .single();
 
       if (dbError) {
-        // Handle the DB constraint error gracefully
         if (
           dbError.message?.includes("listings_dedupe_idx") ||
           dbError.code === "23505" ||
@@ -197,7 +211,7 @@ export default function SellPage() {
         throw dbError;
       }
 
-      // Send admin notification (silent fail)
+      // Admin notification (silent fail)
       try {
         await fetch("/api/notify-admin", {
           method: "POST",
@@ -214,7 +228,7 @@ export default function SellPage() {
           }),
         });
       } catch (err) {
-        console.error("Admin notification failed (silent):", err);
+        console.error("Admin notification failed:", err);
       }
 
       previews.forEach((url) => URL.revokeObjectURL(url));
@@ -426,7 +440,7 @@ export default function SellPage() {
                   </div>
                   <div className="mt-5">
                     <label htmlFor="description" className="mb-2 block text-sm font-bold text-[#34414A]">Description *</label>
-                    <textarea id="description" name="description" required rows={6} placeholder="Describe the vehicle or product, condition, features, service history and anything else buyers should know..." className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm leading-6 text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+                    <textarea id="description" name="description" required rows={6} placeholder="Describe the vehicle or product, condition, features, service history..." className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm leading-6 text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                   </div>
                 </div>
 
@@ -496,26 +510,36 @@ export default function SellPage() {
                   )}
 
                   {selectedFiles.length < 10 && (
-                    <label
-                      htmlFor="photos"
-                      className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D5DBDF] bg-[#F7F8F9] px-6 py-10 text-center transition hover:border-[#B08D3C] hover:bg-[#FBF7EC]"
-                    >
-                      <div className="text-4xl">📷</div>
-                      <div className="mt-4 font-bold text-[#34414A]">
-                        {previews.length === 0 ? "Choose photos" : "Add more photos"}
-                      </div>
-                      <div className="mt-2 text-sm text-[#66737C]">
-                        JPG, PNG or WEBP — up to 10 images
-                      </div>
-                      <input
-                        id="photos"
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleFilesSelected}
-                        className="hidden"
-                      />
-                    </label>
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      <label
+                        htmlFor="photos"
+                        className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D5DBDF] bg-[#F7F8F9] px-6 py-8 text-center transition hover:border-[#B08D3C] hover:bg-[#FBF7EC]"
+                      >
+                        <div className="text-3xl">🖼️</div>
+                        <div className="mt-3 font-bold text-[#34414A]">
+                          {previews.length === 0 ? "Choose from Gallery" : "Add More Photos"}
+                        </div>
+                        <div className="mt-1 text-xs text-[#66737C]">JPG, PNG or WEBP</div>
+                        <input
+                          id="photos"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleFilesSelected}
+                          className="hidden"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowCamera(true)}
+                        className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D5DBDF] bg-[#F7F8F9] px-6 py-8 text-center transition hover:border-[#B08D3C] hover:bg-[#FBF7EC]"
+                      >
+                        <div className="text-3xl">📸</div>
+                        <div className="mt-3 font-bold text-[#34414A]">Take Photos Now</div>
+                        <div className="mt-1 text-xs text-[#66737C]">Take multiple photos in one session</div>
+                      </button>
+                    </div>
                   )}
 
                   {selectedFiles.length > 0 && (
@@ -550,6 +574,13 @@ export default function SellPage() {
           )}
         </div>
       </section>
+
+      {showCamera && (
+        <CameraCapture
+          onPhotosCaptured={handlePhotosCaptured}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
 
       <Footer />
     </main>
