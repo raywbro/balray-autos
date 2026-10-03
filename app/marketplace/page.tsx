@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSearchParams, useRouter } from "next/navigation";
-import ShowroomHero from "@/app/components/ShowroomHero";
+import HeroBanner from "@/app/components/HeroBanner";
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -267,11 +267,24 @@ function MarketplaceContent() {
 
   return (
     <>
-      {/* SHOWROOM HERO */}
-      <ShowroomHero
-        subtitle="Browse thousands of cars, bakkies, motorcycles, trucks, machinery and parts from trusted sellers across all 9 South African provinces."
+      {/* HERO BANNER */}
+      <HeroBanner
+        badgeText="Balray Autos Marketplace"
+        title={
+          <>
+            Find Your Next
+            <br />
+            <span className="bg-gradient-to-r from-[#D2B66A] via-[#F4E0A1] to-[#B08D3C] bg-clip-text text-transparent">
+              Vehicle.
+            </span>
+          </>
+        }
+        subtitle="Browse thousands of cars, bakkies, motorcycles, trucks, machinery and parts from trusted sellers across South Africa."
+        imageUrl="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=2000&q=80"
+        imageAlt="Cars for sale in South Africa"
         primaryCTA={{ label: "Sell Your Vehicle", href: "/sell" }}
-        secondaryCTA={{ label: "Browse Listings", href: "#categories" }}
+        secondaryCTA={{ label: "Browse Categories", href: "#categories" }}
+        height="lg"
       />
 
       {/* SEARCH */}

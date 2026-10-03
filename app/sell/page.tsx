@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import CameraCapture from "@/app/components/CameraCapture";
 import ImageVideoManager from "@/app/components/ImageVideoManager";
-import ShowroomHero from "@/app/components/ShowroomHero";
+import HeroBanner from "@/app/components/HeroBanner";
 
 export default function SellPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -157,11 +157,24 @@ export default function SellPage() {
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      {/* SHOWROOM HERO */}
-      <ShowroomHero
-        subtitle="Reach thousands of buyers across South Africa. List your car, bakkie, motorcycle, truck, tractor, machinery or parts — completely free."
+      {/* HERO BANNER */}
+      <HeroBanner
+        badgeText="Sell With Balray Autos"
+        title={
+          <>
+            List Your
+            <br />
+            <span className="bg-gradient-to-r from-[#D2B66A] via-[#F4E0A1] to-[#B08D3C] bg-clip-text text-transparent">
+              Vehicle.
+            </span>
+          </>
+        }
+        subtitle="Reach thousands of buyers across all 9 South African provinces. Add up to 10 watermarked photos and a video — completely free."
+        imageUrl="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=2000&q=80"
+        imageAlt="Sell your car on Balray Autos"
         primaryCTA={{ label: "Browse Marketplace", href: "/marketplace" }}
         secondaryCTA={{ label: "Start Selling Below", href: "#sell-form" }}
+        height="md"
       />
 
       <section id="sell-form" className="w-full bg-[#F7F8F9]">
