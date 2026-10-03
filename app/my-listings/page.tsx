@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import Navbar from "@/app/components/Navbar";
-import Footer from "@/app/components/Footer";
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -97,7 +95,7 @@ export default function MyListingsPage() {
 
     if (!updated || updated.length === 0) {
       showMessage(
-        "Update failed — no rows were changed. Check your RLS policies in Supabase.",
+        "Update failed — no rows changed. Check your RLS policies in Supabase.",
         "error"
       );
       setSellingId(null);
@@ -142,10 +140,7 @@ export default function MyListingsPage() {
     }
 
     if (!updated || updated.length === 0) {
-      showMessage(
-        "Renew failed — no rows changed. Check your RLS policies.",
-        "error"
-      );
+      showMessage("Renew failed — no rows changed. Check RLS policies.", "error");
       setRenewingId(null);
       return;
     }
@@ -192,9 +187,7 @@ export default function MyListingsPage() {
       if (error) throw error;
 
       if (!deleted || deleted.length === 0) {
-        throw new Error(
-          "Delete failed — no rows were deleted. Check your RLS policies in Supabase."
-        );
+        throw new Error("Delete failed — no rows deleted. Check RLS policies.");
       }
 
       setListings(listings.filter((item) => item.id !== listingId));
@@ -235,8 +228,6 @@ export default function MyListingsPage() {
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
-
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="relative mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           <div className="max-w-3xl">
@@ -293,7 +284,6 @@ export default function MyListingsPage() {
 
       <section className="w-full bg-[#F7F8F9] py-12">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-
           {message && (
             <div
               className={`mb-6 rounded-xl border p-4 text-center text-sm font-bold ${
@@ -324,12 +314,8 @@ export default function MyListingsPage() {
                   <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
                     Only
                   </div>
-                  <div className="text-2xl font-black text-[#8F7130]">
-                    R99
-                  </div>
-                  <div className="text-xs text-[#66737C]">
-                    for 30 days
-                  </div>
+                  <div className="text-2xl font-black text-[#8F7130]">R99</div>
+                  <div className="text-xs text-[#66737C]">for 30 days</div>
                 </div>
               </div>
             </div>
@@ -626,8 +612,6 @@ export default function MyListingsPage() {
           </div>
         </div>
       )}
-
-      <Footer />
     </main>
   );
 }
