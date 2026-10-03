@@ -87,7 +87,7 @@ export default function Navbar() {
         </Link>
 
         {/* DESKTOP NAV */}
-        <nav className="hidden items-center gap-7 md:flex">
+        <nav className="hidden items-center gap-6 md:flex">
           <Link href="/" className={navLinkClass("/")}>Home</Link>
           <Link href="/marketplace" className={navLinkClass("/marketplace")}>Buy</Link>
           <Link href="/sell" className={navLinkClass("/sell")}>Sell</Link>
@@ -102,6 +102,9 @@ export default function Navbar() {
               </Link>
               <Link href="/favorites" className={navLinkClass("/favorites")}>
                 Favorites
+              </Link>
+              <Link href="/account/settings" className={navLinkClass("/account/settings")}>
+                Settings
               </Link>
             </>
           )}
@@ -179,6 +182,13 @@ export default function Navbar() {
                   className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]"
                 >
                   Favorites
+                </Link>
+                <Link
+                  href="/account/settings"
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]"
+                >
+                  Settings
                 </Link>
               </>
             )}
