@@ -86,7 +86,6 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* DESKTOP NAV */}
         <nav className="hidden items-center gap-6 md:flex">
           <Link href="/" className={navLinkClass("/")}>Home</Link>
           <Link href="/marketplace" className={navLinkClass("/marketplace")}>Buy</Link>
@@ -146,7 +145,6 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* MOBILE NAV */}
       {menuOpen && (
         <div className="border-t border-[#D9DEE2] bg-white md:hidden">
           <nav className="mx-auto flex w-full max-w-7xl flex-col px-4 py-4 sm:px-6">

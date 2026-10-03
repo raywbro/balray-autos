@@ -10,6 +10,7 @@ import CameraCapture from "@/app/components/CameraCapture";
 export default function SellPage() {
   const [submitted, setSubmitted] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
@@ -26,9 +27,17 @@ export default function SellPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push("/login");
-      } else {
-        setUser(user);
+        return;
       }
+      setUser(user);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      setProfile(profile);
       setLoading(false);
     };
     checkUser();
@@ -124,11 +133,21 @@ export default function SellPage() {
 
       setUploadProgress("Saving your listing...");
 
+      const lockedEmail = user.email;
+      const lockedPhone = profile?.phone || user.user_metadata?.phone || "";
+      const lockedName = profile?.full_name || user.user_metadata?.full_name || "User";
+
+      if (!lockedPhone) {
+        throw new Error(
+          "No phone number found on your account. Please contact support."
+        );
+      }
+
       const newListing = {
         user_id: user.id,
-        seller_name: formData.get("sellerName"),
-        seller_phone: formData.get("phone"),
-        seller_email: formData.get("email") || user.email,
+        seller_name: lockedName,
+        seller_phone: lockedPhone,
+        seller_email: lockedEmail,
         seller_type: formData.get("sellerType"),
         category: formData.get("category"),
         condition: formData.get("condition"),
@@ -153,7 +172,6 @@ export default function SellPage() {
 
       if (dbError) throw dbError;
 
-      // Notify admin by email (silent fail — listing still saved)
       try {
         const listingTitle = `${newListing.year ? newListing.year + " " : ""}${newListing.make} ${newListing.model}`;
         const listingPrice = `R${newListing.price.toLocaleString()}`;
@@ -250,9 +268,6 @@ export default function SellPage() {
                 <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#D2B66A]">Listing Information</div>
                 <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl">Tell us about what you&apos;re selling</h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#D9DEE2]">Complete the form below. Your information will be used to create your marketplace listing.</p>
-                <div className="mt-4 inline-block rounded-lg bg-white/10 px-4 py-2 text-xs font-semibold text-[#D2B66A]">
-                  Logged in as: {user.email}
-                </div>
               </div>
 
               {errorMessage && (
@@ -266,21 +281,55 @@ export default function SellPage() {
                   <div className="mb-5">
                     <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">01</div>
                     <h3 className="mt-1 text-xl font-black text-[#34414A]">Your Information</h3>
-                    <p className="mt-1 text-sm text-[#66737C]">Tell us who is submitting this listing.</p>
+                    <p className="mt-1 text-sm text-[#66737C]">Contact details are locked to your registered account.</p>
                   </div>
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <div>
-                      <label htmlFor="sellerName" className="mb-2 block text-sm font-bold text-[#34414A]">Full Name *</label>
-                      <input id="sellerName" name="sellerName" type="text" required placeholder="Your full name" className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none transition focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4">
+                      <div className="flex items-start gap-3">
+                        <span className="text-lg">🔒</span>
+                        <p className="text-xs leading-5 text-[#8F7130]">
+                          Your name, email, and phone are locked to your account and are used automatically on this advert.
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <label htmlFor="phone" className="mb-2 block text-sm font-bold text-[#34414A]">Phone Number *</label>
-                      <input id="phone" name="phone" type="tel" required placeholder="e.g. 082 123 4567" className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none transition focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+
+                    <div className="grid gap-5 md:grid-cols-3">
+                      <div>
+                        <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                          Full Name
+                        </label>
+                        <div className="flex items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-4 py-3.5">
+                          <span className="text-lg">👤</span>
+                          <span className="truncate text-sm font-bold text-[#66737C]">
+                            {profile?.full_name || user.user_metadata?.full_name || "Not set"}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                          Email
+                        </label>
+                        <div className="flex items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-4 py-3.5">
+                          <span className="text-lg">✉️</span>
+                          <span className="truncate text-sm font-bold text-[#66737C]">
+                            {user.email}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                          Phone
+                        </label>
+                        <div className="flex items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-4 py-3.5">
+                          <span className="text-lg">📱</span>
+                          <span className="truncate text-sm font-bold text-[#66737C]">
+                            {profile?.phone || user.user_metadata?.phone || "Not set"}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label htmlFor="email" className="mb-2 block text-sm font-bold text-[#34414A]">Email Address</label>
-                      <input id="email" name="email" type="email" placeholder={user.email} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none transition focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
-                    </div>
+
                     <div>
                       <label htmlFor="sellerType" className="mb-2 block text-sm font-bold text-[#34414A]">Seller Type *</label>
                       <select id="sellerType" name="sellerType" required defaultValue="" className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
@@ -384,7 +433,6 @@ export default function SellPage() {
                   </div>
                 </div>
 
-                {/* IMAGES */}
                 <div className="border-t border-[#E1E5E8] pt-10">
                   <div className="mb-5">
                     <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">04</div>
@@ -430,7 +478,6 @@ export default function SellPage() {
                               onClick={() => moveImage(index, "left")}
                               disabled={index === 0}
                               className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-sm font-bold text-[#34414A] shadow-md transition hover:bg-white disabled:opacity-30"
-                              aria-label="Move left"
                             >
                               ←
                             </button>
@@ -439,7 +486,6 @@ export default function SellPage() {
                               onClick={() => moveImage(index, "right")}
                               disabled={index === previews.length - 1}
                               className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-sm font-bold text-[#34414A] shadow-md transition hover:bg-white disabled:opacity-30"
-                              aria-label="Move right"
                             >
                               →
                             </button>

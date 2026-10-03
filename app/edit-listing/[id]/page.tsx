@@ -5,9 +5,9 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, useParams } from "next/navigation";
 
-
 export default function EditListingPage() {
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -28,6 +28,13 @@ export default function EditListingPage() {
       }
       setUser(user);
 
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+      setProfile(profileData);
+
       const { data, error } = await supabase
         .from("listings")
         .select("*")
@@ -40,14 +47,8 @@ export default function EditListingPage() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
       const isOwner = data.user_id === user.id;
-      const isAdmin = profile?.role === "admin";
+      const isAdmin = profileData?.role === "admin";
 
       if (!isOwner && !isAdmin) {
         setErrorMessage("You do not have permission to edit this listing.");
@@ -72,14 +73,11 @@ export default function EditListingPage() {
     const newPrice = Number(formData.get("price"));
     const oldPrice = Number(listing.price);
 
-    // Detect price drop and store previous price
     const priceDropped = newPrice < oldPrice;
     const previousPrice = priceDropped ? oldPrice : listing.previous_price || null;
 
     const updates: any = {
-      seller_name: formData.get("sellerName"),
-      seller_phone: formData.get("phone"),
-      seller_email: formData.get("email"),
+      seller_name: profile?.full_name || user.user_metadata?.full_name || listing.seller_name,
       seller_type: formData.get("sellerType"),
       category: formData.get("category"),
       condition: formData.get("condition"),
@@ -95,7 +93,6 @@ export default function EditListingPage() {
       status: "pending",
     };
 
-    // Only update previous_price when a drop occurs (preserve original "was" price for buyers)
     if (priceDropped) {
       updates.previous_price = previousPrice;
     }
@@ -132,7 +129,6 @@ export default function EditListingPage() {
   if (errorMessage && !listing) {
     return (
       <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
-        
         <div className="mx-auto max-w-3xl px-4 py-16 text-center">
           <h1 className="text-2xl font-black text-[#34414A] mb-4">{errorMessage}</h1>
           <Link
@@ -148,8 +144,6 @@ export default function EditListingPage() {
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      
-
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
           <div className="max-w-3xl">
@@ -164,7 +158,7 @@ export default function EditListingPage() {
               </span>
             </h1>
             <p className="mt-4 text-base leading-7 text-[#66737C]">
-              Make changes below. Your listing will go back to pending review.
+              Make changes below. Your listing will go back to pending review. Contact details are locked.
             </p>
           </div>
         </div>
@@ -181,7 +175,7 @@ export default function EditListingPage() {
                 Edit Listing Details
               </h2>
               <p className="mt-2 text-sm text-[#D9DEE2]">
-                You cannot edit images here — that feature is coming soon.
+                Contact details (name, email & phone) are locked and cannot be changed.
               </p>
             </div>
 
@@ -198,28 +192,63 @@ export default function EditListingPage() {
             )}
 
             <div className="space-y-10 p-6 sm:p-10">
-              {/* SELLER INFO */}
+              {/* SELLER INFO - LOCKED */}
               <div>
                 <div className="mb-5">
                   <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">01</div>
                   <h3 className="mt-1 text-xl font-black text-[#34414A]">Your Information</h3>
+                  <p className="mt-1 text-sm text-[#66737C]">Contact details are locked to your registered account.</p>
                 </div>
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Full Name *</label>
-                    <input name="sellerName" type="text" required defaultValue={listing.seller_name} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="text-lg">🔒</span>
+                      <p className="text-xs leading-5 text-[#8F7130]">
+                        Your name, email, and phone are locked to your account and are used automatically on this advert.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Phone Number *</label>
-                    <input name="phone" type="tel" required defaultValue={listing.seller_phone} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+
+                  <div className="grid gap-5 md:grid-cols-3">
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                        Full Name
+                      </label>
+                      <div className="flex items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-4 py-3.5">
+                        <span className="text-lg">👤</span>
+                        <span className="truncate text-sm font-bold text-[#66737C]">
+                          {profile?.full_name || user.user_metadata?.full_name || "Not set"}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                        Email
+                      </label>
+                      <div className="flex items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-4 py-3.5">
+                        <span className="text-lg">✉️</span>
+                        <span className="truncate text-sm font-bold text-[#66737C]">
+                          {user.email}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                        Phone
+                      </label>
+                      <div className="flex items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-4 py-3.5">
+                        <span className="text-lg">📱</span>
+                        <span className="truncate text-sm font-bold text-[#66737C]">
+                          {profile?.phone || user.user_metadata?.phone || "Not set"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
+
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Email Address</label>
-                    <input name="email" type="email" defaultValue={listing.seller_email} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Seller Type *</label>
-                    <select name="sellerType" required defaultValue={listing.seller_type} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
+                    <label htmlFor="sellerType" className="mb-2 block text-sm font-bold text-[#34414A]">Seller Type *</label>
+                    <select id="sellerType" name="sellerType" required defaultValue={listing.seller_type} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
                       <option value="private">Private Seller</option>
                       <option value="dealer">Dealer</option>
                       <option value="business">Business</option>
@@ -236,8 +265,8 @@ export default function EditListingPage() {
                 </div>
                 <div className="grid gap-5 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Category *</label>
-                    <select name="category" required defaultValue={listing.category} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
+                    <label htmlFor="category" className="mb-2 block text-sm font-bold text-[#34414A]">Category *</label>
+                    <select id="category" name="category" required defaultValue={listing.category} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
                       <option value="cars">Cars & SUVs</option>
                       <option value="bakkies">Bakkies & 4x4s</option>
                       <option value="motorcycles">Motorcycles</option>
@@ -247,8 +276,8 @@ export default function EditListingPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Condition *</label>
-                    <select name="condition" required defaultValue={listing.condition} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
+                    <label htmlFor="condition" className="mb-2 block text-sm font-bold text-[#34414A]">Condition *</label>
+                    <select id="condition" name="condition" required defaultValue={listing.condition} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
                       <option value="new">New</option>
                       <option value="used">Used</option>
                       <option value="demo">Demo / Ex-Demo</option>
@@ -266,35 +295,35 @@ export default function EditListingPage() {
                 </div>
                 <div className="grid gap-5 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Make / Brand *</label>
-                    <input name="make" type="text" required defaultValue={listing.make} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+                    <label htmlFor="make" className="mb-2 block text-sm font-bold text-[#34414A]">Make / Brand *</label>
+                    <input id="make" name="make" type="text" required defaultValue={listing.make} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Model / Product Name *</label>
-                    <input name="model" type="text" required defaultValue={listing.model} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+                    <label htmlFor="model" className="mb-2 block text-sm font-bold text-[#34414A]">Model / Product Name *</label>
+                    <input id="model" name="model" type="text" required defaultValue={listing.model} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Year</label>
-                    <input name="year" type="number" min="1900" max="2100" defaultValue={listing.year || ""} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+                    <label htmlFor="year" className="mb-2 block text-sm font-bold text-[#34414A]">Year</label>
+                    <input id="year" name="year" type="number" min="1900" max="2100" defaultValue={listing.year || ""} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Asking Price (R) *</label>
-                    <input name="price" type="number" min="0" required defaultValue={listing.price} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+                    <label htmlFor="price" className="mb-2 block text-sm font-bold text-[#34414A]">Asking Price (R) *</label>
+                    <input id="price" name="price" type="number" min="0" required defaultValue={listing.price} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                     <p className="mt-2 text-xs text-[#89939A]">
                       💡 Lower the price to trigger a &quot;Price Drop&quot; badge on your listing.
                     </p>
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Mileage / Hours</label>
-                    <input name="mileage" type="text" defaultValue={listing.mileage || ""} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+                    <label htmlFor="mileage" className="mb-2 block text-sm font-bold text-[#34414A]">Mileage / Hours</label>
+                    <input id="mileage" name="mileage" type="text" defaultValue={listing.mileage || ""} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Location *</label>
-                    <input name="location" type="text" required defaultValue={listing.location} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+                    <label htmlFor="location" className="mb-2 block text-sm font-bold text-[#34414A]">Location *</label>
+                    <input id="location" name="location" type="text" required defaultValue={listing.location} className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Transmission</label>
-                    <select name="transmission" defaultValue={listing.transmission || ""} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
+                    <label htmlFor="transmission" className="mb-2 block text-sm font-bold text-[#34414A]">Transmission</label>
+                    <select id="transmission" name="transmission" defaultValue={listing.transmission || ""} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
                       <option value="">Select transmission</option>
                       <option value="automatic">Automatic</option>
                       <option value="manual">Manual</option>
@@ -303,8 +332,8 @@ export default function EditListingPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">Fuel Type</label>
-                    <select name="fuel" defaultValue={listing.fuel || ""} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
+                    <label htmlFor="fuel" className="mb-2 block text-sm font-bold text-[#34414A]">Fuel Type</label>
+                    <select id="fuel" name="fuel" defaultValue={listing.fuel || ""} className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20">
                       <option value="">Select fuel type</option>
                       <option value="petrol">Petrol</option>
                       <option value="diesel">Diesel</option>
@@ -315,8 +344,8 @@ export default function EditListingPage() {
                   </div>
                 </div>
                 <div className="mt-5">
-                  <label className="mb-2 block text-sm font-bold text-[#34414A]">Description *</label>
-                  <textarea name="description" required rows={6} defaultValue={listing.description} className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+                  <label htmlFor="description" className="mb-2 block text-sm font-bold text-[#34414A]">Description *</label>
+                  <textarea id="description" name="description" required rows={6} defaultValue={listing.description} className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                 </div>
               </div>
 
