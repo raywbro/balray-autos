@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import Navbar from "@/app/components/Navbar";
-import Footer from "@/app/components/Footer";
+
+
 
 export default function TermsPage() {
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
+      
 
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
@@ -143,7 +143,7 @@ export default function TermsPage() {
         </div>
       </section>
 
-      <Footer />
+      
     </main>
   );
 }

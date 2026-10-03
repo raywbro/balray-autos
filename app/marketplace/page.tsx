@@ -6,8 +6,8 @@ import dynamic from "next/dynamic";
 import { useState, useEffect, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSearchParams, useRouter } from "next/navigation";
-import Navbar from "@/app/components/Navbar";
-import Footer from "@/app/components/Footer";
+
+
 
 // Lazy-loaded — only downloads when compareList is not empty
 const CompareBar = dynamic(() => import("@/app/components/CompareBar"), {
@@ -523,7 +523,7 @@ function MarketplaceContent() {
 export default function MarketplacePage() {
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
+      
       <Suspense
         fallback={
           <div className="min-h-screen w-full flex items-center justify-center">
@@ -533,7 +533,7 @@ export default function MarketplacePage() {
       >
         <MarketplaceContent />
       </Suspense>
-      <Footer />
+      
     </main>
   );
 }

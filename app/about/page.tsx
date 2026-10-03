@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import Navbar from "@/app/components/Navbar";
-import Footer from "@/app/components/Footer";
+
+
 
 export default function AboutPage() {
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
+      
 
       {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
@@ -181,7 +181,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <Footer />
+      
     </main>
   );
 }

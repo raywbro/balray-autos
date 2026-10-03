@@ -5,8 +5,8 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams } from "next/navigation";
-import Navbar from "@/app/components/Navbar";
-import Footer from "@/app/components/Footer";
+
+
 
 const CITY_DATA: Record<string, { name: string; province: string }> = {
   johannesburg: { name: "Johannesburg", province: "Gauteng" },
@@ -112,7 +112,7 @@ export default function CityListingsPage() {
   if (!cityInfo) {
     return (
       <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
-        <Navbar />
+        
         <div className="mx-auto max-w-3xl px-4 py-20 text-center">
           <div className="text-5xl">🔍</div>
           <h1 className="mt-6 text-3xl font-black text-[#34414A]">City Not Found</h1>
@@ -121,7 +121,7 @@ export default function CityListingsPage() {
             Browse Marketplace
           </Link>
         </div>
-        <Footer />
+        
       </main>
     );
   }
@@ -145,7 +145,7 @@ export default function CityListingsPage() {
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
+      
 
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-[24px] border-[#D9DEE2]/70" />
@@ -280,7 +280,7 @@ export default function CityListingsPage() {
         </div>
       </section>
 
-      <Footer />
+      
     </main>
   );
 }

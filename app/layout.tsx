@@ -1,23 +1,16 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { GoogleAnalytics } from "@next/third-parties/google";
-import ServiceWorkerRegister from "@/app/components/ServiceWorkerRegister";
 import "./globals.css";
+import LayoutShell from "./components/LayoutShell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  display: "swap",
-  preload: true,
-  adjustFontFallback: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-  display: "swap",
-  preload: true,
-  adjustFontFallback: true,
 });
 
 export const metadata: Metadata = {
@@ -27,37 +20,16 @@ export const metadata: Metadata = {
     template: "%s | Balray Autos",
   },
   description:
-    "South Africa's trusted marketplace for buying and selling cars, bakkies, motorcycles, trucks, machinery, and automotive parts. Find your next vehicle on Balray Autos.",
+    "South Africa's trusted marketplace for buying and selling cars, bakkies, motorcycles, trucks, machinery, and automotive parts.",
   keywords: [
     "cars for sale South Africa",
     "bakkies for sale",
     "buy used cars SA",
-    "sell my car South Africa",
     "Toyota Hilux for sale",
     "Ford Ranger for sale",
-    "BMW for sale South Africa",
-    "motorcycles for sale",
-    "trucks for sale SA",
     "car marketplace South Africa",
     "Balray Autos",
   ],
-  authors: [{ name: "Balray Autos" }],
-  creator: "Balray Autos",
-  publisher: "Balray Autos",
-  applicationName: "Balray Autos",
-  category: "automotive",
-  manifest: "/manifest.json",
-  verification: {
-    google: "9iebg1kzPXdgC60n1nv75vW2Mi6dm",
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Balray Autos",
-  },
-  formatDetection: {
-    telephone: false,
-  },
   openGraph: {
     type: "website",
     locale: "en_ZA",
@@ -65,44 +37,18 @@ export const metadata: Metadata = {
     siteName: "Balray Autos",
     title: "Balray Autos | Buy & Sell Vehicles in South Africa",
     description:
-      "South Africa's trusted marketplace for buying and selling cars, bakkies, motorcycles, trucks, machinery, and automotive parts.",
-    images: [
-      {
-        url: "/balray-autos-logo.png",
-        width: 1200,
-        height: 630,
-        alt: "Balray Autos - South African Automotive Marketplace",
-      },
-    ],
+      "South Africa's trusted marketplace for buying and selling vehicles.",
+    images: ["/balray-autos-logo.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Balray Autos | Buy & Sell Vehicles in South Africa",
-    description:
-      "South Africa's trusted marketplace for buying and selling vehicles and automotive products.",
+    title: "Balray Autos",
     images: ["/balray-autos-logo.png"],
   },
   icons: {
     icon: "/balray-autos-logo.png",
     apple: "/balray-autos-logo.png",
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
-};
-
-export const viewport: Viewport = {
-  themeColor: "#34414A",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
 };
 
 export default function RootLayout({
@@ -115,12 +61,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <ServiceWorkerRegister />
+        <LayoutShell>{children}</LayoutShell>
       </body>
-      {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
-      )}
     </html>
   );
 }

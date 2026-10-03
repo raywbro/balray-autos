@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Navbar from "@/app/components/Navbar";
-import Footer from "@/app/components/Footer";
+
+
 
 const CITIES = [
   { slug: "johannesburg", name: "Johannesburg", province: "Gauteng", icon: "🏙️" },
@@ -64,7 +64,7 @@ export default function CitiesIndexPage() {
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
+      
 
       {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
@@ -170,7 +170,7 @@ export default function CitiesIndexPage() {
         </div>
       </section>
 
-      <Footer />
+      
     </main>
   );
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, useParams } from "next/navigation";
-import Navbar from "@/app/components/Navbar";
+
 
 export default function EditListingPage() {
   const [user, setUser] = useState<any>(null);
@@ -132,7 +132,7 @@ export default function EditListingPage() {
   if (errorMessage && !listing) {
     return (
       <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
-        <Navbar />
+        
         <div className="mx-auto max-w-3xl px-4 py-16 text-center">
           <h1 className="text-2xl font-black text-[#34414A] mb-4">{errorMessage}</h1>
           <Link
@@ -148,7 +148,7 @@ export default function EditListingPage() {
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
+      
 
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">

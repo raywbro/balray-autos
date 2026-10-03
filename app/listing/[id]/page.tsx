@@ -6,8 +6,8 @@ import dynamic from "next/dynamic";
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
-import Navbar from "@/app/components/Navbar";
-import Footer from "@/app/components/Footer";
+
+
 
 // Lazy-loaded — only downloads when opened
 const ReportModal = dynamic(() => import("@/app/components/ReportModal"), {
@@ -251,7 +251,7 @@ export default function ListingDetailPage() {
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
+      
 
       <div className="bg-white border-b border-[#E1E5E8]">
         <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
@@ -516,7 +516,7 @@ export default function ListingDetailPage() {
         listingTitle={listing.title}
       />
 
-      <Footer />
+      
     </main>
   );
 }

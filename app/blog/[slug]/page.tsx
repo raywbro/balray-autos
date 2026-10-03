@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams } from "next/navigation";
-import Navbar from "@/app/components/Navbar";
-import Footer from "@/app/components/Footer";
+
+
 
 export default function BlogPostPage() {
   const [post, setPost] = useState<any>(null);
@@ -91,7 +91,7 @@ export default function BlogPostPage() {
   if (notFound || !post) {
     return (
       <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
-        <Navbar />
+        
         <div className="mx-auto max-w-3xl px-4 py-20 text-center">
           <div className="text-5xl">📰</div>
           <h1 className="mt-6 text-3xl font-black text-[#34414A]">
@@ -107,14 +107,14 @@ export default function BlogPostPage() {
             Back to Blog
           </Link>
         </div>
-        <Footer />
+        
       </main>
     );
   }
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
+      
 
       {/* BREADCRUMB */}
       <div className="bg-white border-b border-[#E1E5E8]">
@@ -335,7 +335,7 @@ export default function BlogPostPage() {
         </div>
       </section>
 
-      <Footer />
+      
     </main>
   );
 }

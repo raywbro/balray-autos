@@ -1,8 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import Navbar from "@/app/components/Navbar";
-import Footer from "@/app/components/Footer";
+
+
 import HomeSearchForm from "@/app/components/HomeSearchForm";
 import RecentlyViewedSection from "@/app/components/RecentlyViewedSection";
 
@@ -112,7 +112,7 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
+      
 
       {/* HERO */}
       <section className="relative w-full overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
@@ -487,7 +487,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <Footer />
+      
     </main>
   );
 }

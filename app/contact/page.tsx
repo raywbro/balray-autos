@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import Navbar from "@/app/components/Navbar";
-import Footer from "@/app/components/Footer";
+
+
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -45,7 +45,7 @@ export default function ContactPage() {
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
+      
 
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-[24px] border-[#D9DEE2]/70" />
@@ -320,7 +320,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      <Footer />
+      
     </main>
   );
 }

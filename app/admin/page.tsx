@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import Navbar from "@/app/components/Navbar";
+
 import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
@@ -159,7 +159,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
-      <Navbar />
+      
 
       <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
