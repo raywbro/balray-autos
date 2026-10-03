@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-
 import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
@@ -11,6 +10,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [newReportCount, setNewReportCount] = useState(0);
+  const [userCount, setUserCount] = useState(0);
   const router = useRouter();
   const supabase = createClient();
 
@@ -33,7 +33,6 @@ export default function AdminPage() {
         return;
       }
 
-      // Fetch listings
       const { data, error } = await supabase
         .from("listings")
         .select("*")
@@ -45,13 +44,17 @@ export default function AdminPage() {
         setListings(data || []);
       }
 
-      // Fetch new reports count
-      const { count } = await supabase
+      const { count: reportCount } = await supabase
         .from("reports")
         .select("*", { count: "exact", head: true })
         .eq("status", "new");
 
-      setNewReportCount(count || 0);
+      const { count: usersCount } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true });
+
+      setNewReportCount(reportCount || 0);
+      setUserCount(usersCount || 0);
       setLoading(false);
     };
 
@@ -159,10 +162,8 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
-      
-
       <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <div className="inline-flex items-center gap-3 rounded-full border border-[#D3B86A]/50 bg-[#FBF7EC] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#8F7130]">
               <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-[#8F7130] to-[#D2B66A]" />
@@ -172,28 +173,45 @@ export default function AdminPage() {
               Manage All Listings
             </h1>
             <p className="mt-2 text-sm text-[#66737C]">
-              Approved listings stay live for 30 days. Sellers can renew anytime.
+              {userCount} users • {listings.length} listings • Approved listings stay live for 30 days.
             </p>
           </div>
 
-          {/* TOP-RIGHT ACTION BUTTONS */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/users"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#8F7130] bg-[#FBF7EC] px-5 py-3 text-sm font-bold text-[#8F7130] hover:bg-[#F5EDD8]"
+            >
+              👥 Users
+            </Link>
             <Link
               href="/admin/reports"
-              className="relative inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-6 py-3 text-sm font-bold text-red-600 hover:bg-red-100"
+              className="relative inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-bold text-red-600 hover:bg-red-100"
             >
               🚩 Reports
               {newReportCount > 0 && (
-                <span className="ml-1 inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-600 px-2 text-xs font-black text-white">
+                <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-black text-white">
                   {newReportCount}
                 </span>
               )}
             </Link>
             <Link
-              href="/admin/stats"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-sm font-bold text-white shadow-md hover:brightness-105"
+              href="/admin/blog"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
             >
-              📊 Stats Dashboard
+              ✍️ Blog
+            </Link>
+            <Link
+              href="/admin/cleanup"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D5DBDF] bg-white px-5 py-3 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
+            >
+              🧹 Cleanup
+            </Link>
+            <Link
+              href="/admin/stats"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-5 py-3 text-sm font-bold text-white shadow-md hover:brightness-105"
+            >
+              📊 Stats
             </Link>
           </div>
         </div>
@@ -245,6 +263,10 @@ export default function AdminPage() {
                               Active
                             </span>
                           )
+                        ) : item.status === "sold" ? (
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">
+                            🎉 Sold
+                          </span>
                         ) : (
                           <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-700">
                             Pending
@@ -265,18 +287,27 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Link
                       href={`/listing/${item.id}`}
-                      className="rounded-xl border border-[#B08D3C] bg-white px-5 py-2.5 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+                      target="_blank"
+                      className="rounded-xl border border-[#B08D3C] bg-white px-4 py-2.5 text-center text-xs font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
                     >
                       View
                     </Link>
+                    {item.user_id && (
+                      <Link
+                        href={`/admin/users/${item.user_id}`}
+                        className="rounded-xl border border-[#8F7130] bg-[#FBF7EC] px-4 py-2.5 text-center text-xs font-bold text-[#8F7130] hover:bg-[#F5EDD8]"
+                      >
+                        Seller
+                      </Link>
+                    )}
 
-                    {(item.status !== "active" || expired) && (
+                    {(item.status === "pending" || expired) && (
                       <button
                         onClick={() => handleApprove(item)}
-                        className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-green-700"
+                        className="rounded-xl bg-green-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-green-700"
                       >
                         {expired ? "Reactivate" : "Approve"}
                       </button>
@@ -284,7 +315,7 @@ export default function AdminPage() {
 
                     <button
                       onClick={() => handleToggleFeatured(item.id, item.featured)}
-                      className={`rounded-xl px-5 py-2.5 text-sm font-bold ${
+                      className={`rounded-xl px-4 py-2.5 text-xs font-bold ${
                         item.featured
                           ? "border border-[#B08D3C] bg-[#FBF7EC] text-[#8F7130] hover:bg-[#F5EDD8]"
                           : "bg-gradient-to-r from-[#8F7130] to-[#B08D3C] text-white hover:brightness-105"
@@ -295,7 +326,7 @@ export default function AdminPage() {
 
                     <button
                       onClick={() => handleDelete(item.id)}
-                      className="rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-100"
+                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-100"
                     >
                       Delete
                     </button>
