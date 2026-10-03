@@ -9,11 +9,8 @@ type CategoryItem = {
 };
 
 type Props = {
-  // Optional override of the background image
   bgImage?: string;
-  // Optional override of the subtitle
   subtitle?: string;
-  // Optional CTA buttons (below the tagline)
   primaryCTA?: { label: string; href: string };
   secondaryCTA?: { label: string; href: string };
 };
@@ -27,6 +24,9 @@ const defaultCategories: CategoryItem[] = [
   { title: "Parts & Accessories", href: "/marketplace?category=Parts+%26+Accessories", icon: "⚙️" },
 ];
 
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=2000&q=80";
+
 export default function ShowroomHero({
   bgImage = "/showroom-hero.jpg",
   subtitle = "South Africa's marketplace for vehicles, machinery & automotive products.",
@@ -35,17 +35,22 @@ export default function ShowroomHero({
 }: Props) {
   return (
     <section className="relative w-full overflow-hidden bg-[#0a0a0a]">
-      {/* BACKGROUND IMAGE */}
+      {/* BACKGROUND IMAGE + FALLBACK */}
       <div className="absolute inset-0">
         <img
           src={bgImage}
           alt="Balray Autos - Vehicles, Machinery & Automotive Showroom"
           className="h-full w-full object-cover"
           loading="eager"
+          onError={(e) => {
+            const target = e.currentTarget as HTMLImageElement;
+            if (!target.src.includes("unsplash")) {
+              target.src = FALLBACK_IMAGE;
+            }
+          }}
         />
-        {/* DARK OVERLAY FOR CONTRAST */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/45 to-black/85" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/50" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/50 to-black/90" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60" />
       </div>
 
       {/* TOP BAR: BUY | SELL | CONNECT */}
@@ -67,14 +72,12 @@ export default function ShowroomHero({
 
       {/* CENTER CONTENT */}
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-10 text-center sm:px-6 sm:py-14 lg:px-8">
-        {/* LOGO */}
         <img
           src="/balray-autos-logo.png"
           alt="Balray Autos"
           className="mx-auto h-24 w-auto max-w-[320px] object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] sm:h-32 sm:max-w-[420px]"
         />
 
-        {/* TAGLINE */}
         <div className="mt-6 flex items-center justify-center gap-3">
           <span className="h-[2px] w-10 bg-gradient-to-r from-transparent to-[#D2B66A] sm:w-16" />
           <h1 className="text-xs font-black uppercase tracking-[0.3em] text-white sm:text-base sm:tracking-[0.4em]">
@@ -83,12 +86,10 @@ export default function ShowroomHero({
           <span className="h-[2px] w-10 bg-gradient-to-l from-transparent to-[#D2B66A] sm:w-16" />
         </div>
 
-        {/* SUBTITLE */}
         <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/85 drop-shadow sm:text-base">
           {subtitle}
         </p>
 
-        {/* CTAs */}
         {(primaryCTA || secondaryCTA) && (
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             {primaryCTA && (
