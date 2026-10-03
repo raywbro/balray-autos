@@ -35,7 +35,6 @@ export default function HeroBanner({
 
   return (
     <section className={`relative w-full overflow-hidden ${heightClass}`}>
-      {/* BACKGROUND IMAGE */}
       <div className="absolute inset-0">
         <img
           src={imageUrl}
@@ -43,15 +42,12 @@ export default function HeroBanner({
           className="h-full w-full object-cover"
           loading="eager"
         />
-        {/* DARK OVERLAY */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/40" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
       </div>
 
-      {/* GOLD ACCENT LINE */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32]" />
 
-      {/* CONTENT */}
       <div className="relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
         <div className="max-w-3xl">
           {badgeText && (
