@@ -1,21 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode } from "react";
 
-type Props = {
-  title?: ReactNode;
-  subtitle?: string;
-  badgeText?: string;
-  imageUrl?: string;
-  imageAlt?: string;
-  primaryCTA?: { label: string; href: string };
-  secondaryCTA?: { label: string; href: string };
-  height?: "sm" | "md" | "lg";
-  children?: ReactNode;
+type CategoryItem = {
+  title: string;
+  href: string;
+  icon: string;
 };
 
-const categories = [
+type Props = {
+  subtitle?: string;
+  primaryCTA?: { label: string; href: string };
+  secondaryCTA?: { label: string; href: string };
+};
+
+const defaultCategories: CategoryItem[] = [
   { title: "Cars & SUVs", href: "/marketplace?category=Cars+%26+SUVs", icon: "🚗" },
   { title: "Bakkies & 4x4s", href: "/marketplace?category=Bakkies+%26+4x4s", icon: "🛻" },
   { title: "Motorcycles", href: "/marketplace?category=Motorcycles", icon: "🏍️" },
@@ -24,17 +23,14 @@ const categories = [
   { title: "Parts & Accessories", href: "/marketplace?category=Parts+%26+Accessories", icon: "⚙️" },
 ];
 
-export default function HeroBanner({
-  title,
+export default function ShowroomHero({
   subtitle = "South Africa's marketplace for vehicles, machinery & automotive products.",
-  badgeText,
-  imageUrl = "/tombolo.png",
   primaryCTA,
   secondaryCTA,
 }: Props) {
   return (
     <section className="relative w-full bg-black">
-      {/* TOP BAR: BUY | SELL | CONNECT */}
+      {/* TOP BAR */}
       <div className="relative z-20 border-b border-white/10 bg-black">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-end px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.24em] text-white sm:gap-5 sm:text-sm sm:tracking-[0.28em]">
@@ -54,16 +50,16 @@ export default function HeroBanner({
       </div>
 
       {/* MAIN BANNER */}
-      <div className="relative w-full bg-gradient-to-br from-[#0a0a0a] via-[#141414] to-[#0a0a0a] px-4 py-12 text-center sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+      <div className="relative w-full bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0a0a0a] px-4 py-12 text-center sm:px-6 sm:py-16 lg:px-8 lg:py-20">
         {/* Decorative gold circles */}
-        <div className="pointer-events-none absolute left-10 top-10 h-32 w-32 rounded-full border border-[#D2B66A]/10" />
-        <div className="pointer-events-none absolute bottom-10 right-10 h-40 w-40 rounded-full border border-[#D2B66A]/10" />
+        <div className="pointer-events-none absolute left-10 top-10 h-32 w-32 rounded-full border border-[#D2B66A]/20" />
+        <div className="pointer-events-none absolute bottom-10 right-10 h-40 w-40 rounded-full border border-[#D2B66A]/20" />
 
-        {/* TOMBOLO IMAGE / LOGO */}
+        {/* LOGO */}
         <img
-          src={imageUrl}
-          alt={badgeText || "Balray Autos"}
-          className="relative z-10 mx-auto h-auto w-full max-w-[280px] object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.9)] sm:max-w-[380px]"
+          src="/balray-autos-logo.png"
+          alt="Balray Autos"
+          className="relative z-10 mx-auto h-20 w-auto max-w-[240px] object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.9)] sm:h-28 sm:max-w-[340px]"
         />
 
         {/* TAGLINE */}
@@ -76,7 +72,7 @@ export default function HeroBanner({
         </div>
 
         {/* SUBTITLE */}
-        <p className="relative z-10 mx-auto mt-5 max-w-md text-xs leading-6 text-white/80 sm:max-w-2xl sm:text-base sm:leading-7">
+        <p className="relative z-10 mx-auto mt-5 max-w-md text-xs leading-6 text-white/85 sm:max-w-2xl sm:text-base sm:leading-7">
           {subtitle}
         </p>
 
@@ -103,10 +99,10 @@ export default function HeroBanner({
         )}
       </div>
 
-      {/* CATEGORY ROW */}
+      {/* CATEGORIES */}
       <div className="relative z-10 border-t border-white/10 bg-black">
         <div className="mx-auto grid w-full max-w-7xl grid-cols-3 gap-x-1 gap-y-5 px-2 py-5 sm:grid-cols-3 sm:gap-x-3 sm:px-6 sm:py-6 lg:grid-cols-6 lg:px-8">
-          {categories.map((cat) => (
+          {defaultCategories.map((cat) => (
             <Link
               key={cat.title}
               href={cat.href}
@@ -134,7 +130,7 @@ export default function HeroBanner({
         </div>
       </div>
 
-      {/* GOLD ACCENT LINE */}
+      {/* GOLD LINE */}
       <div className="h-1 w-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32]" />
     </section>
   );
