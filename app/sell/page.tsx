@@ -1,18 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-
-
 import imageCompression from "browser-image-compression";
-
-const CameraCapture = dynamic(() => import("@/app/components/CameraCapture"), {
-  ssr: false,
-});
+import CameraCapture from "@/app/components/CameraCapture";
 
 export default function SellPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -43,8 +36,11 @@ export default function SellPage() {
 
   const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    addFiles(files);
+  };
 
+  const addFiles = (files: File[]) => {
+    if (files.length === 0) return;
     const combined = [...selectedFiles, ...files].slice(0, 10);
     setSelectedFiles(combined);
 
@@ -56,16 +52,9 @@ export default function SellPage() {
     setPreviews(newPreviews);
   };
 
-  const handlePhotosCaptured = (files: File[]) => {
-    const combined = [...selectedFiles, ...files].slice(0, 10);
-    setSelectedFiles(combined);
-
-    const newPreviews: string[] = [];
-    combined.forEach((file) => {
-      newPreviews.push(URL.createObjectURL(file));
-    });
-    previews.forEach((url) => URL.revokeObjectURL(url));
-    setPreviews(newPreviews);
+  const handleCameraCapture = (files: File[]) => {
+    addFiles(files);
+    setShowCamera(false);
   };
 
   const removeImage = (index: number) => {
@@ -94,42 +83,6 @@ export default function SellPage() {
     setErrorMessage("");
 
     const formData = new FormData(event.currentTarget);
-
-    const make = (formData.get("make") as string)?.trim();
-    const model = (formData.get("model") as string)?.trim();
-    const year = formData.get("year") ? Number(formData.get("year")) : null;
-    const price = Number(formData.get("price"));
-
-    // Duplicate pre-check
-    try {
-      let query = supabase
-        .from("listings")
-        .select("id")
-        .eq("user_id", user.id)
-        .ilike("make", make)
-        .ilike("model", model)
-        .eq("price", price)
-        .in("status", ["pending", "active"]);
-
-      if (year !== null) {
-        query = query.eq("year", year);
-      } else {
-        query = query.is("year", null);
-      }
-
-      const { data: existing } = await query.maybeSingle();
-
-      if (existing) {
-        setErrorMessage(
-          "You already have a live listing for this exact vehicle. Please edit your existing listing instead."
-        );
-        setUploading(false);
-        return;
-      }
-    } catch (err) {
-      console.error("Duplicate check failed:", err);
-    }
-
     const imageUrls: string[] = [];
 
     try {
@@ -179,10 +132,10 @@ export default function SellPage() {
         seller_type: formData.get("sellerType"),
         category: formData.get("category"),
         condition: formData.get("condition"),
-        make,
-        model,
-        year,
-        price,
+        make: formData.get("make"),
+        model: formData.get("model"),
+        year: formData.get("year") ? Number(formData.get("year")) : null,
+        price: Number(formData.get("price")),
         mileage: formData.get("mileage"),
         location: formData.get("location"),
         transmission: formData.get("transmission"),
@@ -198,37 +151,29 @@ export default function SellPage() {
         .select()
         .single();
 
-      if (dbError) {
-        if (
-          dbError.message?.includes("listings_dedupe_idx") ||
-          dbError.code === "23505" ||
-          dbError.message?.toLowerCase().includes("duplicate")
-        ) {
-          throw new Error(
-            "You already have a live listing for this exact vehicle. Please edit your existing listing instead."
-          );
-        }
-        throw dbError;
-      }
+      if (dbError) throw dbError;
 
-      // Admin notification (silent fail)
+      // Notify admin by email (silent fail — listing still saved)
       try {
+        const listingTitle = `${newListing.year ? newListing.year + " " : ""}${newListing.make} ${newListing.model}`;
+        const listingPrice = `R${newListing.price.toLocaleString()}`;
+
         await fetch("/api/notify-admin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            listingId: inserted?.id,
+            listingId: inserted.id,
             sellerName: newListing.seller_name,
             sellerEmail: newListing.seller_email,
             sellerPhone: newListing.seller_phone,
-            listingTitle: `${newListing.year || ""} ${newListing.make} ${newListing.model}`.trim(),
-            listingPrice: `R${newListing.price.toLocaleString()}`,
+            listingTitle,
+            listingPrice,
             category: newListing.category,
             location: newListing.location,
           }),
         });
-      } catch (err) {
-        console.error("Admin notification failed:", err);
+      } catch (notifyErr) {
+        console.error("Admin notify failed:", notifyErr);
       }
 
       previews.forEach((url) => URL.revokeObjectURL(url));
@@ -258,8 +203,6 @@ export default function SellPage() {
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      
-
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-[24px] border-[#D9DEE2]/70" />
         <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full border-[20px] border-[#C5CDD2]/50" />
@@ -314,12 +257,11 @@ export default function SellPage() {
 
               {errorMessage && (
                 <div className="bg-red-50 p-4 text-center text-sm font-bold text-red-600 border-b border-red-200">
-                  ⚠️ {errorMessage}
+                  Error: {errorMessage}
                 </div>
               )}
 
               <div className="space-y-10 p-6 sm:p-10">
-                {/* SELLER INFORMATION */}
                 <div>
                   <div className="mb-5">
                     <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">01</div>
@@ -351,7 +293,6 @@ export default function SellPage() {
                   </div>
                 </div>
 
-                {/* LISTING CATEGORY */}
                 <div className="border-t border-[#E1E5E8] pt-10">
                   <div className="mb-5">
                     <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">02</div>
@@ -384,7 +325,6 @@ export default function SellPage() {
                   </div>
                 </div>
 
-                {/* VEHICLE DETAILS */}
                 <div className="border-t border-[#E1E5E8] pt-10">
                   <div className="mb-5">
                     <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">03</div>
@@ -440,7 +380,7 @@ export default function SellPage() {
                   </div>
                   <div className="mt-5">
                     <label htmlFor="description" className="mb-2 block text-sm font-bold text-[#34414A]">Description *</label>
-                    <textarea id="description" name="description" required rows={6} placeholder="Describe the vehicle or product, condition, features, service history..." className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm leading-6 text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
+                    <textarea id="description" name="description" required rows={6} placeholder="Describe the vehicle or product, condition, features, service history and anything else buyers should know..." className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm leading-6 text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20" />
                   </div>
                 </div>
 
@@ -450,7 +390,7 @@ export default function SellPage() {
                     <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">04</div>
                     <h3 className="mt-1 text-xl font-black text-[#34414A]">Photos</h3>
                     <p className="mt-1 text-sm text-[#66737C]">
-                      Add up to 10 photos. The first image becomes the main photo. Use the arrows to reorder.
+                      Add up to 10 photos. First image becomes the main photo.
                     </p>
                   </div>
 
@@ -510,16 +450,18 @@ export default function SellPage() {
                   )}
 
                   {selectedFiles.length < 10 && (
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <label
                         htmlFor="photos"
                         className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D5DBDF] bg-[#F7F8F9] px-6 py-8 text-center transition hover:border-[#B08D3C] hover:bg-[#FBF7EC]"
                       >
-                        <div className="text-3xl">🖼️</div>
+                        <div className="text-4xl">📁</div>
                         <div className="mt-3 font-bold text-[#34414A]">
-                          {previews.length === 0 ? "Choose from Gallery" : "Add More Photos"}
+                          {previews.length === 0 ? "Choose from gallery" : "Add more"}
                         </div>
-                        <div className="mt-1 text-xs text-[#66737C]">JPG, PNG or WEBP</div>
+                        <div className="mt-1 text-xs text-[#66737C]">
+                          JPG, PNG or WEBP
+                        </div>
                         <input
                           id="photos"
                           type="file"
@@ -533,11 +475,15 @@ export default function SellPage() {
                       <button
                         type="button"
                         onClick={() => setShowCamera(true)}
-                        className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D5DBDF] bg-[#F7F8F9] px-6 py-8 text-center transition hover:border-[#B08D3C] hover:bg-[#FBF7EC]"
+                        className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D3B86A] bg-[#FBF7EC] px-6 py-8 text-center transition hover:border-[#8F7130] hover:bg-[#F5EDD8]"
                       >
-                        <div className="text-3xl">📸</div>
-                        <div className="mt-3 font-bold text-[#34414A]">Take Photos Now</div>
-                        <div className="mt-1 text-xs text-[#66737C]">Take multiple photos in one session</div>
+                        <div className="text-4xl">📷</div>
+                        <div className="mt-3 font-bold text-[#34414A]">
+                          Take Photo with Camera
+                        </div>
+                        <div className="mt-1 text-xs text-[#66737C]">
+                          Opens your device camera
+                        </div>
                       </button>
                     </div>
                   )}
@@ -550,7 +496,6 @@ export default function SellPage() {
                   )}
                 </div>
 
-                {/* TERMS */}
                 <div className="border-t border-[#E1E5E8] pt-10">
                   <label className="flex cursor-pointer items-start gap-3">
                     <input type="checkbox" required className="mt-1 h-4 w-4 accent-[#B08D3C]" />
@@ -560,7 +505,6 @@ export default function SellPage() {
                   </label>
                 </div>
 
-                {/* SUBMIT */}
                 <div className="border-t border-[#E1E5E8] pt-8">
                   <button type="submit" disabled={uploading} className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-base font-bold text-white shadow-md transition hover:brightness-105 disabled:opacity-70 disabled:cursor-not-allowed">
                     {uploading ? uploadProgress || "UPLOADING..." : "SUBMIT LISTING"}
@@ -577,12 +521,10 @@ export default function SellPage() {
 
       {showCamera && (
         <CameraCapture
-          onPhotosCaptured={handlePhotosCaptured}
+          onPhotosCaptured={handleCameraCapture}
           onClose={() => setShowCamera(false)}
         />
       )}
-
-      
     </main>
   );
 }
