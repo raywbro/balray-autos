@@ -59,6 +59,15 @@ export default function Navbar() {
       : "text-sm font-semibold text-[#34414A] hover:text-[#9A7B37]";
   };
 
+  const mobileLinkClass = (href: string) => {
+    const isActive = pathname === href;
+    return `rounded-lg px-4 py-3 text-base font-bold ${
+      isActive
+        ? "bg-[#FBF7EC] text-[#9A7B37]"
+        : "text-[#34414A] hover:bg-[#F7F8F9]"
+    }`;
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#D9DEE2] bg-white/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
@@ -86,6 +95,7 @@ export default function Navbar() {
           </div>
         </Link>
 
+        {/* DESKTOP NAV */}
         <nav className="hidden items-center gap-6 md:flex">
           <Link href="/" className={navLinkClass("/")}>Home</Link>
           <Link href="/marketplace" className={navLinkClass("/marketplace")}>Buy</Link>
@@ -135,26 +145,42 @@ export default function Navbar() {
           )}
         </nav>
 
+        {/* MOBILE MENU BUTTON */}
         <button
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
-          className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#D9DEE2] bg-white text-[#34414A] md:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#D9DEE2] bg-white text-2xl font-bold text-[#34414A] md:hidden"
           aria-label="Open navigation menu"
         >
-          {menuOpen ? "×" : "☰"}
+          {menuOpen ? "✕" : "☰"}
         </button>
       </div>
 
+      {/* MOBILE NAV */}
       {menuOpen && (
         <div className="border-t border-[#D9DEE2] bg-white md:hidden">
-          <nav className="mx-auto flex w-full max-w-7xl flex-col px-4 py-4 sm:px-6">
-            <Link href="/" onClick={() => setMenuOpen(false)} className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]">
+          <nav className="mx-auto flex w-full max-w-7xl flex-col gap-1 px-4 py-4 sm:px-6">
+            <Link
+              href="/"
+              onClick={() => setMenuOpen(false)}
+              className={mobileLinkClass("/")}
+            >
               Home
             </Link>
-            <Link href="/marketplace" onClick={() => setMenuOpen(false)} className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]">
+
+            <Link
+              href="/marketplace"
+              onClick={() => setMenuOpen(false)}
+              className={mobileLinkClass("/marketplace")}
+            >
               Buy
             </Link>
-            <Link href="/sell" onClick={() => setMenuOpen(false)} className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]">
+
+            <Link
+              href="/sell"
+              onClick={() => setMenuOpen(false)}
+              className={mobileLinkClass("/sell")}
+            >
               Sell
             </Link>
 
@@ -163,28 +189,31 @@ export default function Navbar() {
                 <Link
                   href="/my-listings"
                   onClick={() => setMenuOpen(false)}
-                  className="rounded-lg bg-[#FBF7EC] px-4 py-3 font-bold text-[#9A7B37]"
+                  className={mobileLinkClass("/my-listings")}
                 >
                   My Listings
                 </Link>
+
                 <Link
                   href="/analytics"
                   onClick={() => setMenuOpen(false)}
-                  className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]"
+                  className={mobileLinkClass("/analytics")}
                 >
                   Analytics
                 </Link>
+
                 <Link
                   href="/favorites"
                   onClick={() => setMenuOpen(false)}
-                  className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]"
+                  className={mobileLinkClass("/favorites")}
                 >
                   Favorites
                 </Link>
+
                 <Link
                   href="/account/settings"
                   onClick={() => setMenuOpen(false)}
-                  className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]"
+                  className={mobileLinkClass("/account/settings")}
                 >
                   Settings
                 </Link>
@@ -195,26 +224,40 @@ export default function Navbar() {
               <Link
                 href="/admin"
                 onClick={() => setMenuOpen(false)}
-                className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]"
+                className={mobileLinkClass("/admin")}
               >
                 Admin Panel
               </Link>
             )}
 
-            <Link href="/blog" onClick={() => setMenuOpen(false)} className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]">
+            <Link
+              href="/blog"
+              onClick={() => setMenuOpen(false)}
+              className={mobileLinkClass("/blog")}
+            >
               Blog
             </Link>
-            <Link href="/about" onClick={() => setMenuOpen(false)} className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]">
+
+            <Link
+              href="/about"
+              onClick={() => setMenuOpen(false)}
+              className={mobileLinkClass("/about")}
+            >
               About
             </Link>
-            <Link href="/contact" onClick={() => setMenuOpen(false)} className="rounded-lg px-4 py-3 font-semibold hover:bg-[#F7F8F9]">
+
+            <Link
+              href="/contact"
+              onClick={() => setMenuOpen(false)}
+              className={mobileLinkClass("/contact")}
+            >
               Contact
             </Link>
 
             {user ? (
               <button
                 onClick={handleLogout}
-                className="mt-3 rounded-xl bg-red-50 px-5 py-3 text-center font-bold text-red-600"
+                className="mt-4 rounded-xl bg-red-50 px-5 py-3.5 text-center text-base font-bold text-red-600"
               >
                 LOG OUT
               </button>
@@ -222,7 +265,7 @@ export default function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMenuOpen(false)}
-                className="mt-3 rounded-xl bg-[#34414A] px-5 py-3 text-center font-bold text-white"
+                className="mt-4 rounded-xl bg-[#34414A] px-5 py-3.5 text-center text-base font-bold text-white"
               >
                 LOG IN
               </Link>
