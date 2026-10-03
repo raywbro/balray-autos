@@ -51,62 +51,60 @@ export default function ShowroomHero({
         </div>
       </div>
 
-      {/* HERO — EDGE TO EDGE BANNER WITH FIXED RESPONSIVE HEIGHT */}
-      <div className="relative w-full">
-        {/* Background Image */}
-        <div
-          className="relative h-[260px] w-full bg-black bg-cover bg-center sm:h-[380px] lg:h-[480px]"
-          style={{ backgroundImage: `url('${bgImage}')` }}
+      {/* IMAGE — FULL PICTURE, NOTHING CROPPED, SMALL HEIGHT */}
+      <div className="relative w-full bg-black">
+        <div className="mx-auto flex h-[180px] w-full items-center justify-center bg-black sm:h-[260px] lg:h-[340px]">
+          <img
+            src={bgImage}
+            alt="Balray Autos - Vehicles, Machinery & Automotive Showroom"
+            className="h-full w-full object-contain"
+            loading="eager"
+          />
+        </div>
+        {/* Gold line under image */}
+        <div className="h-1 w-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32]" />
+      </div>
+
+      {/* CONTENT BELOW THE IMAGE */}
+      <div className="relative z-10 bg-gradient-to-b from-[#0a0a0a] via-[#141414] to-[#0a0a0a] px-4 py-8 text-center sm:px-6 sm:py-12 lg:px-8">
+        <img
+          src="/balray-autos-logo.png"
+          alt="Balray Autos"
+          className="mx-auto h-16 w-auto max-w-[200px] object-contain sm:h-24 sm:max-w-[300px]"
         />
 
-        {/* Dark overlays for readability */}
-        <div className="pointer-events-none absolute inset-0 bg-black/50" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90" />
-
-        {/* Centered Content Overlay */}
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center sm:px-6 lg:px-8">
-          <img
-            src="/balray-autos-logo.png"
-            alt="Balray Autos"
-            className="mx-auto h-16 w-auto max-w-[200px] object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.9)] sm:h-24 sm:max-w-[280px] lg:h-28 lg:max-w-[340px]"
-          />
-
-          <div className="mt-4 flex items-center justify-center gap-3 sm:mt-6">
-            <span className="hidden h-[2px] w-10 bg-gradient-to-r from-transparent to-[#D2B66A] sm:block sm:w-16" />
-            <h1 className="text-[10px] font-black uppercase tracking-[0.28em] text-white drop-shadow-lg sm:text-base sm:tracking-[0.4em]">
-              Connecting Buyers &amp; Sellers
-            </h1>
-            <span className="hidden h-[2px] w-10 bg-gradient-to-l from-transparent to-[#D2B66A] sm:block sm:w-16" />
-          </div>
-
-          <p className="mx-auto mt-3 max-w-md text-xs leading-5 text-white/85 drop-shadow sm:mt-5 sm:max-w-2xl sm:text-base sm:leading-7">
-            {subtitle}
-          </p>
-
-          {(primaryCTA || secondaryCTA) && (
-            <div className="mx-auto mt-5 flex max-w-md flex-col justify-center gap-2 sm:mt-8 sm:max-w-none sm:flex-row sm:gap-3">
-              {primaryCTA && (
-                <Link
-                  href={primaryCTA.href}
-                  className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-center text-xs font-bold text-white shadow-xl transition hover:brightness-110 sm:px-7 sm:py-3.5 sm:text-sm"
-                >
-                  {primaryCTA.label}
-                </Link>
-              )}
-              {secondaryCTA && (
-                <Link
-                  href={secondaryCTA.href}
-                  className="rounded-xl border-2 border-[#D2B66A]/70 bg-black/30 px-6 py-3 text-center text-xs font-bold text-white backdrop-blur-sm transition hover:bg-black/50 sm:px-7 sm:py-3.5 sm:text-sm"
-                >
-                  {secondaryCTA.label}
-                </Link>
-              )}
-            </div>
-          )}
+        <div className="mt-5 flex items-center justify-center gap-3">
+          <span className="hidden h-[2px] w-10 bg-gradient-to-r from-transparent to-[#D2B66A] sm:block sm:w-16" />
+          <h1 className="text-[10px] font-black uppercase tracking-[0.28em] text-white sm:text-base sm:tracking-[0.4em]">
+            Connecting Buyers &amp; Sellers
+          </h1>
+          <span className="hidden h-[2px] w-10 bg-gradient-to-l from-transparent to-[#D2B66A] sm:block sm:w-16" />
         </div>
 
-        {/* Gold line at bottom of banner */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32]" />
+        <p className="mx-auto mt-4 max-w-md text-xs leading-5 text-white/85 sm:mt-5 sm:max-w-2xl sm:text-base sm:leading-7">
+          {subtitle}
+        </p>
+
+        {(primaryCTA || secondaryCTA) && (
+          <div className="mx-auto mt-6 flex max-w-md flex-col justify-center gap-2 sm:mt-8 sm:max-w-none sm:flex-row sm:gap-3">
+            {primaryCTA && (
+              <Link
+                href={primaryCTA.href}
+                className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-center text-xs font-bold text-white shadow-xl transition hover:brightness-110 sm:px-7 sm:py-3.5 sm:text-sm"
+              >
+                {primaryCTA.label}
+              </Link>
+            )}
+            {secondaryCTA && (
+              <Link
+                href={secondaryCTA.href}
+                className="rounded-xl border-2 border-[#D2B66A]/60 bg-white/5 px-6 py-3 text-center text-xs font-bold text-white transition hover:bg-white/10 sm:px-7 sm:py-3.5 sm:text-sm"
+              >
+                {secondaryCTA.label}
+              </Link>
+            )}
+          </div>
+        )}
       </div>
 
       {/* CATEGORIES */}
