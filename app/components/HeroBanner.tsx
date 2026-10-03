@@ -7,7 +7,7 @@ type Props = {
   title: ReactNode;
   subtitle: string;
   badgeText?: string;
-  imageUrl: string;
+  imageUrl?: string;
   imageAlt?: string;
   primaryCTA?: { label: string; href: string };
   secondaryCTA?: { label: string; href: string };
@@ -19,8 +19,6 @@ export default function HeroBanner({
   title,
   subtitle,
   badgeText,
-  imageUrl,
-  imageAlt = "Hero",
   primaryCTA,
   secondaryCTA,
   height = "md",
@@ -28,40 +26,38 @@ export default function HeroBanner({
 }: Props) {
   const heightClass =
     height === "sm"
-      ? "min-h-[300px] sm:min-h-[380px]"
+      ? "min-h-[260px] sm:min-h-[320px]"
       : height === "lg"
-      ? "min-h-[520px] sm:min-h-[600px]"
-      : "min-h-[420px] sm:min-h-[500px]";
+      ? "min-h-[400px] sm:min-h-[500px]"
+      : "min-h-[340px] sm:min-h-[400px]";
 
   return (
-    <section className={`relative w-full overflow-hidden ${heightClass}`}>
-      <div className="absolute inset-0">
-        <img
-          src={imageUrl}
-          alt={imageAlt}
-          className="h-full w-full object-cover"
-          loading="eager"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/40" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
-      </div>
+    <section
+      className={`relative w-full overflow-hidden bg-black ${heightClass}`}
+    >
+      {/* Subtle gold circles */}
+      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-[24px] border-white/5" />
+      <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full border-[20px] border-white/5" />
+      <div className="pointer-events-none absolute right-1/4 top-1/3 h-24 w-24 rounded-full border-[8px] border-[#D2B66A]/10" />
 
+      {/* Gold accent line at bottom */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32]" />
 
-      <div className="relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+      {/* Content */}
+      <div className="relative mx-auto flex h-full w-full max-w-7xl items-center px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
         <div className="max-w-3xl">
           {badgeText && (
-            <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-[#D3B86A]/60 bg-black/40 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#D2B66A] backdrop-blur-md">
+            <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-[#D3B86A]/60 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#D2B66A] backdrop-blur-md">
               <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-[#8F7130] to-[#D2B66A]" />
               {badgeText}
             </div>
           )}
 
-          <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-white drop-shadow-lg sm:text-5xl lg:text-6xl">
+          <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
             {title}
           </h1>
 
-          <p className="mt-5 max-w-2xl text-base leading-7 text-white/85 drop-shadow-md sm:text-lg">
+          <p className="mt-5 max-w-2xl text-base leading-7 text-white/75 sm:text-lg">
             {subtitle}
           </p>
 
@@ -78,7 +74,7 @@ export default function HeroBanner({
               {secondaryCTA && (
                 <Link
                   href={secondaryCTA.href}
-                  className="rounded-xl border-2 border-white/60 bg-white/10 px-7 py-4 text-center font-bold text-white backdrop-blur-sm transition hover:bg-white/20"
+                  className="rounded-xl border-2 border-white/40 bg-white/5 px-7 py-4 text-center font-bold text-white transition hover:bg-white/10"
                 >
                   {secondaryCTA.label}
                 </Link>
