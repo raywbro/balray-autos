@@ -23,24 +23,18 @@ export default function PhoneVerifyModal({ onVerified, onClose, actionLabel = "c
     setLoading(true);
     setError("");
 
-    // Clean and format phone to international format
     let cleaned = phone.replace(/[^0-9]/g, "");
     if (cleaned.startsWith("0")) cleaned = "27" + cleaned.substring(1);
     const fullPhone = cleaned.startsWith("27") ? "+" + cleaned : "+27" + cleaned;
 
     try {
-      // Check if user already has a phone factor
       const { data: factors } = await supabase.auth.mfa.listFactors();
       const existingPhoneFactor = factors?.phone?.[0];
 
-      let currentFactorId = "";
-
       if (existingPhoneFactor) {
-        // Unenroll old factor first
         await supabase.auth.mfa.unenroll({ factorId: existingPhoneFactor.id });
       }
 
-      // Enroll a new phone factor
       const enrollRes = await supabase.auth.mfa.enroll({
         phone: fullPhone,
         factorType: "phone",
@@ -53,10 +47,9 @@ export default function PhoneVerifyModal({ onVerified, onClose, actionLabel = "c
         return;
       }
 
-      currentFactorId = enrollRes.data.id;
+      const currentFactorId = enrollRes.data.id;
       setFactorId(currentFactorId);
 
-      // Challenge the factor — sends OTP via SMS
       const challengeRes = await supabase.auth.mfa.challenge({
         factorId: currentFactorId,
       });

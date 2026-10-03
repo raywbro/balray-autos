@@ -13,20 +13,15 @@ export default function AccountSettingsPage() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error">("success");
 
-  // Phone state
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [currentPhone, setCurrentPhone] = useState("");
 
-  // Email change state
   const [showPhoneVerify, setShowPhoneVerify] = useState(false);
-  const [pendingEmailAction, setPendingEmailAction] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [emailSaving, setEmailSaving] = useState(false);
 
-  // Phone change state
   const [newPhone, setNewPhone] = useState("");
   const [phoneSaving, setPhoneSaving] = useState(false);
-  const [emailVerifying, setEmailVerifying] = useState(false);
   const [emailNonceSent, setEmailNonceSent] = useState(false);
 
   const router = useRouter();
@@ -42,7 +37,6 @@ export default function AccountSettingsPage() {
       setUser(user);
       setCurrentPhone(user.phone || "");
 
-      // Check if phone MFA factor is enrolled and verified
       const { data: factors } = await supabase.auth.mfa.listFactors();
       const phoneFactor = factors?.phone?.[0];
       if (phoneFactor && phoneFactor.status === "verified") {
@@ -60,7 +54,6 @@ export default function AccountSettingsPage() {
     setTimeout(() => setMessage(""), 5000);
   };
 
-  // ----- EMAIL CHANGE -----
   const handleEmailChangeRequest = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEmail) {
@@ -71,9 +64,6 @@ export default function AccountSettingsPage() {
       showMessage("That's your current email. Please use a different one.", "error");
       return;
     }
-
-    // If phone is already verified, we still require OTP again for this sensitive action
-    setPendingEmailAction(true);
     setShowPhoneVerify(true);
   };
 
@@ -81,7 +71,6 @@ export default function AccountSettingsPage() {
     setShowPhoneVerify(false);
     setEmailSaving(true);
 
-    // Phone was just verified via SMS. Now change the email.
     const { error } = await supabase.auth.updateUser({ email: newEmail });
 
     if (error) {
@@ -91,15 +80,13 @@ export default function AccountSettingsPage() {
     }
 
     showMessage(
-      "Verification SMS confirmed. A confirmation link has been sent to both your old and new email. Click it to complete the change.",
+      "Phone verified! A confirmation link has been sent to both your old and new email. Click it to complete the change.",
       "success"
     );
     setEmailSaving(false);
-    setPendingEmailAction(false);
     setNewEmail("");
   };
 
-  // ----- PHONE CHANGE -----
   const handlePhoneChangeRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPhone) {
@@ -107,7 +94,6 @@ export default function AccountSettingsPage() {
       return;
     }
 
-    // Step 1: Send an email nonce to verify identity
     setPhoneSaving(true);
 
     const { error: reauthError } = await supabase.auth.reauthenticate();
@@ -137,7 +123,6 @@ export default function AccountSettingsPage() {
       return;
     }
 
-    // Clean the new phone number
     let cleaned = newPhone.replace(/[^0-9]/g, "");
     if (cleaned.startsWith("0")) cleaned = "27" + cleaned.substring(1);
     const fullPhone = "+" + cleaned;
@@ -212,7 +197,6 @@ export default function AccountSettingsPage() {
             </div>
           )}
 
-          {/* CURRENT STATUS */}
           <div className="rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm">
             <h2 className="text-lg font-black text-[#34414A] mb-4">Current Status</h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -247,7 +231,6 @@ export default function AccountSettingsPage() {
             </div>
           </div>
 
-          {/* CHANGE EMAIL */}
           <form
             onSubmit={handleEmailChangeRequest}
             className="overflow-hidden rounded-2xl border border-[#D5DBDF] bg-white shadow-sm"
@@ -295,7 +278,6 @@ export default function AccountSettingsPage() {
             </div>
           </form>
 
-          {/* CHANGE PHONE */}
           <form
             onSubmit={emailNonceSent ? handlePhoneChangeComplete : handlePhoneChangeRequest}
             className="overflow-hidden rounded-2xl border border-[#D5DBDF] bg-white shadow-sm"
@@ -380,7 +362,6 @@ export default function AccountSettingsPage() {
             </div>
           </form>
 
-          {/* INFO CARD */}
           <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-6">
             <h3 className="text-lg font-black text-[#8F7130]">
               🔐 Why This Matters
@@ -394,15 +375,11 @@ export default function AccountSettingsPage() {
         </div>
       </section>
 
-      {/* PHONE VERIFY MODAL */}
       {showPhoneVerify && (
         <PhoneVerifyModal
           actionLabel="change your email"
           onVerified={handlePhoneVerifiedForEmail}
-          onClose={() => {
-            setShowPhoneVerify(false);
-            setPendingEmailAction(false);
-          }}
+          onClose={() => setShowPhoneVerify(false)}
         />
       )}
 
