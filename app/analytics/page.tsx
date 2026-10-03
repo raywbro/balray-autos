@@ -5,7 +5,14 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
-
+const categoryMap: Record<string, string> = {
+  cars: "Cars & SUVs",
+  bakkies: "Bakkies & 4x4s",
+  motorcycles: "Motorcycles",
+  trucks: "Trucks & Commercial",
+  machinery: "Machinery & Equipment",
+  parts: "Parts & Accessories",
+};
 
 export default function AnalyticsPage() {
   const [user, setUser] = useState<any>(null);
@@ -86,11 +93,37 @@ export default function AnalyticsPage() {
     (l) => l.previous_price && Number(l.previous_price) > Number(l.price)
   );
 
+  // Sold stats
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+  const soldThisMonth = listings.filter(
+    (l) => l.status === "sold" && l.sold_at && new Date(l.sold_at) >= startOfMonth
+  );
+  const soldThisYear = listings.filter(
+    (l) => l.status === "sold" && l.sold_at && new Date(l.sold_at) >= startOfYear
+  );
+
+  const soldThisMonthValue = soldThisMonth.reduce(
+    (sum, l) => sum + Number(l.price || 0),
+    0
+  );
+  const soldThisYearValue = soldThisYear.reduce(
+    (sum, l) => sum + Number(l.price || 0),
+    0
+  );
+  const totalSoldValue = listings
+    .filter((l) => l.status === "sold")
+    .reduce((sum, l) => sum + Number(l.price || 0), 0);
+
+  const recentlySold = [...listings]
+    .filter((l) => l.status === "sold" && l.sold_at)
+    .sort((a, b) => new Date(b.sold_at).getTime() - new Date(a.sold_at).getTime())
+    .slice(0, 5);
+
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      
-
-      {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="relative mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           <div className="max-w-3xl">
@@ -108,10 +141,8 @@ export default function AnalyticsPage() {
         </div>
       </section>
 
-      {/* MAIN CONTENT */}
       <section className="w-full bg-[#F7F8F9] py-12">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-
           {totalListings === 0 ? (
             <div className="rounded-3xl border border-[#D5DBDF] bg-white p-12 text-center shadow-sm">
               <div className="text-5xl">📊</div>
@@ -130,7 +161,56 @@ export default function AnalyticsPage() {
             </div>
           ) : (
             <>
-              {/* STAT CARDS */}
+              {/* SOLD STATS HERO */}
+              <div className="mb-8 overflow-hidden rounded-3xl border-2 border-green-300 bg-gradient-to-br from-green-50 via-white to-green-50 p-6 shadow-md sm:p-8">
+                <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-green-600 to-green-700 text-3xl text-white shadow-md">
+                      🎉
+                    </div>
+                    <div>
+                      <div className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
+                        Total Sales
+                      </div>
+                      <div className="mt-1 text-4xl font-black text-[#34414A]">
+                        {soldListings}
+                      </div>
+                      <div className="mt-1 text-sm text-[#66737C]">
+                        {soldListings === 0
+                          ? "You haven't marked any listings as sold yet."
+                          : `R${totalSoldValue.toLocaleString()} total sales value`}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-green-200 bg-white p-4">
+                      <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
+                        This Month
+                      </div>
+                      <div className="mt-1 text-2xl font-black text-green-600">
+                        {soldThisMonth.length}
+                      </div>
+                      <div className="mt-1 text-xs text-[#66737C]">
+                        R{soldThisMonthValue.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-green-200 bg-white p-4">
+                      <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
+                        This Year
+                      </div>
+                      <div className="mt-1 text-2xl font-black text-green-600">
+                        {soldThisYear.length}
+                      </div>
+                      <div className="mt-1 text-xs text-[#66737C]">
+                        R{soldThisYearValue.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* MAIN STAT CARDS */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="overflow-hidden rounded-2xl border border-[#D5DBDF] bg-white shadow-sm">
                   <div className="h-1.5 w-full bg-gradient-to-r from-[#34414A] to-[#4A5962]" />
@@ -207,7 +287,62 @@ export default function AnalyticsPage() {
                 </div>
               </div>
 
-              {/* TOP PERFORMERS */}
+              {/* RECENTLY SOLD */}
+              {recentlySold.length > 0 && (
+                <div className="mt-10 rounded-2xl border border-green-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-xl font-black text-[#34414A] mb-1">
+                    🏆 Recently Sold
+                  </h2>
+                  <p className="text-xs text-[#66737C] mb-5">
+                    Your latest successful sales.
+                  </p>
+
+                  <div className="space-y-3">
+                    {recentlySold.map((item) => {
+                      const title = `${item.year ? item.year + " " : ""}${item.make} ${item.model}`;
+                      const image = item.images?.[0] || "/placeholder.png";
+                      const soldDate = item.sold_at
+                        ? new Date(item.sold_at).toLocaleDateString("en-ZA", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "";
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-4 rounded-xl border border-green-100 bg-green-50/50 p-3"
+                        >
+                          <img
+                            src={image}
+                            alt={title}
+                            className="h-14 w-20 flex-shrink-0 rounded-lg object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-bold text-[#34414A]">
+                              {title}
+                            </div>
+                            <div className="mt-0.5 text-xs font-bold text-green-600">
+                              R{Number(item.price).toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 text-right">
+                            <div className="rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white">
+                              ✓ Sold
+                            </div>
+                            <div className="mt-1 text-xs text-[#66737C]">
+                              {soldDate}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* TOP PERFORMERS + PRICE DROPS */}
               <div className="mt-10 grid gap-6 lg:grid-cols-2">
                 <div className="rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm">
                   <h2 className="text-xl font-black text-[#34414A] mb-1">
@@ -373,8 +508,6 @@ export default function AnalyticsPage() {
           )}
         </div>
       </section>
-
-      
     </main>
   );
 }
