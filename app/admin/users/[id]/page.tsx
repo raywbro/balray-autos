@@ -5,9 +5,19 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, useParams } from "next/navigation";
 
+const categoryMap: Record<string, string> = {
+  cars: "Cars & SUVs",
+  bakkies: "Bakkies & 4x4s",
+  motorcycles: "Motorcycles",
+  trucks: "Trucks & Commercial",
+  machinery: "Machinery & Equipment",
+  parts: "Parts & Accessories",
+};
+
 export default function AdminUserDetailPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [authEmail, setAuthEmail] = useState<string>("");
   const [listings, setListings] = useState<any[]>([]);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error">("success");
@@ -16,6 +26,13 @@ export default function AdminUserDetailPage() {
   // Ban modal
   const [banModalOpen, setBanModalOpen] = useState(false);
   const [banReason, setBanReason] = useState("");
+
+  // Edit contact modal
+  const [editContactOpen, setEditContactOpen] = useState(false);
+  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const router = useRouter();
   const params = useParams();
@@ -62,7 +79,10 @@ export default function AdminUserDetailPage() {
     }
 
     setUser(profile);
+    setEditPhone(profile.phone || "");
 
+    // Try to fetch email from an admin-only view if available.
+    // Fallback: search listings to get the seller_email
     const { data: userListings } = await supabase
       .from("listings")
       .select("*")
@@ -70,6 +90,14 @@ export default function AdminUserDetailPage() {
       .order("created_at", { ascending: false });
 
     setListings(userListings || []);
+
+    if (userListings && userListings.length > 0) {
+      setAuthEmail(userListings[0].seller_email || "");
+      setEditEmail(userListings[0].seller_email || "");
+    } else {
+      setAuthEmail("");
+      setEditEmail("");
+    }
   };
 
   const showMessage = (msg: string, type: "success" | "error" = "success") => {
@@ -82,7 +110,6 @@ export default function AdminUserDetailPage() {
     if (!user) return;
 
     if (user.banned) {
-      // Unban
       const { error } = await supabase
         .from("profiles")
         .update({ banned: false, banned_at: null, banned_reason: null })
@@ -95,7 +122,6 @@ export default function AdminUserDetailPage() {
         showMessage("User has been unbanned.");
       }
     } else {
-      // Open ban modal
       setBanReason("");
       setBanModalOpen(true);
     }
@@ -151,6 +177,87 @@ export default function AdminUserDetailPage() {
     }
   };
 
+  const handleOpenEditContact = () => {
+    setEditPhone(user?.phone || "");
+    setEditEmail(authEmail || "");
+    setEditError("");
+    setEditContactOpen(true);
+  };
+
+  const handleSaveContact = async () => {
+    setEditError("");
+    setEditSaving(true);
+
+    try {
+      // Update phone in profiles
+      if (editPhone && editPhone !== user.phone) {
+        let cleaned = editPhone.replace(/[^0-9]/g, "");
+        let formatted = cleaned;
+        if (formatted.startsWith("0")) {
+          formatted = "+27" + formatted.substring(1);
+        } else if (!formatted.startsWith("27")) {
+          formatted = "+27" + formatted;
+        } else {
+          formatted = "+" + formatted;
+        }
+
+        // Check duplicate
+        const { data: exists } = await supabase.rpc("check_phone_exists", {
+          phone_input: formatted,
+        });
+        if (exists && formatted !== user.phone) {
+          setEditError("That phone number is already used by another account.");
+          setEditSaving(false);
+          return;
+        }
+
+        const { error: phoneErr } = await supabase
+          .from("profiles")
+          .update({ phone: formatted })
+          .eq("id", userId);
+
+        if (phoneErr) throw phoneErr;
+
+        // Also update all their listings so the phone matches
+        await supabase
+          .from("listings")
+          .update({ seller_phone: formatted })
+          .eq("user_id", userId);
+
+        setUser({ ...user, phone: formatted });
+      }
+
+      // Update email if changed - via admin API
+      if (editEmail && editEmail !== authEmail) {
+        const res = await fetch("/api/admin/update-user-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, newEmail: editEmail }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to update email");
+        }
+
+        // Sync listings' seller_email
+        await supabase
+          .from("listings")
+          .update({ seller_email: editEmail })
+          .eq("user_id", userId);
+
+        setAuthEmail(editEmail);
+      }
+
+      showMessage("User contact details updated successfully.");
+      setEditContactOpen(false);
+    } catch (err: any) {
+      setEditError(err.message || "Update failed");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const handleApproveListing = async (listing: any) => {
     const confirmed = confirm("Approve this listing? It will go live for 30 days.");
     if (!confirmed) return;
@@ -200,7 +307,6 @@ export default function AdminUserDetailPage() {
     );
     if (!confirmed) return;
 
-    // Delete images from storage
     if (listing.images && listing.images.length > 0) {
       const fileNames = listing.images
         .map((url: string) => {
@@ -270,20 +376,9 @@ export default function AdminUserDetailPage() {
   const soldListings = listings.filter((l) => l.status === "sold").length;
   const featuredListings = listings.filter((l) => l.featured).length;
 
-  const categoryMap: Record<string, string> = {
-    cars: "Cars & SUVs",
-    bakkies: "Bakkies & 4x4s",
-    motorcycles: "Motorcycles",
-    trucks: "Trucks & Commercial",
-    machinery: "Machinery & Equipment",
-    parts: "Parts & Accessories",
-  };
-
   return (
     <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
       <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-
-        {/* BACK */}
         <div className="mb-6">
           <Link
             href="/admin/users"
@@ -305,7 +400,6 @@ export default function AdminUserDetailPage() {
           </div>
         )}
 
-        {/* PROFILE HEADER */}
         <div className="overflow-hidden rounded-3xl border border-[#D5DBDF] bg-white shadow-sm">
           <div className="border-b-4 border-[#B08D3C] bg-gradient-to-br from-[#34414A] to-[#4A5962] px-6 py-8 sm:px-10">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -332,14 +426,24 @@ export default function AdminUserDetailPage() {
                   <div className="mt-2 text-sm text-[#D9DEE2]">
                     📱 {user.phone || "No phone on file"}
                   </div>
+                  {authEmail && (
+                    <div className="mt-1 text-sm text-[#D9DEE2]">
+                      ✉️ {authEmail}
+                    </div>
+                  )}
                   <div className="mt-1 text-xs text-[#D9DEE2]/70">
                     User ID: {user.id}
                   </div>
                 </div>
               </div>
 
-              {/* ADMIN ACTIONS */}
               <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleOpenEditContact}
+                  className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-bold text-white backdrop-blur transition hover:bg-white/20"
+                >
+                  ✏️ Edit Contact
+                </button>
                 <button
                   onClick={handleRoleToggle}
                   disabled={user.id === currentAdmin?.id}
@@ -366,9 +470,7 @@ export default function AdminUserDetailPage() {
                 <div className="text-xs font-bold uppercase tracking-[0.14em] text-red-200">
                   Ban Reason
                 </div>
-                <div className="mt-1 text-sm text-white">
-                  {user.banned_reason}
-                </div>
+                <div className="mt-1 text-sm text-white">{user.banned_reason}</div>
                 {user.banned_at && (
                   <div className="mt-2 text-xs text-red-200/70">
                     Banned on {formatDate(user.banned_at)}
@@ -378,7 +480,6 @@ export default function AdminUserDetailPage() {
             )}
           </div>
 
-          {/* STATS */}
           <div className="grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-6">
             <div className="rounded-xl bg-[#F7F8F9] p-4">
               <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#89939A]">
@@ -430,7 +531,6 @@ export default function AdminUserDetailPage() {
             </div>
           </div>
 
-          {/* ACCOUNT INFO */}
           <div className="border-t border-[#E1E5E8] p-6 sm:p-8">
             <h2 className="text-lg font-black text-[#34414A] mb-4">
               Account Details
@@ -448,16 +548,16 @@ export default function AdminUserDetailPage() {
                 <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                   Phone
                 </div>
-                <div className="mt-1 text-sm font-bold text-[#34414A]">
+                <div className="mt-1 break-all text-sm font-bold text-[#34414A]">
                   {user.phone || "Not set"}
                 </div>
               </div>
               <div className="rounded-xl bg-[#F7F8F9] p-4">
                 <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
-                  Role
+                  Email
                 </div>
-                <div className="mt-1 text-sm font-bold capitalize text-[#34414A]">
-                  {user.role || "user"}
+                <div className="mt-1 break-all text-sm font-bold text-[#34414A]">
+                  {authEmail || "Not available"}
                 </div>
               </div>
               <div className="rounded-xl bg-[#F7F8F9] p-4">
@@ -472,17 +572,14 @@ export default function AdminUserDetailPage() {
           </div>
         </div>
 
-        {/* LISTINGS */}
         <div className="mt-10">
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
-                Their Listings
-              </div>
-              <h2 className="mt-1 text-2xl font-black text-[#34414A]">
-                All Adverts ({listings.length})
-              </h2>
+          <div className="mb-6">
+            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+              Their Listings
             </div>
+            <h2 className="mt-1 text-2xl font-black text-[#34414A]">
+              All Adverts ({listings.length})
+            </h2>
           </div>
 
           {listings.length === 0 ? (
@@ -610,7 +707,7 @@ export default function AdminUserDetailPage() {
                 Ban This User?
               </h2>
               <p className="mt-3 text-sm leading-6 text-[#66737C]">
-                They won&apos;t be able to log in or post new listings. Their existing listings will remain but you can delete them separately.
+                They won&apos;t be able to log in or post new listings.
               </p>
             </div>
 
@@ -640,6 +737,88 @@ export default function AdminUserDetailPage() {
               >
                 Ban User
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT CONTACT MODAL */}
+      {editContactOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+            <div className="mb-6 flex items-start justify-between">
+              <div>
+                <h2 className="text-2xl font-black text-[#34414A]">
+                  Edit Contact
+                </h2>
+                <p className="mt-1 text-xs text-[#89939A]">
+                  Changes here apply to all of their adverts.
+                </p>
+              </div>
+              <button
+                onClick={() => setEditContactOpen(false)}
+                className="text-2xl leading-none text-[#89939A] hover:text-[#34414A]"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="e.g. 082 123 4567"
+                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="user@example.com"
+                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                />
+                <p className="mt-2 text-xs text-[#89939A]">
+                  Changing the email updates their login and all their adverts.
+                </p>
+              </div>
+
+              {editError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm font-bold text-red-600">
+                  {editError}
+                </div>
+              )}
+
+              <div className="rounded-xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-3 text-xs text-[#8F7130]">
+                ⓘ Phone uniqueness is checked. Email change uses Supabase Admin API (requires <code>SUPABASE_SERVICE_ROLE_KEY</code>).
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setEditContactOpen(false)}
+                  className="flex-1 rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveContact}
+                  disabled={editSaving}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-4 py-3 text-sm font-bold text-white hover:brightness-105 disabled:opacity-60"
+                >
+                  {editSaving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
