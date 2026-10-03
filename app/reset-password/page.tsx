@@ -18,55 +18,34 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     let mounted = true;
 
-    // 1. Listen for auth events
+    // Check for an existing session (set by /auth/confirm route)
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (mounted && session) {
+        setReady(true);
+      }
+      if (mounted) setChecking(false);
+    };
+
+    // Listen for auth events
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth event:", event, "Has session:", !!session);
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
-        if (mounted) {
-          setReady(true);
-          setChecking(false);
-        }
+      if (session && mounted) {
+        setReady(true);
+        setChecking(false);
       }
     });
 
-    // 2. Immediately check if a session already exists
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log("Session on load:", !!session);
-        if (session && mounted) {
-          setReady(true);
-          setChecking(false);
-          return;
-        }
-      } catch (err) {
-        console.error("Session check error:", err);
-      }
-    };
-
-    checkSession();
-
-    // 3. Retry a few times over 3 seconds (Supabase processes URL tokens async)
-    const intervals = [300, 800, 1500, 2500, 3500];
-    const timers = intervals.map((ms) =>
-      setTimeout(async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && mounted) {
-          setReady(true);
-          setChecking(false);
-        }
-      }, ms)
+    // Retry a few times (Supabase processes tokens async)
+    const timers = [300, 800, 1500, 2500].map((ms) =>
+      setTimeout(checkSession, ms)
     );
 
-    const stopChecking = setTimeout(() => {
-      if (mounted) setChecking(false);
-    }, 4000);
+    checkSession();
 
     return () => {
       mounted = false;
       authListener.subscription.unsubscribe();
       timers.forEach(clearTimeout);
-      clearTimeout(stopChecking);
     };
   }, [supabase]);
 
@@ -100,15 +79,9 @@ export default function ResetPasswordPage() {
     }
   };
 
-  const handleRetry = () => {
-    window.location.reload();
-  };
-
   return (
     <main className="min-h-screen w-full flex items-center justify-center bg-[#F7F8F9] text-[#34414A] p-4">
       <div className="w-full max-w-md rounded-2xl border border-[#D9DEE2] bg-white p-8 shadow-sm">
-        
-        {/* HEADER */}
         <div className="flex flex-col items-center text-center mb-8">
           <img
             src="/balray-autos-logo.png"
@@ -123,26 +96,17 @@ export default function ResetPasswordPage() {
           </p>
         </div>
 
-        {/* LOADING */}
         {checking && !ready && (
           <div className="rounded-xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-5 text-center text-sm font-semibold text-[#8F7130]">
             <div className="animate-pulse">Verifying your reset link...</div>
           </div>
         )}
 
-        {/* EXPIRED */}
         {!checking && !ready && (
           <div className="space-y-4">
             <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-center text-sm font-semibold text-red-600">
-              This reset link may have expired.
+              This reset link has expired or has already been used.
             </div>
-            <button
-              type="button"
-              onClick={handleRetry}
-              className="w-full rounded-xl border border-[#B08D3C] bg-white px-5 py-3.5 text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
-            >
-              🔄 Try Again
-            </button>
             <Link
               href="/forgot-password"
               className="block w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-5 py-4 text-center text-sm font-bold text-white shadow-md hover:opacity-95"
@@ -152,7 +116,6 @@ export default function ResetPasswordPage() {
           </div>
         )}
 
-        {/* FORM */}
         {ready && (
           <form onSubmit={handleReset} className="flex flex-col gap-5">
             <div>
@@ -195,7 +158,6 @@ export default function ResetPasswordPage() {
           </form>
         )}
 
-        {/* MESSAGES */}
         {message && (
           <div
             className={`mt-5 rounded-xl border p-4 text-center text-sm font-semibold ${
@@ -208,7 +170,6 @@ export default function ResetPasswordPage() {
           </div>
         )}
 
-        {/* FOOTER LINK */}
         <p className="mt-8 text-center text-sm text-[#66737C]">
           Remember your password?{" "}
           <Link href="/login" className="font-bold text-[#9A7B37] hover:underline">
