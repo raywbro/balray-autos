@@ -24,9 +24,6 @@ const defaultCategories: CategoryItem[] = [
   { title: "Parts & Accessories", href: "/marketplace?category=Parts+%26+Accessories", icon: "⚙️" },
 ];
 
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=2000&q=80";
-
 export default function ShowroomHero({
   bgImage = "/showroom-hero.jpg",
   subtitle = "South Africa's marketplace for vehicles, machinery & automotive products.",
@@ -34,50 +31,46 @@ export default function ShowroomHero({
   secondaryCTA,
 }: Props) {
   return (
-    <section className="relative w-full overflow-hidden bg-[#0a0a0a]">
-      {/* BACKGROUND IMAGE + FALLBACK */}
-      <div className="absolute inset-0">
-        <img
-          src={bgImage}
-          alt="Balray Autos - Vehicles, Machinery & Automotive Showroom"
-          className="h-full w-full object-cover"
-          loading="eager"
-          onError={(e) => {
-            const target = e.currentTarget as HTMLImageElement;
-            if (!target.src.includes("unsplash")) {
-              target.src = FALLBACK_IMAGE;
-            }
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/50 to-black/90" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60" />
-      </div>
-
+    <section className="relative w-full bg-[#0a0a0a]">
       {/* TOP BAR: BUY | SELL | CONNECT */}
-      <div className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-end px-4 py-5 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.28em] text-white sm:gap-5 sm:text-sm">
-          <Link href="/marketplace" className="transition hover:text-[#D2B66A]">
-            Buy
-          </Link>
-          <span className="text-[#D2B66A]">|</span>
-          <Link href="/sell" className="transition hover:text-[#D2B66A]">
-            Sell
-          </Link>
-          <span className="text-[#D2B66A]">|</span>
-          <Link href="/contact" className="transition hover:text-[#D2B66A]">
-            Connect
-          </Link>
+      <div className="relative z-20 border-b border-white/10 bg-black">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-end px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.28em] text-white sm:gap-5 sm:text-sm">
+            <Link href="/marketplace" className="transition hover:text-[#D2B66A]">
+              Buy
+            </Link>
+            <span className="text-[#D2B66A]">|</span>
+            <Link href="/sell" className="transition hover:text-[#D2B66A]">
+              Sell
+            </Link>
+            <span className="text-[#D2B66A]">|</span>
+            <Link href="/contact" className="transition hover:text-[#D2B66A]">
+              Connect
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* CENTER CONTENT */}
-      <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-10 text-center sm:px-6 sm:py-14 lg:px-8">
+      {/* FULL IMAGE — SHOWS ENTIRE PICTURE, NO CROPPING */}
+      <div className="relative w-full bg-black">
+        <img
+          src={bgImage}
+          alt="Balray Autos - Vehicles, Machinery & Automotive Showroom"
+          className="mx-auto block h-auto w-full max-h-[85vh] object-contain"
+          loading="eager"
+        />
+      </div>
+
+      {/* CONTENT BELOW THE IMAGE */}
+      <div className="relative z-10 bg-gradient-to-b from-[#0a0a0a] via-[#141414] to-[#0a0a0a] px-4 py-10 text-center sm:px-6 sm:py-14 lg:px-8">
+        {/* LOGO */}
         <img
           src="/balray-autos-logo.png"
           alt="Balray Autos"
-          className="mx-auto h-24 w-auto max-w-[320px] object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] sm:h-32 sm:max-w-[420px]"
+          className="mx-auto h-20 w-auto max-w-[260px] object-contain sm:h-28 sm:max-w-[360px]"
         />
 
+        {/* TAGLINE */}
         <div className="mt-6 flex items-center justify-center gap-3">
           <span className="h-[2px] w-10 bg-gradient-to-r from-transparent to-[#D2B66A] sm:w-16" />
           <h1 className="text-xs font-black uppercase tracking-[0.3em] text-white sm:text-base sm:tracking-[0.4em]">
@@ -86,12 +79,14 @@ export default function ShowroomHero({
           <span className="h-[2px] w-10 bg-gradient-to-l from-transparent to-[#D2B66A] sm:w-16" />
         </div>
 
-        <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/85 drop-shadow sm:text-base">
+        {/* SUBTITLE */}
+        <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/85 sm:text-base">
           {subtitle}
         </p>
 
+        {/* CTAs */}
         {(primaryCTA || secondaryCTA) && (
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <div className="mx-auto mt-8 flex max-w-md flex-col justify-center gap-3 sm:max-w-none sm:flex-row">
             {primaryCTA && (
               <Link
                 href={primaryCTA.href}
@@ -103,7 +98,7 @@ export default function ShowroomHero({
             {secondaryCTA && (
               <Link
                 href={secondaryCTA.href}
-                className="rounded-xl border-2 border-white/50 bg-white/10 px-7 py-3.5 text-center text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/20"
+                className="rounded-xl border-2 border-[#D2B66A]/60 bg-white/5 px-7 py-3.5 text-center text-sm font-bold text-white transition hover:bg-white/10"
               >
                 {secondaryCTA.label}
               </Link>
@@ -113,7 +108,7 @@ export default function ShowroomHero({
       </div>
 
       {/* CATEGORY ROW */}
-      <div className="relative z-10 border-t border-white/15 bg-black/40 backdrop-blur-sm">
+      <div className="relative z-10 border-t border-white/10 bg-black">
         <div className="mx-auto grid w-full max-w-7xl grid-cols-2 gap-x-2 gap-y-6 px-4 py-6 sm:grid-cols-3 sm:gap-x-4 sm:px-6 lg:grid-cols-6 lg:px-8">
           {defaultCategories.map((cat) => (
             <Link
@@ -121,7 +116,7 @@ export default function ShowroomHero({
               href={cat.href}
               className="group flex flex-col items-center text-center"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 text-2xl backdrop-blur-sm transition group-hover:-translate-y-1 group-hover:bg-[#D2B66A]/30 sm:h-14 sm:w-14 sm:text-3xl">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 text-2xl transition group-hover:-translate-y-1 group-hover:bg-[#D2B66A]/30 sm:h-14 sm:w-14 sm:text-3xl">
                 {cat.icon}
               </div>
               <div className="mt-2 text-[10px] font-black uppercase leading-tight tracking-[0.12em] text-white group-hover:text-[#D2B66A] sm:text-xs">
@@ -133,7 +128,7 @@ export default function ShowroomHero({
       </div>
 
       {/* BOTTOM TAGLINE BAR */}
-      <div className="relative z-10 border-t border-white/15 bg-black/60 py-4">
+      <div className="relative z-10 border-t border-white/10 bg-black py-4">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 text-center text-[10px] font-black uppercase tracking-[0.24em] text-white/80 sm:text-xs sm:tracking-[0.32em]">
           <span>Quality Vehicles</span>
           <span className="text-[#D2B66A]">•</span>
@@ -144,7 +139,7 @@ export default function ShowroomHero({
       </div>
 
       {/* GOLD ACCENT LINE AT BOTTOM */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32]" />
+      <div className="h-1 w-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32]" />
     </section>
   );
 }
