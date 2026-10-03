@@ -9,7 +9,6 @@ type CategoryItem = {
 };
 
 type Props = {
-  bgImage?: string;
   subtitle?: string;
   primaryCTA?: { label: string; href: string };
   secondaryCTA?: { label: string; href: string };
@@ -25,7 +24,6 @@ const defaultCategories: CategoryItem[] = [
 ];
 
 export default function ShowroomHero({
-  bgImage = "/showroom-hero.jpg",
   subtitle = "South Africa's marketplace for vehicles, machinery & automotive products.",
   primaryCTA,
   secondaryCTA,
@@ -51,46 +49,40 @@ export default function ShowroomHero({
         </div>
       </div>
 
-      {/* IMAGE — FULL PICTURE, NOTHING CROPPED, SMALL HEIGHT */}
-      <div className="relative w-full bg-black">
-        <div className="mx-auto flex h-[180px] w-full items-center justify-center bg-black sm:h-[260px] lg:h-[340px]">
-          <img
-            src={bgImage}
-            alt="Balray Autos - Vehicles, Machinery & Automotive Showroom"
-            className="h-full w-full object-contain"
-            loading="eager"
-          />
-        </div>
-        {/* Gold line under image */}
-        <div className="h-1 w-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32]" />
-      </div>
+      {/* MAIN BANNER */}
+      <div className="relative w-full bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0a0a0a] px-4 py-12 text-center sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+        {/* Decorative gold circles */}
+        <div className="pointer-events-none absolute left-10 top-10 h-32 w-32 rounded-full border border-[#D2B66A]/20" />
+        <div className="pointer-events-none absolute bottom-10 right-10 h-40 w-40 rounded-full border border-[#D2B66A]/20" />
 
-      {/* CONTENT BELOW THE IMAGE */}
-      <div className="relative z-10 bg-gradient-to-b from-[#0a0a0a] via-[#141414] to-[#0a0a0a] px-4 py-8 text-center sm:px-6 sm:py-12 lg:px-8">
+        {/* LOGO */}
         <img
           src="/balray-autos-logo.png"
           alt="Balray Autos"
-          className="mx-auto h-16 w-auto max-w-[200px] object-contain sm:h-24 sm:max-w-[300px]"
+          className="relative z-10 mx-auto h-20 w-auto max-w-[240px] object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.9)] sm:h-28 sm:max-w-[340px]"
         />
 
-        <div className="mt-5 flex items-center justify-center gap-3">
-          <span className="hidden h-[2px] w-10 bg-gradient-to-r from-transparent to-[#D2B66A] sm:block sm:w-16" />
-          <h1 className="text-[10px] font-black uppercase tracking-[0.28em] text-white sm:text-base sm:tracking-[0.4em]">
+        {/* TAGLINE */}
+        <div className="relative z-10 mt-6 flex items-center justify-center gap-3">
+          <span className="h-[2px] w-10 bg-gradient-to-r from-transparent to-[#D2B66A] sm:w-16" />
+          <h1 className="text-[11px] font-black uppercase tracking-[0.28em] text-white sm:text-base sm:tracking-[0.4em]">
             Connecting Buyers &amp; Sellers
           </h1>
-          <span className="hidden h-[2px] w-10 bg-gradient-to-l from-transparent to-[#D2B66A] sm:block sm:w-16" />
+          <span className="h-[2px] w-10 bg-gradient-to-l from-transparent to-[#D2B66A] sm:w-16" />
         </div>
 
-        <p className="mx-auto mt-4 max-w-md text-xs leading-5 text-white/85 sm:mt-5 sm:max-w-2xl sm:text-base sm:leading-7">
+        {/* SUBTITLE */}
+        <p className="relative z-10 mx-auto mt-5 max-w-md text-xs leading-6 text-white/85 sm:max-w-2xl sm:text-base sm:leading-7">
           {subtitle}
         </p>
 
+        {/* CTAs */}
         {(primaryCTA || secondaryCTA) && (
-          <div className="mx-auto mt-6 flex max-w-md flex-col justify-center gap-2 sm:mt-8 sm:max-w-none sm:flex-row sm:gap-3">
+          <div className="relative z-10 mx-auto mt-8 flex max-w-md flex-col justify-center gap-3 sm:max-w-none sm:flex-row">
             {primaryCTA && (
               <Link
                 href={primaryCTA.href}
-                className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-center text-xs font-bold text-white shadow-xl transition hover:brightness-110 sm:px-7 sm:py-3.5 sm:text-sm"
+                className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-7 py-3.5 text-center text-sm font-bold text-white shadow-xl transition hover:brightness-110"
               >
                 {primaryCTA.label}
               </Link>
@@ -98,7 +90,7 @@ export default function ShowroomHero({
             {secondaryCTA && (
               <Link
                 href={secondaryCTA.href}
-                className="rounded-xl border-2 border-[#D2B66A]/60 bg-white/5 px-6 py-3 text-center text-xs font-bold text-white transition hover:bg-white/10 sm:px-7 sm:py-3.5 sm:text-sm"
+                className="rounded-xl border-2 border-[#D2B66A]/60 bg-white/5 px-7 py-3.5 text-center text-sm font-bold text-white transition hover:bg-white/10"
               >
                 {secondaryCTA.label}
               </Link>
@@ -137,6 +129,9 @@ export default function ShowroomHero({
           <span>South Africa</span>
         </div>
       </div>
+
+      {/* GOLD LINE */}
+      <div className="h-1 w-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32]" />
     </section>
   );
 }
