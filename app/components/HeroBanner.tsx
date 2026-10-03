@@ -25,10 +25,7 @@ const categories = [
 ];
 
 export default function HeroBanner({
-  title,
   subtitle = "South Africa's marketplace for vehicles, machinery & automotive products.",
-  badgeText,
-  imageUrl = "/tombolo.png",
   primaryCTA,
   secondaryCTA,
 }: Props) {
@@ -59,15 +56,8 @@ export default function HeroBanner({
         <div className="pointer-events-none absolute left-10 top-10 h-32 w-32 rounded-full border border-[#D2B66A]/10" />
         <div className="pointer-events-none absolute bottom-10 right-10 h-40 w-40 rounded-full border border-[#D2B66A]/10" />
 
-        {/* TOMBOLO IMAGE / LOGO */}
-        <img
-          src={imageUrl}
-          alt={badgeText || "Balray Autos"}
-          className="relative z-10 mx-auto h-auto w-full max-w-[280px] object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.9)] sm:max-w-[380px]"
-        />
-
         {/* TAGLINE */}
-        <div className="relative z-10 mt-6 flex items-center justify-center gap-3">
+        <div className="relative z-10 flex items-center justify-center gap-3">
           <span className="h-[2px] w-10 bg-gradient-to-r from-transparent to-[#D2B66A] sm:w-16" />
           <h1 className="text-[11px] font-black uppercase tracking-[0.28em] text-white sm:text-base sm:tracking-[0.4em]">
             Connecting Buyers &amp; Sellers
