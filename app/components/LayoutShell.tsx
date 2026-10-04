@@ -12,7 +12,11 @@ const HIDDEN_PATHS = [
   "/auth",
 ];
 
-export default function LayoutShell({ children }: { children: React.ReactNode }) {
+export default function LayoutShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const hide = HIDDEN_PATHS.some((p) => pathname.startsWith(p));
 
