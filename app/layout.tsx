@@ -1,70 +1,79 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import LayoutShell from "./components/LayoutShell";
+"use client";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import Navbar from "./Navbar";
+import Footer from "./Footer";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const HIDDEN_PATHS = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/auth",
+];
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://www.balrayautos.co.za"),
-  title: {
-    default: "Balray Autos | Buy & Sell Vehicles in South Africa",
-    template: "%s | Balray Autos",
-  },
-  description:
-    "South Africa's trusted marketplace for buying and selling cars, bakkies, motorcycles, trucks, machinery, and automotive parts.",
-  keywords: [
-    "cars for sale South Africa",
-    "bakkies for sale",
-    "buy used cars SA",
-    "sell my car South Africa",
-    "Toyota Hilux for sale",
-    "Ford Ranger for sale",
-    "BMW for sale South Africa",
-    "car marketplace South Africa",
-    "Balray Autos",
-  ],
-  openGraph: {
-    type: "website",
-    locale: "en_ZA",
-    url: "https://www.balrayautos.co.za",
-    siteName: "Balray Autos",
-    title: "Balray Autos | Buy & Sell Vehicles in South Africa",
-    description:
-      "South Africa's trusted marketplace for buying and selling vehicles.",
-    images: ["/balray-autos-logo.png"],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Balray Autos",
-    images: ["/balray-autos-logo.png"],
-  },
-  icons: {
-    icon: "/balray-autos-logo.png",
-    apple: "/balray-autos-logo.png",
-  },
-};
-
-export default function RootLayout({
+export default function LayoutShell({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
+  const [checked, setChecked] = useState(false);
+
+  const hide = HIDDEN_PATHS.some((p) => pathname.startsWith(p));
+
+  useEffect(() => {
+    if (hide) {
+      setChecked(true);
+      return;
+    }
+
+    const checkBan = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setChecked(true);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("banned")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.banned) {
+          await supabase.auth.signOut();
+          router.push("/login?banned=1");
+          return;
+        }
+      } catch (err) {
+        console.error("Ban check failed:", err);
+      } finally {
+        setChecked(true);
+      }
+    };
+
+    checkBan();
+  }, [hide, pathname, router, supabase]);
+
+  if (hide) {
+    return <>{children}</>;
+  }
+
+  if (!checked) {
+    return <div className="min-h-screen w-full bg-[#F7F8F9]" />;
+  }
+
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <LayoutShell>{children}</LayoutShell>
-      </body>
-    </html>
+    <>
+      <Navbar />
+      {children}
+      <Footer />
+    </>
   );
 }
