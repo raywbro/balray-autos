@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
+import OptimizedImage from "@/app/components/OptimizedImage";
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -43,15 +44,15 @@ export default function ListingDetailPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [notFound, setNotFound] = useState(false);
 
-  // Reviews state
   const [reviews, setReviews] = useState<any[]>([]);
   const [myReview, setMyReview] = useState<any>(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewMessage, setReviewMessage] = useState("");
-  const [reviewMessageType, setReviewMessageType] = useState<"success" | "error">("success");
-  const [canReview, setCanReview] = useState(false);
+  const [reviewMessageType, setReviewMessageType] = useState<
+    "success" | "error"
+  >("success");
 
   useEffect(() => {
     if (!listingId) return;
@@ -70,7 +71,6 @@ export default function ListingDetailPage() {
           if (profile?.role === "admin") setIsAdmin(true);
         }
 
-        // Fetch the listing
         const { data: listingData, error: listingError } = await supabase
           .from("listings")
           .select("*")
@@ -84,12 +84,8 @@ export default function ListingDetailPage() {
           return;
         }
 
-        // Only allow viewing if active (or if admin)
         const isOwner = user && listingData.user_id === user.id;
         const isActive = listingData.status === "active";
-        const expired =
-          listingData.expires_at &&
-          new Date(listingData.expires_at) < new Date();
 
         if (!isActive && !isOwner) {
           const { data: profile } = await supabase
@@ -106,7 +102,6 @@ export default function ListingDetailPage() {
 
         setListing(listingData);
 
-        // Fetch seller profile
         const { data: sellerData } = await supabase
           .from("profiles")
           .select("*")
@@ -114,7 +109,6 @@ export default function ListingDetailPage() {
           .single();
         setSeller(sellerData);
 
-        // Increment views
         try {
           await supabase
             .from("listings")
@@ -124,11 +118,18 @@ export default function ListingDetailPage() {
           console.error("View increment error:", err);
         }
 
-        // Fetch reviews
-        await fetchReviews();
+        const { data: reviewData, error: reviewError } = await supabase
+          .from("listing_reviews")
+          .select("*")
+          .eq("listing_id", listingId)
+          .order("created_at", { ascending: false });
 
-        // Check if current user can review
-        // Rule: must be logged in, not the seller, and have not reviewed yet
+        if (reviewError) {
+          console.error("Reviews fetch error:", reviewError);
+        } else {
+          setReviews(reviewData || []);
+        }
+
         if (user && user.id !== listingData.user_id) {
           const { data: existing } = await supabase
             .from("listing_reviews")
@@ -141,9 +142,6 @@ export default function ListingDetailPage() {
             setMyReview(existing);
             setReviewRating(existing.rating);
             setReviewComment(existing.comment || "");
-            setCanReview(true);
-          } else {
-            setCanReview(true);
           }
         }
       } catch (err) {
@@ -193,7 +191,6 @@ export default function ListingDetailPage() {
       "User";
 
     if (myReview) {
-      // Update
       const { error } = await supabase
         .from("listing_reviews")
         .update({
@@ -212,7 +209,6 @@ export default function ListingDetailPage() {
         await fetchReviews();
       }
     } else {
-      // Insert
       const { error } = await supabase.from("listing_reviews").insert({
         listing_id: listingId,
         user_id: currentUser.id,
@@ -229,7 +225,6 @@ export default function ListingDetailPage() {
         setReviewMessage("✓ Review posted. Thank you!");
         setReviewMessageType("success");
         await fetchReviews();
-        // Reload my review
         const { data: existing } = await supabase
           .from("listing_reviews")
           .select("*")
@@ -315,11 +310,14 @@ export default function ListingDetailPage() {
   return (
     <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
       <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Breadcrumb */}
         <div className="mb-6 flex flex-wrap items-center gap-2 text-xs font-bold text-[#89939A]">
-          <Link href="/" className="hover:text-[#8F7130]">Home</Link>
+          <Link href="/" className="hover:text-[#8F7130]">
+            Home
+          </Link>
           <span>/</span>
-          <Link href="/marketplace" className="hover:text-[#8F7130]">Marketplace</Link>
+          <Link href="/marketplace" className="hover:text-[#8F7130]">
+            Marketplace
+          </Link>
           <span>/</span>
           <span className="text-[#34414A]">
             {listing.year} {listing.make} {listing.model}
@@ -327,14 +325,15 @@ export default function ListingDetailPage() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          {/* LEFT: Images + description */}
           <div className="space-y-6">
             <div className="overflow-hidden rounded-3xl border border-[#D5DBDF] bg-white shadow-sm">
               <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-                <img
+                <OptimizedImage
                   src={images[activeImage]}
                   alt={`${listing.make} ${listing.model}`}
-                  className="h-full w-full object-cover"
+                  fill={true}
+                  priority={true}
+                  sizes="(max-width: 1024px) 100vw, 60vw"
                 />
               </div>
 
@@ -345,16 +344,17 @@ export default function ListingDetailPage() {
                       key={i}
                       type="button"
                       onClick={() => setActiveImage(i)}
-                      className={`h-16 w-24 flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
+                      className={`relative h-16 w-24 flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
                         activeImage === i
                           ? "border-[#B08D3C]"
                           : "border-transparent opacity-70 hover:opacity-100"
                       }`}
                     >
-                      <img
+                      <OptimizedImage
                         src={img}
                         alt={`Thumbnail ${i + 1}`}
-                        className="h-full w-full object-cover"
+                        fill={true}
+                        sizes="96px"
                       />
                     </button>
                   ))}
@@ -370,6 +370,7 @@ export default function ListingDetailPage() {
                 <video
                   src={listing.video_url}
                   controls
+                  preload="metadata"
                   className="w-full rounded-xl"
                   style={{ maxHeight: "400px" }}
                 />
@@ -383,7 +384,6 @@ export default function ListingDetailPage() {
               </p>
             </div>
 
-            {/* REVIEWS SECTION */}
             <div className="rounded-3xl border border-[#D5DBDF] bg-white p-6 shadow-sm sm:p-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -422,7 +422,6 @@ export default function ListingDetailPage() {
                 </div>
               </div>
 
-              {/* Review form */}
               {!currentUser ? (
                 <div className="mt-6 rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-5 text-center">
                   <p className="text-sm font-bold text-[#8F7130]">
@@ -507,7 +506,6 @@ export default function ListingDetailPage() {
                 </div>
               )}
 
-              {/* Review list */}
               <div className="mt-6 space-y-4">
                 {reviews.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-[#D5DBDF] p-6 text-center text-xs text-[#89939A]">
@@ -589,7 +587,6 @@ export default function ListingDetailPage() {
             </div>
           </div>
 
-          {/* RIGHT: Price, seller, contact */}
           <div className="space-y-6">
             <div className="rounded-3xl border border-[#D5DBDF] bg-white p-6 shadow-sm sm:p-8">
               <div className="text-xs font-black uppercase tracking-[0.14em] text-[#9A7B37]">

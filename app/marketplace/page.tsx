@@ -5,6 +5,7 @@ import { useState, useEffect, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSearchParams, useRouter } from "next/navigation";
 import HeroBanner from "@/app/components/HeroBanner";
+import OptimizedImage from "@/app/components/OptimizedImage";
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -73,12 +74,22 @@ function MarketplaceContent() {
   useEffect(() => {
     const fetchListings = async () => {
       const now = new Date().toISOString();
+
+      const { data: subscribedProfiles } = await supabase
+        .from("profiles")
+        .select("id")
+        .neq("subscription_tier", "none")
+        .gt("subscription_expires_at", now);
+
+      const subscribedIds = new Set(
+        (subscribedProfiles || []).map((p) => p.id)
+      );
+
       const { data, error } = await supabase
         .from("listings")
         .select("*")
         .eq("status", "active")
         .or(`expires_at.is.null,expires_at.gt.${now}`)
-        .order("featured", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -86,18 +97,25 @@ function MarketplaceContent() {
       } else {
         const formattedListings = data.map((item) => {
           const price = Number(item.price);
-          const previous = item.previous_price ? Number(item.previous_price) : null;
+          const previous = item.previous_price
+            ? Number(item.previous_price)
+            : null;
           const hasPriceDrop = previous !== null && previous > price;
           const savings = hasPriceDrop ? previous - price : 0;
-          const percentOff = hasPriceDrop ? Math.round((savings / previous) * 100) : 0;
+          const percentOff = hasPriceDrop
+            ? Math.round((savings / previous) * 100)
+            : 0;
 
           return {
             id: item.id,
+            userId: item.user_id,
             title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
             category: categoryMap[item.category] || item.category,
             price: `R${price.toLocaleString()}`,
             priceValue: price,
-            previousPriceFormatted: previous ? `R${previous.toLocaleString()}` : null,
+            previousPriceFormatted: previous
+              ? `R${previous.toLocaleString()}`
+              : null,
             hasPriceDrop,
             savingsFormatted: `R${savings.toLocaleString()}`,
             percentOff,
@@ -105,11 +123,15 @@ function MarketplaceContent() {
             yearValue: item.year || 0,
             mileage: item.mileage || "N/A",
             location: item.location,
-            transmission: transmissionMap[item.transmission] || item.transmission || "N/A",
+            transmission:
+              transmissionMap[item.transmission] ||
+              item.transmission ||
+              "N/A",
             transmissionKey: item.transmission || "",
             fuel: fuelMap[item.fuel] || item.fuel || "N/A",
             fuelKey: item.fuel || "",
             featured: item.featured || false,
+            isSubscribedSeller: subscribedIds.has(item.user_id),
             views: item.views || 0,
             createdAt: item.created_at,
             image:
@@ -221,12 +243,17 @@ function MarketplaceContent() {
       listing.title.toLowerCase().includes(searchText) ||
       listing.category.toLowerCase().includes(searchText) ||
       listing.location.toLowerCase().includes(searchText);
-    const matchesMinPrice = minPrice === "" || listing.priceValue >= Number(minPrice);
-    const matchesMaxPrice = maxPrice === "" || listing.priceValue <= Number(maxPrice);
-    const matchesMinYear = minYear === "" || listing.yearValue >= Number(minYear);
-    const matchesMaxYear = maxYear === "" || listing.yearValue <= Number(maxYear);
+    const matchesMinPrice =
+      minPrice === "" || listing.priceValue >= Number(minPrice);
+    const matchesMaxPrice =
+      maxPrice === "" || listing.priceValue <= Number(maxPrice);
+    const matchesMinYear =
+      minYear === "" || listing.yearValue >= Number(minYear);
+    const matchesMaxYear =
+      maxYear === "" || listing.yearValue <= Number(maxYear);
     const matchesTransmission =
-      transmissionFilter === "" || listing.transmissionKey === transmissionFilter;
+      transmissionFilter === "" ||
+      listing.transmissionKey === transmissionFilter;
     const matchesFuel = fuelFilter === "" || listing.fuelKey === fuelFilter;
 
     return (
@@ -248,9 +275,13 @@ function MarketplaceContent() {
       case "price-high":
         return b.priceValue - a.priceValue;
       case "newest":
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       case "oldest":
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
       case "popular":
         return b.views - a.views;
       case "year-new":
@@ -259,35 +290,24 @@ function MarketplaceContent() {
         return a.yearValue - b.yearValue;
       case "featured":
       default:
+        if (a.isSubscribedSeller && !b.isSubscribedSeller) return -1;
+        if (!a.isSubscribedSeller && b.isSubscribedSeller) return 1;
         if (a.featured && !b.featured) return -1;
         if (!a.featured && b.featured) return 1;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
     }
   });
 
   return (
     <>
-      {/* HERO BANNER */}
       <HeroBanner
-        badgeText="Balray Autos Marketplace"
-        title={
-          <>
-            Find Your Next
-            <br />
-            <span className="bg-gradient-to-r from-[#D2B66A] via-[#F4E0A1] to-[#B08D3C] bg-clip-text text-transparent">
-              Vehicle.
-            </span>
-          </>
-        }
         subtitle="Browse thousands of cars, bakkies, motorcycles, trucks, machinery and parts from trusted sellers across South Africa."
-        imageUrl="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=2000&q=80"
-        imageAlt="Cars for sale in South Africa"
         primaryCTA={{ label: "Sell Your Vehicle", href: "/sell" }}
         secondaryCTA={{ label: "Browse Categories", href: "#categories" }}
-        height="lg"
       />
 
-      {/* SEARCH */}
       <section className="w-full bg-[#34414A]">
         <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
@@ -309,7 +329,6 @@ function MarketplaceContent() {
         </div>
       </section>
 
-      {/* CATEGORY FILTERS */}
       <section id="categories" className="w-full bg-[#F7F8F9]">
         <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="flex w-full gap-2 overflow-x-auto pb-3">
@@ -338,7 +357,8 @@ function MarketplaceContent() {
                 Available Listings
               </h2>
               <p className="mt-2 text-sm text-[#66737C]">
-                Showing {sortedListings.length} listing{sortedListings.length === 1 ? "" : "s"}
+                Showing {sortedListings.length} listing
+                {sortedListings.length === 1 ? "" : "s"}
                 {search && <span> for &quot;{search}&quot;</span>}
               </p>
             </div>
@@ -370,7 +390,7 @@ function MarketplaceContent() {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm font-bold text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
                 >
-                  <option value="featured">⭐ Featured First</option>
+                  <option value="featured">⭐ Boosted First</option>
                   <option value="newest">🆕 Newest Arrivals</option>
                   <option value="oldest">📅 Oldest Listings</option>
                   <option value="price-low">💰 Price: Low to High</option>
@@ -390,7 +410,6 @@ function MarketplaceContent() {
             </div>
           </div>
 
-          {/* ADVANCED FILTERS PANEL */}
           {showFilters && (
             <div className="mt-6 rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm">
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -404,7 +423,7 @@ function MarketplaceContent() {
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
                     placeholder="e.g. 50000"
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
                   />
                 </div>
                 <div>
@@ -417,7 +436,7 @@ function MarketplaceContent() {
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
                     placeholder="e.g. 500000"
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
                   />
                 </div>
                 <div>
@@ -431,7 +450,7 @@ function MarketplaceContent() {
                     value={minYear}
                     onChange={(e) => setMinYear(e.target.value)}
                     placeholder="e.g. 2015"
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
                   />
                 </div>
                 <div>
@@ -445,7 +464,7 @@ function MarketplaceContent() {
                     value={maxYear}
                     onChange={(e) => setMaxYear(e.target.value)}
                     placeholder="e.g. 2024"
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
                   />
                 </div>
                 <div>
@@ -455,7 +474,7 @@ function MarketplaceContent() {
                   <select
                     value={transmissionFilter}
                     onChange={(e) => setTransmissionFilter(e.target.value)}
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
                   >
                     <option value="">Any</option>
                     <option value="automatic">Automatic</option>
@@ -471,7 +490,7 @@ function MarketplaceContent() {
                   <select
                     value={fuelFilter}
                     onChange={(e) => setFuelFilter(e.target.value)}
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
                   >
                     <option value="">Any</option>
                     <option value="petrol">Petrol</option>
@@ -486,7 +505,9 @@ function MarketplaceContent() {
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#E1E5E8] pt-5">
                 <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                   {activeFilterCount > 0
-                    ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} applied`
+                    ? `${activeFilterCount} filter${
+                        activeFilterCount === 1 ? "" : "s"
+                      } applied`
                     : "No filters applied"}
                 </div>
                 <button
@@ -509,26 +530,36 @@ function MarketplaceContent() {
             </div>
           ) : sortedListings.length > 0 ? (
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {sortedListings.map((listing) => (
+              {sortedListings.map((listing, index) => (
                 <article
                   key={listing.id}
                   className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
-                    listing.featured
+                    listing.isSubscribedSeller
+                      ? "border-2 border-[#8F7130] shadow-[0_15px_40px_rgba(143,113,48,0.25)]"
+                      : listing.featured
                       ? "border-2 border-[#B08D3C] shadow-[0_15px_40px_rgba(176,141,60,0.20)]"
                       : "border border-[#D5DBDF] hover:border-[#B08D3C]/60 hover:shadow-[0_20px_50px_rgba(52,65,74,0.12)]"
                   }`}
                 >
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-                    <img
+                    <OptimizedImage
                       src={listing.image}
                       alt={listing.title}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      fill={true}
+                      priority={index < 3}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
                     <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
                       {listing.category}
                     </div>
 
-                    {listing.featured && (
+                    {listing.isSubscribedSeller && (
+                      <div className="absolute left-4 top-14 rounded-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C] px-3 py-2 text-xs font-bold text-white shadow-md">
+                        🚀 BOOSTED SELLER
+                      </div>
+                    )}
+
+                    {!listing.isSubscribedSeller && listing.featured && (
                       <div className="absolute left-4 top-14 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
                         ⭐ FEATURED
                       </div>
@@ -583,24 +614,34 @@ function MarketplaceContent() {
                     <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
                         <div className="text-[#89939A]">Year</div>
-                        <div className="mt-1 font-bold text-[#34414A]">{listing.year}</div>
+                        <div className="mt-1 font-bold text-[#34414A]">
+                          {listing.year}
+                        </div>
                       </div>
                       <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
                         <div className="text-[#89939A]">Mileage</div>
-                        <div className="mt-1 font-bold text-[#34414A]">{listing.mileage}</div>
+                        <div className="mt-1 font-bold text-[#34414A]">
+                          {listing.mileage}
+                        </div>
                       </div>
                       <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
                         <div className="text-[#89939A]">Transmission</div>
-                        <div className="mt-1 font-bold text-[#34414A]">{listing.transmission}</div>
+                        <div className="mt-1 font-bold text-[#34414A]">
+                          {listing.transmission}
+                        </div>
                       </div>
                       <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
                         <div className="text-[#89939A]">Fuel</div>
-                        <div className="mt-1 font-bold text-[#34414A]">{listing.fuel}</div>
+                        <div className="mt-1 font-bold text-[#34414A]">
+                          {listing.fuel}
+                        </div>
                       </div>
                     </div>
 
                     <div className="mt-4 border-t border-[#E1E5E8] pt-4">
-                      <div className="text-sm text-[#66737C]">📍 {listing.location}</div>
+                      <div className="text-sm text-[#66737C]">
+                        📍 {listing.location}
+                      </div>
                     </div>
 
                     <div className="mt-5 grid grid-cols-2 gap-2">
@@ -619,7 +660,9 @@ function MarketplaceContent() {
                             : "border border-[#D5DBDF] bg-white text-[#34414A] hover:border-[#34414A] hover:bg-[#F7F8F9]"
                         }`}
                       >
-                        {compareList.includes(listing.id) ? "✓ Added" : "⚖️ Compare"}
+                        {compareList.includes(listing.id)
+                          ? "✓ Added"
+                          : "⚖️ Compare"}
                       </button>
                     </div>
                   </div>
@@ -647,7 +690,6 @@ function MarketplaceContent() {
         </div>
       </section>
 
-      {/* SELL SECTION */}
       <section className="w-full bg-gradient-to-r from-[#E6EAED] via-[#F7F8F9] to-[#DCE2E6]">
         <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:px-8 lg:py-16">
           <div>
@@ -658,7 +700,8 @@ function MarketplaceContent() {
               Put your vehicle in front of potential buyers.
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-[#68757D]">
-              Submit your vehicle, machinery or automotive product to Balray Autos and connect with potential buyers.
+              Submit your vehicle, machinery or automotive product to Balray
+              Autos and connect with potential buyers.
             </p>
           </div>
           <Link
@@ -670,7 +713,6 @@ function MarketplaceContent() {
         </div>
       </section>
 
-      {/* FLOATING COMPARE BAR */}
       {compareList.length > 0 && (
         <div className="fixed bottom-4 left-1/2 z-40 w-[95%] max-w-3xl -translate-x-1/2 rounded-2xl border-2 border-[#B08D3C] bg-white p-4 shadow-2xl">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -680,7 +722,8 @@ function MarketplaceContent() {
               </div>
               <div>
                 <div className="text-sm font-black text-[#34414A]">
-                  {compareList.length} vehicle{compareList.length === 1 ? "" : "s"} to compare
+                  {compareList.length} vehicle
+                  {compareList.length === 1 ? "" : "s"} to compare
                 </div>
                 <div className="text-xs text-[#66737C]">
                   Compare up to 4 side-by-side
@@ -709,7 +752,6 @@ function MarketplaceContent() {
         </div>
       )}
 
-      {/* TOAST */}
       {compareToast && (
         <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-[#34414A] px-6 py-3 text-sm font-bold text-white shadow-lg">
           {compareToast}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import HeroBanner from "@/app/components/HeroBanner";
+import OptimizedImage from "@/app/components/OptimizedImage";
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -25,7 +26,6 @@ export default function HomePage() {
       try {
         const now = new Date().toISOString();
 
-        // Fetch subscribed seller IDs to prioritise them
         const { data: subscribedProfiles } = await supabase
           .from("profiles")
           .select("id")
@@ -36,7 +36,6 @@ export default function HomePage() {
           (subscribedProfiles || []).map((p) => p.id)
         );
 
-        // ONLY fetch active, non-expired listings
         const { data, error } = await supabase
           .from("listings")
           .select("*")
@@ -71,7 +70,6 @@ export default function HomePage() {
               : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
         }));
 
-        // Sort: subscribed first, then featured, then newest
         const sorted = [...formatted].sort((a, b) => {
           if (a.isSubscribedSeller && !b.isSubscribedSeller) return -1;
           if (!a.isSubscribedSeller && b.isSubscribedSeller) return 1;
@@ -84,7 +82,6 @@ export default function HomePage() {
 
         setListings(sorted.slice(0, 6));
 
-        // Featured section: subscribed or featured listings
         const featured = sorted
           .filter((l) => l.featured || l.isSubscribedSeller)
           .slice(0, 6);
@@ -98,7 +95,6 @@ export default function HomePage() {
 
     fetchHomeListings();
 
-    // Listen for real-time updates so deletions disappear instantly
     const channel = supabase
       .channel("home-listings")
       .on(
@@ -136,7 +132,6 @@ export default function HomePage() {
         secondaryCTA={{ label: "Sell Your Vehicle", href: "/sell" }}
       />
 
-      {/* CATEGORIES */}
       <section className="w-full bg-[#F7F8F9]">
         <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -167,7 +162,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FEATURED / BOOSTED */}
       {featuredListings.length > 0 && (
         <section className="w-full bg-gradient-to-b from-white to-[#F7F8F9]">
           <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -189,15 +183,18 @@ export default function HomePage() {
             </div>
 
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {featuredListings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
+              {featuredListings.map((listing, index) => (
+                <ListingCard
+                  key={listing.id}
+                  listing={listing}
+                  priority={index === 0}
+                />
               ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* LATEST */}
       <section className="w-full bg-[#F7F8F9]">
         <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -243,14 +240,17 @@ export default function HomePage() {
           ) : (
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {listings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
+                <ListingCard
+                  key={listing.id}
+                  listing={listing}
+                  priority={false}
+                />
               ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* CTA */}
       <section className="w-full bg-gradient-to-r from-[#E6EAED] via-[#F7F8F9] to-[#DCE2E6]">
         <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:px-8 lg:py-16">
           <div>
@@ -277,7 +277,13 @@ export default function HomePage() {
   );
 }
 
-function ListingCard({ listing }: { listing: any }) {
+function ListingCard({
+  listing,
+  priority = false,
+}: {
+  listing: any;
+  priority?: boolean;
+}) {
   return (
     <Link
       href={`/listing/${listing.id}`}
@@ -290,10 +296,12 @@ function ListingCard({ listing }: { listing: any }) {
       }`}
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-        <img
+        <OptimizedImage
           src={listing.image}
           alt={listing.title}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          fill={true}
+          priority={priority}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
         <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
           {listing.category}
