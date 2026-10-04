@@ -5,49 +5,32 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
-const categoryMap: Record<string, string> = {
-  cars: "Cars & SUVs",
-  bakkies: "Bakkies & 4x4s",
-  motorcycles: "Motorcycles",
-  trucks: "Trucks & Commercial",
-  machinery: "Machinery & Equipment",
-  parts: "Parts & Accessories",
-};
-
-function daysUntil(expiresAt: string | null) {
-  if (!expiresAt) return null;
-  const diff = new Date(expiresAt).getTime() - new Date().getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
-
 export default function MyListingsPage() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [listings, setListings] = useState<any[]>([]);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [renewingId, setRenewingId] = useState<string | null>(null);
-  const [sellingId, setSellingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error">("success");
-  const [boostListing, setBoostListing] = useState<any>(null);
-
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+    const load = async () => {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
         router.push("/login");
-      } else {
-        setUser(user);
-        fetchMyListings(user.id);
+        return;
       }
+      setUser(user);
+      await fetchListings(user.id);
+      setLoading(false);
     };
-    checkUser();
-  }, [router, supabase]);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const fetchMyListings = async (userId: string) => {
+  const fetchListings = async (userId: string) => {
     const { data, error } = await supabase
       .from("listings")
       .select("*")
@@ -55,149 +38,88 @@ export default function MyListingsPage() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error(error);
-      setMessage("Error loading listings: " + error.message);
-      setMessageType("error");
-    } else {
-      setListings(data || []);
+      console.error("Fetch error:", error);
+      return;
     }
-    setLoading(false);
+    setListings(data || []);
   };
 
   const showMessage = (msg: string, type: "success" | "error" = "success") => {
     setMessage(msg);
     setMessageType(type);
-    setTimeout(() => setMessage(""), 6000);
+    setTimeout(() => setMessage(""), 5000);
   };
 
-  const handleMarkAsSold = async (listingId: string) => {
-    const confirmed = confirm(
-      "Mark this listing as SOLD? It will be hidden from the marketplace immediately."
-    );
-    if (!confirmed) return;
-
-    setSellingId(listingId);
-
-    const { data: updated, error } = await supabase
-      .from("listings")
-      .update({
-        status: "sold",
-        sold_at: new Date().toISOString(),
-      })
-      .eq("id", listingId)
-      .select();
-
-    if (error) {
-      showMessage("Error marking as sold: " + error.message, "error");
-      setSellingId(null);
-      return;
-    }
-
-    if (!updated || updated.length === 0) {
-      showMessage(
-        "Update failed — no rows changed. Check your RLS policies in Supabase.",
-        "error"
-      );
-      setSellingId(null);
-      return;
-    }
-
-    setListings(
-      listings.map((item) =>
-        item.id === listingId
-          ? { ...item, status: "sold", sold_at: new Date().toISOString() }
-          : item
-      )
-    );
-    showMessage("🎉 Congratulations on the sale! Listing removed from marketplace.", "success");
-    setSellingId(null);
-  };
-
-  const handleRenew = async (listingId: string) => {
-    const confirmed = confirm(
-      "Renew this listing for another 30 days? It will be sent back to admin for review."
-    );
-    if (!confirmed) return;
-
-    setRenewingId(listingId);
-
-    const newExpiry = new Date();
-    newExpiry.setDate(newExpiry.getDate() + 30);
-
-    const { data: updated, error } = await supabase
-      .from("listings")
-      .update({
-        status: "pending",
-        expires_at: newExpiry.toISOString(),
-      })
-      .eq("id", listingId)
-      .select();
-
-    if (error) {
-      showMessage("Error renewing listing: " + error.message, "error");
-      setRenewingId(null);
-      return;
-    }
-
-    if (!updated || updated.length === 0) {
-      showMessage("Renew failed — no rows changed. Check RLS policies.", "error");
-      setRenewingId(null);
-      return;
-    }
-
-    setListings(
-      listings.map((item) =>
-        item.id === listingId
-          ? { ...item, status: "pending", expires_at: newExpiry.toISOString() }
-          : item
-      )
-    );
-    showMessage("Listing renewed! It will go live once approved by admin.", "success");
-    setRenewingId(null);
-  };
-
-  const handleDelete = async (listingId: string, imageUrls: string[]) => {
+  const handleDelete = async (id: string, images?: string[], videoUrl?: string | null) => {
     const confirmed = confirm(
       "Are you sure you want to delete this listing? This cannot be undone."
     );
     if (!confirmed) return;
 
-    setDeletingId(listingId);
+    setDeletingId(id);
 
     try {
-      if (imageUrls && imageUrls.length > 0) {
-        const fileNames = imageUrls
+      // 1. Delete images from storage
+      if (images && images.length > 0) {
+        const imagePaths = images
           .map((url) => {
             const parts = url.split("/car-images/");
-            return parts.length > 1 ? parts[1] : null;
+            return parts[1] || null;
           })
           .filter(Boolean) as string[];
 
-        if (fileNames.length > 0) {
-          await supabase.storage.from("car-images").remove(fileNames);
+        if (imagePaths.length > 0) {
+          await supabase.storage.from("car-images").remove(imagePaths);
         }
       }
 
-      const { data: deleted, error } = await supabase
-        .from("listings")
-        .delete()
-        .eq("id", listingId)
-        .select();
-
-      if (error) throw error;
-
-      if (!deleted || deleted.length === 0) {
-        throw new Error("Delete failed — no rows deleted. Check RLS policies.");
+      // 2. Delete video from storage
+      if (videoUrl) {
+        const parts = videoUrl.split("/car-videos/");
+        const videoPath = parts[1];
+        if (videoPath) {
+          await supabase.storage.from("car-videos").remove([videoPath]);
+        }
       }
 
-      setListings(listings.filter((item) => item.id !== listingId));
-      showMessage("Listing deleted successfully.", "success");
+      // 3. HARD DELETE the row from the database
+      const { error } = await supabase.from("listings").delete().eq("id", id);
+
+      if (error) {
+        showMessage("Error deleting: " + error.message, "error");
+        setDeletingId(null);
+        return;
+      }
+
+      // 4. Remove from local state immediately
+      setListings((prev) => prev.filter((l) => l.id !== id));
+      showMessage("✓ Listing deleted permanently.");
     } catch (err: any) {
-      console.error(err);
-      showMessage("Error deleting listing: " + err.message, "error");
+      console.error("Delete failed:", err);
+      showMessage("Error: " + (err.message || "Something went wrong"), "error");
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handleMarkSold = async (id: string) => {
+    const confirmed = confirm("Mark this listing as sold?");
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("listings")
+      .update({ status: "sold" })
+      .eq("id", id);
+
+    if (error) {
+      showMessage("Error: " + error.message, "error");
+      return;
+    }
+
+    setListings((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, status: "sold" } : l))
+    );
+    showMessage("✓ Listing marked as sold.");
   };
 
   if (loading) {
@@ -212,406 +134,147 @@ export default function MyListingsPage() {
 
   if (!user) return null;
 
-  const totalViews = listings.reduce((sum, item) => sum + (item.views || 0), 0);
-  const activeCount = listings.filter((l) => l.status === "active").length;
-  const soldCount = listings.filter((l) => l.status === "sold").length;
-  const featuredCount = listings.filter((l) => l.featured === true).length;
-
-  const buildBoostWhatsAppUrl = (listing: any) => {
-    const title = `${listing.year ? listing.year + " " : ""}${listing.make} ${listing.model}`;
-    const price = `R${Number(listing.price).toLocaleString()}`;
-    const message = encodeURIComponent(
-      `Hi Balray Autos! I want to BOOST my listing:\n\n🚗 ${title}\n💰 ${price}\n📍 ${listing.location}\n\nListing ID: ${listing.id}\n\nI'd like to feature it for 30 days. Please send me payment details.`
-    );
-    return `https://wa.me/27815973009?text=${message}`;
-  };
-
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
-        <div className="relative mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-          <div className="max-w-3xl">
-            <div className="mb-4 inline-flex items-center gap-3 rounded-full border border-[#D3B86A]/50 bg-[#FBF7EC] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#8F7130]">
-              <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-[#8F7130] to-[#D2B66A]" />
-              Your Account
-            </div>
-            <h1 className="text-4xl font-black tracking-tight text-[#34414A] sm:text-5xl">
+    <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
+      <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
               My Listings
+            </div>
+            <h1 className="mt-2 text-3xl font-black text-[#34414A]">
+              Manage Your Adverts
             </h1>
-            <p className="mt-4 text-base leading-7 text-[#66737C]">
-              Manage your vehicles. Listings stay live for 30 days — you can renew anytime.
+            <p className="mt-2 text-sm text-[#66737C]">
+              {listings.length} listing{listings.length === 1 ? "" : "s"}
             </p>
-
-            {listings.length > 0 && (
-              <div className="mt-6 flex flex-wrap gap-3">
-                <div className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3">
-                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
-                    Active
-                  </div>
-                  <div className="mt-1 text-2xl font-black text-[#34414A]">
-                    {activeCount}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3">
-                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
-                    Featured
-                  </div>
-                  <div className="mt-1 text-2xl font-black text-[#8F7130]">
-                    ⭐ {featuredCount}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3">
-                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
-                    Sold
-                  </div>
-                  <div className="mt-1 text-2xl font-black text-green-600">
-                    🎉 {soldCount}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3">
-                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
-                    Total Views
-                  </div>
-                  <div className="mt-1 text-2xl font-black text-[#34414A]">
-                    👁️ {totalViews}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
+          <Link
+            href="/sell"
+            className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-center text-sm font-bold text-white shadow-md"
+          >
+            + New Listing
+          </Link>
         </div>
-      </section>
 
-      <section className="w-full bg-[#F7F8F9] py-12">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          {message && (
-            <div
-              className={`mb-6 rounded-xl border p-4 text-center text-sm font-bold ${
-                messageType === "success"
-                  ? "border-[#D3B86A]/50 bg-[#FBF7EC] text-[#8F7130]"
-                  : "border-red-200 bg-red-50 text-red-600"
-              }`}
+        {message && (
+          <div
+            className={`mb-6 rounded-xl border p-4 text-center text-sm font-bold ${
+              messageType === "success"
+                ? "border-[#D3B86A]/50 bg-[#FBF7EC] text-[#8F7130]"
+                : "border-red-200 bg-red-50 text-red-600"
+            }`}
+          >
+            {message}
+          </div>
+        )}
+
+        {listings.length === 0 ? (
+          <div className="rounded-2xl border border-[#D5DBDF] bg-white p-10 text-center">
+            <div className="text-4xl">🚗</div>
+            <h2 className="mt-4 text-xl font-black text-[#34414A]">
+              No listings yet
+            </h2>
+            <p className="mt-2 text-sm text-[#66737C]">
+              Create your first listing to start selling.
+            </p>
+            <Link
+              href="/sell"
+              className="mt-6 inline-block rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-sm font-bold text-white"
             >
-              {message}
-            </div>
-          )}
+              Create Listing
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {listings.map((item) => {
+              const expired =
+                item.expires_at && new Date(item.expires_at) < new Date();
 
-          {listings.filter((l) => l.status === "active" && !l.featured).length > 0 && (
-            <div className="mb-8 overflow-hidden rounded-2xl border border-[#D3B86A]/50 bg-gradient-to-r from-[#FBF7EC] via-[#F7F8F9] to-[#FBF7EC] p-6">
-              <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-                <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-2xl text-white shadow-md">
-                  🚀
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-black text-[#34414A]">
-                    Boost Your Listing for 3× More Views
-                  </h3>
-                  <p className="mt-1 text-sm text-[#66737C]">
-                    Featured listings appear at the top of the marketplace with a golden badge — buyers see them first.
-                  </p>
-                </div>
-                <div className="text-left sm:text-right">
-                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
-                    Only
-                  </div>
-                  <div className="text-2xl font-black text-[#8F7130]">R99</div>
-                  <div className="text-xs text-[#66737C]">for 30 days</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {listings.length === 0 ? (
-            <div className="rounded-3xl border border-[#D5DBDF] bg-white p-12 text-center shadow-sm">
-              <div className="text-5xl">🚗</div>
-              <h2 className="mt-6 text-2xl font-black text-[#34414A]">
-                You have no listings yet
-              </h2>
-              <p className="mt-3 text-sm text-[#66737C]">
-                Once you list a vehicle, it will appear here so you can manage it.
-              </p>
-              <Link
-                href="/sell"
-                className="mt-8 inline-block rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-8 py-4 font-bold text-white shadow-md hover:brightness-105"
-              >
-                List Your First Vehicle
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {listings.map((listing) => {
-                const title = `${listing.year ? listing.year + " " : ""}${listing.make} ${listing.model}`;
-                const price = `R${Number(listing.price).toLocaleString()}`;
-                const category = categoryMap[listing.category] || listing.category;
-                const image =
-                  listing.images && listing.images.length > 0
-                    ? listing.images[0]
-                    : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80";
-
-                const daysLeft = daysUntil(listing.expires_at);
-                const isExpired = daysLeft !== null && daysLeft <= 0 && listing.status === "active";
-                const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 5;
-                const isSold = listing.status === "sold";
-                const canBoost = listing.status === "active" && !listing.featured && !isExpired;
-
-                return (
-                  <div
-                    key={listing.id}
-                    className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${
-                      isSold
-                        ? "border-green-300 ring-2 ring-green-100"
-                        : listing.featured
-                        ? "border-2 border-[#B08D3C] ring-2 ring-[#B08D3C]/20"
-                        : "border-[#D5DBDF]"
-                    }`}
-                  >
-                    <div className="grid gap-0 sm:grid-cols-[220px_minmax(0,1fr)]">
-                      <div className="relative aspect-[16/10] sm:aspect-auto sm:h-full bg-[#E9EDF0]">
-                        <img
-                          src={image}
-                          alt={title}
-                          className={`h-full w-full object-cover ${isSold ? "opacity-60 grayscale" : ""}`}
-                        />
-                        {isSold && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                            <div className="-rotate-12 rounded-lg bg-green-600 px-6 py-3 text-2xl font-black text-white shadow-lg">
-                              SOLD
-                            </div>
-                          </div>
+              return (
+                <div
+                  key={item.id}
+                  className="flex flex-col gap-4 rounded-2xl border border-[#D5DBDF] bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between"
+                >
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={item.images?.[0] || "/placeholder.png"}
+                      alt={item.model}
+                      className="h-20 w-28 rounded-xl bg-[#E9EDF0] object-cover"
+                    />
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h3 className="text-lg font-black text-[#34414A]">
+                          {item.year} {item.make} {item.model}
+                        </h3>
+                        {item.status === "active" && !expired && (
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">
+                            Active
+                          </span>
                         )}
-                        {listing.featured && !isSold && (
-                          <div className="absolute left-3 top-3 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-1.5 text-xs font-black text-white shadow-md">
-                            ⭐ FEATURED
-                          </div>
+                        {item.status === "pending" && (
+                          <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-700">
+                            Pending Review
+                          </span>
+                        )}
+                        {item.status === "sold" && (
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">
+                            Sold
+                          </span>
+                        )}
+                        {expired && (
+                          <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-700">
+                            Expired
+                          </span>
                         )}
                       </div>
-
-                      <div className="flex flex-col justify-between p-6">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <div className="inline-block rounded-full bg-[#FBF7EC] px-3 py-1 text-xs font-bold text-[#8F7130]">
-                              {category}
-                            </div>
-                            {isSold ? (
-                              <div className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
-                                🎉 Sold
-                              </div>
-                            ) : listing.status === "active" ? (
-                              isExpired ? (
-                                <div className="inline-block rounded-full bg-gray-200 px-3 py-1 text-xs font-bold text-gray-700">
-                                  ⌛ Expired
-                                </div>
-                              ) : (
-                                <div className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
-                                  ✓ Active
-                                </div>
-                              )
-                            ) : (
-                              <div className="inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-bold text-yellow-700">
-                                ⏳ Pending Review
-                              </div>
-                            )}
-                            <div className="inline-block rounded-full bg-[#F7F8F9] px-3 py-1 text-xs font-bold text-[#34414A]">
-                              👁️ {listing.views || 0} views
-                            </div>
-                            {!isSold && listing.status === "active" && daysLeft !== null && !isExpired && (
-                              <div
-                                className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${
-                                  isExpiringSoon
-                                    ? "bg-red-100 text-red-700"
-                                    : "bg-blue-100 text-blue-700"
-                                }`}
-                              >
-                                ⏰ {daysLeft} day{daysLeft === 1 ? "" : "s"} left
-                              </div>
-                            )}
-                          </div>
-
-                          <h3 className="mt-3 text-xl font-black text-[#34414A]">{title}</h3>
-                          <div className="mt-2 text-2xl font-black text-[#9A7B37]">{price}</div>
-                          <div className="mt-3 text-sm text-[#66737C]">
-                            📍 {listing.location} • {listing.mileage || "N/A"}
-                          </div>
-
-                          {isSold && listing.sold_at && (
-                            <div className="mt-3 rounded-lg bg-green-50 px-4 py-2 text-sm font-bold text-green-700">
-                              🎉 Sold on{" "}
-                              {new Date(listing.sold_at).toLocaleDateString("en-ZA", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                            </div>
-                          )}
-
-                          {!isSold && listing.expires_at && !isExpired && listing.status === "active" && (
-                            <div className="mt-2 text-xs text-[#89939A]">
-                              Expires on{" "}
-                              {new Date(listing.expires_at).toLocaleDateString("en-ZA", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mt-6 flex flex-wrap gap-3">
-                          <Link
-                            href={`/listing/${listing.id}`}
-                            className="rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
-                          >
-                            View
-                          </Link>
-                          {!isSold && (
-                            <Link
-                              href={`/edit-listing/${listing.id}`}
-                              className="rounded-xl border border-[#34414A] bg-white px-5 py-3 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
-                            >
-                              Edit
-                            </Link>
-                          )}
-                          {canBoost && (
-                            <button
-                              type="button"
-                              onClick={() => setBoostListing(listing)}
-                              className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-5 py-3 text-sm font-bold text-white shadow-md hover:brightness-105"
-                            >
-                              🚀 Boost Listing
-                            </button>
-                          )}
-                          {!isSold && (isExpired || listing.status === "active") && (
-                            <button
-                              type="button"
-                              disabled={renewingId === listing.id}
-                              onClick={() => handleRenew(listing.id)}
-                              className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-5 py-3 text-sm font-bold text-white shadow-md hover:brightness-105 disabled:opacity-60 disabled:cursor-not-allowed"
-                            >
-                              {renewingId === listing.id ? "Renewing..." : "🔄 Renew 30 Days"}
-                            </button>
-                          )}
-                          {!isSold && listing.status === "active" && !isExpired && (
-                            <button
-                              type="button"
-                              disabled={sellingId === listing.id}
-                              onClick={() => handleMarkAsSold(listing.id)}
-                              className="rounded-xl bg-green-600 px-5 py-3 text-sm font-bold text-white shadow-md hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                            >
-                              {sellingId === listing.id ? "Saving..." : "✅ Mark as Sold"}
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            disabled={deletingId === listing.id}
-                            onClick={() => handleDelete(listing.id, listing.images || [])}
-                            className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-bold text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {deletingId === listing.id ? "Deleting..." : "Delete"}
-                          </button>
-                        </div>
-                      </div>
+                      <p className="text-sm font-bold text-[#9A7B37]">
+                        R{Number(item.price).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-[#66737C] mt-1">
+                        📍 {item.location} • 👁️ {item.views || 0} views
+                      </p>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </section>
 
-      {/* BOOST MODAL */}
-      {boostListing && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-          onClick={() => setBoostListing(null)}
-        >
-          <div
-            className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="relative bg-gradient-to-br from-[#8F7130] via-[#B08D3C] to-[#A47F32] p-6 text-white">
-              <button
-                onClick={() => setBoostListing(null)}
-                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-lg text-white hover:bg-white/30"
-                aria-label="Close"
-              >
-                ×
-              </button>
-              <div className="text-4xl">🚀</div>
-              <h2 className="mt-3 text-2xl font-black">Boost This Listing</h2>
-              <p className="mt-1 text-sm text-white/90">
-                Get up to 3× more views for 30 days
-              </p>
-            </div>
-
-            <div className="p-6">
-              <div className="flex items-center gap-3 rounded-xl border border-[#D5DBDF] bg-[#F7F8F9] p-3">
-                <img
-                  src={boostListing.images?.[0] || "/placeholder.png"}
-                  alt="listing"
-                  className="h-14 w-20 flex-shrink-0 rounded-lg object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-black text-[#34414A]">
-                    {boostListing.year} {boostListing.make} {boostListing.model}
-                  </div>
-                  <div className="text-xs font-bold text-[#9A7B37]">
-                    R{Number(boostListing.price).toLocaleString()}
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={`/listing/${item.id}`}
+                      target="_blank"
+                      className="rounded-xl border border-[#B08D3C] bg-white px-4 py-2.5 text-xs font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+                    >
+                      View
+                    </Link>
+                    <Link
+                      href={`/edit-listing/${item.id}`}
+                      className="rounded-xl border border-[#34414A] bg-white px-4 py-2.5 text-xs font-bold text-[#34414A] hover:bg-[#F7F8F9]"
+                    >
+                      Edit
+                    </Link>
+                    {item.status !== "sold" && (
+                      <button
+                        onClick={() => handleMarkSold(item.id)}
+                        className="rounded-xl border border-[#B08D3C] bg-[#FBF7EC] px-4 py-2.5 text-xs font-bold text-[#8F7130] hover:bg-[#F5EDD8]"
+                      >
+                        Mark Sold
+                      </button>
+                    )}
+                    <button
+                      onClick={() =>
+                        handleDelete(item.id, item.images, item.video_url)
+                      }
+                      disabled={deletingId === item.id}
+                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-100 disabled:opacity-60"
+                    >
+                      {deletingId === item.id ? "Deleting..." : "Delete"}
+                    </button>
                   </div>
                 </div>
-              </div>
-
-              <div className="mt-5 space-y-3">
-                <div className="flex items-start gap-3">
-                  <span className="text-lg text-green-600">✓</span>
-                  <span className="text-sm text-[#4A5962]">
-                    Appears at the <strong>top of the marketplace</strong>
-                  </span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-lg text-green-600">✓</span>
-                  <span className="text-sm text-[#4A5962]">
-                    Gets a <strong>golden FEATURED badge</strong>
-                  </span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-lg text-green-600">✓</span>
-                  <span className="text-sm text-[#4A5962]">
-                    Included in the <strong>homepage Top Picks</strong>
-                  </span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-lg text-green-600">✓</span>
-                  <span className="text-sm text-[#4A5962]">
-                    Featured for a full <strong>30 days</strong>
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-xl border-2 border-[#D3B86A]/60 bg-[#FBF7EC] p-4 text-center">
-                <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
-                  Boost Price
-                </div>
-                <div className="mt-1 text-4xl font-black text-[#8F7130]">R99</div>
-                <div className="text-xs text-[#66737C]">Once-off for 30 days</div>
-              </div>
-
-              <a
-                href={buildBoostWhatsAppUrl(boostListing)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-5 block w-full rounded-xl bg-[#25D366] px-6 py-4 text-center text-sm font-bold text-white shadow-md hover:bg-[#20BD5A]"
-              >
-                💬 Chat with Balray Autos to Boost
-              </a>
-
-              <p className="mt-3 text-center text-xs leading-5 text-[#89939A]">
-                We&apos;ll send you payment details. Once paid, we feature your listing within 1 hour.
-              </p>
-            </div>
+              );
+            })}
           </div>
-        </div>
-      )}
+        )}
+      </section>
     </main>
   );
 }

@@ -1,19 +1,9 @@
+"use client";
+
 import Link from "next/link";
-import Image from "next/image";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-
-
-import HomeSearchForm from "@/app/components/HomeSearchForm";
-import RecentlyViewedSection from "@/app/components/RecentlyViewedSection";
-
-const categories = [
-  { title: "Cars & SUVs", description: "Everyday cars, luxury vehicles and SUVs.", href: "/marketplace?category=Cars+%26+SUVs", icon: "🚗" },
-  { title: "Bakkies & 4x4s", description: "Bakkies, pickups and off-road vehicles.", href: "/marketplace?category=Bakkies+%26+4x4s", icon: "🛻" },
-  { title: "Motorcycles", description: "Motorcycles, scooters and adventure bikes.", href: "/marketplace?category=Motorcycles", icon: "🏍️" },
-  { title: "Trucks & Commercial", description: "Trucks and vehicles for business.", href: "/marketplace?category=Trucks+%26+Commercial", icon: "🚚" },
-  { title: "Machinery & Equipment", description: "Machinery and equipment for work.", href: "/marketplace?category=Machinery+%26+Equipment", icon: "🚜" },
-  { title: "Parts & Accessories", description: "Parts, accessories and automotive products.", href: "/marketplace?category=Parts+%26+Accessories", icon: "⚙️" },
-];
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import HeroBanner from "@/app/components/HeroBanner";
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -24,470 +14,330 @@ const categoryMap: Record<string, string> = {
   parts: "Parts & Accessories",
 };
 
-type ListingFormatted = {
-  id: string;
-  title: string;
-  category: string;
-  price: string;
-  priceValue: number;
-  previousPriceFormatted: string | null;
-  hasPriceDrop: boolean;
-  savingsFormatted: string;
-  percentOff: number;
-  location: string;
-  mileage: string;
-  featured: boolean;
-  image: string;
-};
+export default function HomePage() {
+  const [listings, setListings] = useState<any[]>([]);
+  const [featuredListings, setFeaturedListings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
-function formatListing(item: any): ListingFormatted {
-  const price = Number(item.price);
-  const previous = item.previous_price ? Number(item.previous_price) : null;
-  const hasPriceDrop = previous !== null && previous > price;
-  const savings = hasPriceDrop ? previous - price : 0;
-  const percentOff = hasPriceDrop ? Math.round((savings / previous) * 100) : 0;
+  useEffect(() => {
+    const fetchHomeListings = async () => {
+      try {
+        const now = new Date().toISOString();
 
-  return {
-    id: item.id,
-    title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
-    category: categoryMap[item.category] || item.category,
-    price: `R${price.toLocaleString()}`,
-    priceValue: price,
-    previousPriceFormatted: previous ? `R${previous.toLocaleString()}` : null,
-    hasPriceDrop,
-    savingsFormatted: `R${savings.toLocaleString()}`,
-    percentOff,
-    location: item.location,
-    mileage: item.mileage || "N/A",
-    featured: item.featured || false,
-    image:
-      item.images && item.images.length > 0
-        ? item.images[0]
-        : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
-  };
-}
+        // Fetch subscribed seller IDs to prioritise them
+        const { data: subscribedProfiles } = await supabase
+          .from("profiles")
+          .select("id")
+          .neq("subscription_tier", "none")
+          .gt("subscription_expires_at", now);
 
-export default async function Home() {
-  const supabase = createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-  );
+        const subscribedIds = new Set(
+          (subscribedProfiles || []).map((p) => p.id)
+        );
 
-  const now = new Date().toISOString();
+        // ONLY fetch active, non-expired listings
+        const { data, error } = await supabase
+          .from("listings")
+          .select("*")
+          .eq("status", "active")
+          .or(`expires_at.is.null,expires_at.gt.${now}`)
+          .order("created_at", { ascending: false })
+          .limit(60);
 
-  // Fetch everything in parallel on the server
-  const [featuredRes, latestRes, hotRes] = await Promise.all([
-    supabase
-      .from("public_listings")
-      .select("*")
-      .eq("status", "active")
-      .eq("featured", true)
-      .or(`expires_at.is.null,expires_at.gt.${now}`)
-      .order("created_at", { ascending: false })
-      .limit(3),
-    supabase
-      .from("public_listings")
-      .select("*")
-      .eq("status", "active")
-      .or(`expires_at.is.null,expires_at.gt.${now}`)
-      .order("created_at", { ascending: false })
-      .limit(6),
-    supabase
-      .from("public_listings")
-      .select("*")
-      .eq("status", "active")
-      .not("previous_price", "is", null)
-      .or(`expires_at.is.null,expires_at.gt.${now}`)
-      .order("created_at", { ascending: false })
-      .limit(12),
-  ]);
+        if (error) {
+          console.error("Home fetch error:", error);
+          setLoading(false);
+          return;
+        }
 
-  const featuredListings = (featuredRes.data || []).map(formatListing);
-  const latestListings = (latestRes.data || []).map(formatListing);
-  const hotDeals = (hotRes.data || [])
-    .map(formatListing)
-    .filter((x) => x.hasPriceDrop)
-    .sort((a, b) => b.percentOff - a.percentOff)
-    .slice(0, 6);
+        const formatted = (data || []).map((item) => ({
+          id: item.id,
+          userId: item.user_id,
+          title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
+          category: categoryMap[item.category] || item.category,
+          price: `R${Number(item.price).toLocaleString()}`,
+          priceValue: Number(item.price),
+          year: item.year ? item.year.toString() : "N/A",
+          mileage: item.mileage || "N/A",
+          location: item.location,
+          featured: item.featured || false,
+          isSubscribedSeller: subscribedIds.has(item.user_id),
+          views: item.views || 0,
+          createdAt: item.created_at,
+          image:
+            item.images && item.images.length > 0
+              ? item.images[0]
+              : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
+        }));
+
+        // Sort: subscribed first, then featured, then newest
+        const sorted = [...formatted].sort((a, b) => {
+          if (a.isSubscribedSeller && !b.isSubscribedSeller) return -1;
+          if (!a.isSubscribedSeller && b.isSubscribedSeller) return 1;
+          if (a.featured && !b.featured) return -1;
+          if (!a.featured && b.featured) return 1;
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        });
+
+        setListings(sorted.slice(0, 6));
+
+        // Featured section: subscribed or featured listings
+        const featured = sorted
+          .filter((l) => l.featured || l.isSubscribedSeller)
+          .slice(0, 6);
+        setFeaturedListings(featured);
+      } catch (err) {
+        console.error("Home fetch failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHomeListings();
+
+    // Listen for real-time updates so deletions disappear instantly
+    const channel = supabase
+      .channel("home-listings")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "listings",
+        },
+        () => {
+          fetchHomeListings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
+  const categories = [
+    { name: "Cars & SUVs", slug: "cars", icon: "🚗" },
+    { name: "Bakkies & 4x4s", slug: "bakkies", icon: "🛻" },
+    { name: "Motorcycles", slug: "motorcycles", icon: "🏍️" },
+    { name: "Trucks & Commercial", slug: "trucks", icon: "🚚" },
+    { name: "Machinery & Equipment", slug: "machinery", icon: "🚜" },
+    { name: "Parts & Accessories", slug: "parts", icon: "🔧" },
+  ];
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      
-
-      {/* HERO */}
-      <section className="relative w-full overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-[24px] border-[#D9DEE2]/70" />
-        <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full border-[20px] border-[#C5CDD2]/50" />
-        <div className="pointer-events-none absolute right-20 top-20 h-24 w-24 rounded-full border-[8px] border-[#D2B66A]/20" />
-
-        <div className="relative mx-auto grid w-full max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:py-24">
-          <div className="min-w-0">
-            <div className="mb-5 inline-flex max-w-full items-center gap-3 rounded-full border border-[#D3B86A]/50 bg-[#FBF7EC] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#8F7130] sm:text-sm">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-gradient-to-r from-[#8F7130] to-[#D2B66A]" />
-              South Africa Automotive Marketplace
-            </div>
-
-            <h1 className="max-w-3xl break-words text-[clamp(2.7rem,10vw,5.5rem)] font-black leading-[0.95] tracking-[-0.05em] text-[#34414A]">
-              Buy.
-              <br />
-              Sell.
-              <br />
-              <span className="bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] bg-clip-text text-transparent">
-                Drive Forward.
-              </span>
-            </h1>
-
-            <p className="mt-7 max-w-2xl text-base leading-7 text-[#66737C] sm:text-lg sm:leading-8">
-              Balray Autos connects buyers and sellers across South Africa.
-              Discover vehicles, connect with sellers and find your next
-              automotive opportunity.
-            </p>
-
-            <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row">
-              <Link
-                href="/marketplace"
-                className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-center font-bold text-white shadow-md transition hover:brightness-105 sm:w-auto"
-              >
-                Browse Marketplace
-              </Link>
-              <Link
-                href="/sell"
-                className="w-full rounded-xl border border-[#B08D3C] bg-white px-6 py-4 text-center font-bold text-[#8F7130] transition hover:bg-[#FBF7EC] sm:w-auto"
-              >
-                Sell Your Vehicle
-              </Link>
-            </div>
-          </div>
-
-          <div className="flex w-full min-w-0 justify-center lg:justify-end">
-            <div className="w-full max-w-xl rounded-3xl border border-[#D5DBDF] bg-[#F1F4F6] p-5 shadow-[0_25px_70px_rgba(52,65,74,0.12)] sm:p-7">
-              <div className="relative flex min-h-[320px] w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-[#D5DBDF] bg-white px-5 py-10 text-center sm:min-h-[390px] sm:px-8">
-                <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full border-[16px] border-[#D9DEE2]/70" />
-                <div className="pointer-events-none absolute -bottom-14 -left-12 h-36 w-36 rounded-full border-[14px] border-[#C3CBD0]/50" />
-                <div className="absolute left-10 right-10 top-8 h-[2px] bg-gradient-to-r from-transparent via-[#B08D3C] to-transparent" />
-
-                <Image
-                  src="/balray-autos-logo.webp"
-                  alt="Balray Autos logo"
-                  width={400}
-                  height={200}
-                  preload
-                  sizes="(max-width: 640px) 300px, (max-width: 1024px) 380px, 400px"
-                  className="relative z-10 h-auto w-full max-w-[300px] object-contain sm:max-w-[380px]"
-                  quality={85}
-                />
-
-                <div className="relative z-10 mt-8 flex max-w-full flex-wrap justify-center gap-2">
-                  <span className="rounded-full bg-[#34414A] px-3 py-2 text-xs font-bold text-white">BUY</span>
-                  <span className="rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white">SELL</span>
-                  <span className="rounded-full border border-[#D3D9DD] bg-[#F1F4F6] px-3 py-2 text-xs font-bold text-[#34414A]">CONNECT</span>
-                </div>
-
-                <p className="relative z-10 mt-6 max-w-md text-sm leading-6 text-[#66737C] sm:text-base">
-                  Your marketplace for vehicles and automotive opportunities across South Africa.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SEARCH — CLIENT COMPONENT */}
-      <HomeSearchForm />
-
-      {/* HOT DEALS */}
-      {hotDeals.length > 0 && (
-        <section className="w-full bg-gradient-to-r from-red-50 via-orange-50 to-red-50 py-16">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white shadow-md">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
-                  🔥 Hot Deals — Price Drops
-                </div>
-                <h2 className="mt-3 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">
-                  Save Big on Recent Price Drops
-                </h2>
-                <p className="mt-2 text-sm text-[#66737C]">
-                  Smart sellers just lowered their prices. Grab them before they&apos;re gone.
-                </p>
-              </div>
-              <Link href="/marketplace" className="text-sm font-bold text-[#9A7B37] hover:underline">
-                View All →
-              </Link>
-            </div>
-
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {hotDeals.map((listing) => (
-                <article key={listing.id} className="group overflow-hidden rounded-2xl border-2 border-red-300 bg-white shadow-[0_15px_40px_rgba(220,38,38,0.15)] transition hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(220,38,38,0.25)]">
-                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-                    <Image
-                      src={listing.image}
-                      alt={listing.title}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                      quality={75}
-                    />
-                    <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
-                      {listing.category}
-                    </div>
-                    <div className="absolute right-4 top-4 animate-pulse rounded-full bg-red-600 px-3 py-2 text-xs font-black text-white shadow-md">
-                      💰 -{listing.percentOff}%
-                    </div>
-                  </div>
-                  <div className="p-5">
-                    <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">
-                      {listing.title}
-                    </h3>
-                    <div className="mt-3">
-                      <div className="flex flex-wrap items-baseline gap-2">
-                        <span className="text-2xl font-black text-[#9A7B37]">{listing.price}</span>
-                        <span className="text-sm font-bold text-[#89939A] line-through">{listing.previousPriceFormatted}</span>
-                      </div>
-                      <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-black text-green-700">
-                        🎉 Save {listing.savingsFormatted}
-                      </div>
-                    </div>
-                    <div className="mt-3 text-sm text-[#66737C]">📍 {listing.location} • {listing.mileage}</div>
-                    <Link href={`/listing/${listing.id}`} className="mt-5 block w-full rounded-xl bg-gradient-to-r from-red-600 to-red-700 px-5 py-3 text-center text-sm font-bold text-white shadow-md hover:brightness-110">
-                      Grab This Deal →
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* RECENTLY VIEWED — CLIENT COMPONENT */}
-      <RecentlyViewedSection />
-
-      {/* FEATURED LISTINGS */}
-      {featuredListings.length > 0 && (
-        <section className="w-full bg-[#F7F8F9] py-16">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">⭐ Featured</div>
-                <h2 className="mt-2 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">Top Picks This Week</h2>
-                <p className="mt-2 text-sm text-[#66737C]">Hand-selected vehicles from trusted sellers.</p>
-              </div>
-              <Link href="/marketplace" className="text-sm font-bold text-[#9A7B37] hover:underline">View All →</Link>
-            </div>
-
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {featuredListings.map((listing) => (
-                <article key={listing.id} className="group overflow-hidden rounded-2xl border-2 border-[#B08D3C] bg-white shadow-[0_15px_40px_rgba(176,141,60,0.15)] transition hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(176,141,60,0.25)]">
-                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-                    <Image
-                      src={listing.image}
-                      alt={listing.title}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                      quality={75}
-                    />
-                    <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">{listing.category}</div>
-                    <div className="absolute right-4 top-4 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">⭐ FEATURED</div>
-                  </div>
-                  <div className="p-5">
-                    <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">{listing.title}</h3>
-                    <div className="mt-3 text-2xl font-black text-[#9A7B37]">{listing.price}</div>
-                    <div className="mt-3 text-sm text-[#66737C]">📍 {listing.location} • {listing.mileage}</div>
-                    <Link href={`/listing/${listing.id}`} className="mt-5 block w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-5 py-3 text-center text-sm font-bold text-white shadow-sm hover:brightness-105">
-                      View Listing
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* LATEST ARRIVALS */}
-      {latestListings.length > 0 && (
-        <section className="w-full bg-white py-16">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">🆕 Just Arrived</div>
-                <h2 className="mt-2 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">Latest Listings</h2>
-                <p className="mt-2 text-sm text-[#66737C]">Fresh vehicles added to our marketplace.</p>
-              </div>
-              <Link href="/marketplace" className="text-sm font-bold text-[#9A7B37] hover:underline">View All →</Link>
-            </div>
-
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {latestListings.map((listing) => (
-                <article key={listing.id} className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${listing.featured ? "border-2 border-[#B08D3C]" : "border border-[#D5DBDF] hover:border-[#B08D3C]/60 hover:shadow-[0_20px_50px_rgba(52,65,74,0.12)]"}`}>
-                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-                    <Image
-                      src={listing.image}
-                      alt={listing.title}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                      quality={75}
-                    />
-                    <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">{listing.category}</div>
-                  </div>
-                  <div className="p-5">
-                    <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">{listing.title}</h3>
-                    <div className="mt-3 text-2xl font-black text-[#9A7B37]">{listing.price}</div>
-                    <div className="mt-3 text-sm text-[#66737C]">📍 {listing.location} • {listing.mileage}</div>
-                    <Link href={`/listing/${listing.id}`} className="mt-5 block w-full rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]">
-                      View Listing
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* MARKETPLACE RANGE */}
-      <section className="w-full border-b border-t border-[#D9DEE2] bg-white">
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-2 md:grid-cols-4">
-          {[
-            ["Cars", "/marketplace?category=Cars+%26+SUVs"],
-            ["Bakkies", "/marketplace?category=Bakkies+%26+4x4s"],
-            ["Motorcycles", "/marketplace?category=Motorcycles"],
-            ["Commercial", "/marketplace?category=Trucks+%26+Commercial"],
-          ].map(([title, href]) => (
-            <Link key={title} href={href} className="w-full min-w-0 border-b border-[#D9DEE2] px-3 py-6 text-center transition hover:bg-[#FBF7EC] md:border-b-0 md:border-r md:last:border-r-0">
-              <div className="break-words text-base font-bold text-[#34414A] sm:text-lg">{title}</div>
-              <div className="mt-1 text-xs text-[#7A858C] sm:text-sm">Explore listings</div>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <HeroBanner
+        subtitle="Buy and sell cars, bakkies, motorcycles, trucks, machinery and parts across South Africa. Trusted sellers. Real vehicles. Instant contact."
+        primaryCTA={{ label: "Browse Marketplace", href: "/marketplace" }}
+        secondaryCTA={{ label: "Sell Your Vehicle", href: "/sell" }}
+      />
 
       {/* CATEGORIES */}
-      <section className="w-full bg-[#F1F4F6]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <div className="mx-auto max-w-2xl text-center">
-            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">Explore</div>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">Find What You&apos;re Looking For</h2>
-            <p className="mt-4 text-base leading-7 text-[#66737C]">Browse different areas of the automotive marketplace and find vehicles, equipment and automotive products.</p>
+      <section className="w-full bg-[#F7F8F9]">
+        <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+              Browse Categories
+            </div>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">
+              Find What You&apos;re Looking For
+            </h2>
           </div>
 
-          <div className="mt-10 grid w-full gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {categories.map((category) => (
-              <Link key={category.title} href={category.href} className="group w-full min-w-0 rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-[#B08D3C]/60 hover:shadow-[0_15px_40px_rgba(52,65,74,0.10)]">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#FBF7EC] text-2xl">{category.icon}</div>
-                <h3 className="mt-5 break-words text-xl font-extrabold text-[#34414A] group-hover:text-[#9A7B37]">{category.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[#6B747A]">{category.description}</p>
-                <div className="mt-5 text-sm font-bold text-[#9A7B37]">Explore →</div>
+          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            {categories.map((cat) => (
+              <Link
+                key={cat.slug}
+                href={`/marketplace?category=${cat.slug}`}
+                className="group flex flex-col items-center gap-3 rounded-2xl border border-[#D5DBDF] bg-white p-5 text-center shadow-sm transition hover:-translate-y-1 hover:border-[#B08D3C] hover:shadow-md"
+              >
+                <div className="text-4xl transition group-hover:scale-110">
+                  {cat.icon}
+                </div>
+                <div className="text-sm font-bold text-[#34414A]">
+                  {cat.name}
+                </div>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section className="w-full bg-white">
-        <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <div className="max-w-2xl">
-            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">Simple Process</div>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">How Balray Autos Works</h2>
-            <p className="mt-4 text-base leading-7 text-[#66737C]">A simple marketplace designed to help buyers and sellers connect.</p>
+      {/* FEATURED / BOOSTED */}
+      {featuredListings.length > 0 && (
+        <section className="w-full bg-gradient-to-b from-white to-[#F7F8F9]">
+          <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+                  Featured & Boosted
+                </div>
+                <h2 className="mt-3 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">
+                  Top Picks
+                </h2>
+              </div>
+              <Link
+                href="/marketplace"
+                className="self-start rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+              >
+                View All →
+              </Link>
+            </div>
+
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredListings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* LATEST */}
+      <section className="w-full bg-[#F7F8F9]">
+        <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+                Fresh Arrivals
+              </div>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">
+                Latest Listings
+              </h2>
+            </div>
+            <Link
+              href="/marketplace"
+              className="self-start rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+            >
+              View All →
+            </Link>
           </div>
 
-          <div className="mt-10 grid w-full gap-5 md:grid-cols-3">
-            <div className="w-full min-w-0 rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#34414A] text-lg font-black text-white">1</div>
-              <h3 className="mt-5 text-xl font-extrabold text-[#34414A]">Search</h3>
-              <p className="mt-3 text-sm leading-6 text-[#66737C]">Search through vehicles and automotive listings available on the Balray Autos marketplace.</p>
+          {loading ? (
+            <div className="mt-10 rounded-2xl border border-[#D5DBDF] bg-white p-10 text-center animate-pulse">
+              <div className="text-4xl">🚗</div>
+              <h3 className="mt-4 text-xl font-black text-[#34414A]">
+                Loading listings...
+              </h3>
             </div>
-            <div className="w-full min-w-0 rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] text-lg font-black text-white">2</div>
-              <h3 className="mt-5 text-xl font-extrabold text-[#34414A]">Connect</h3>
-              <p className="mt-3 text-sm leading-6 text-[#66737C]">Find a listing that interests you and connect with the seller to discuss the vehicle or product.</p>
+          ) : listings.length === 0 ? (
+            <div className="mt-10 rounded-2xl border border-[#D5DBDF] bg-white p-10 text-center">
+              <div className="text-4xl">🔍</div>
+              <h3 className="mt-4 text-xl font-black text-[#34414A]">
+                No listings available yet
+              </h3>
+              <p className="mt-2 text-sm text-[#66737C]">
+                Be the first to list your vehicle.
+              </p>
+              <Link
+                href="/sell"
+                className="mt-6 inline-block rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-sm font-bold text-white"
+              >
+                Sell Your Vehicle
+              </Link>
             </div>
-            <div className="w-full min-w-0 rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#34414A] text-lg font-black text-white">3</div>
-              <h3 className="mt-5 text-xl font-extrabold text-[#34414A]">Sell</h3>
-              <p className="mt-3 text-sm leading-6 text-[#66737C]">Sellers can submit their vehicles and automotive products for review and listing on the marketplace.</p>
+          ) : (
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {listings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </section>
 
-      {/* SELL CTA */}
+      {/* CTA */}
       <section className="w-full bg-gradient-to-r from-[#E6EAED] via-[#F7F8F9] to-[#DCE2E6]">
         <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:px-8 lg:py-16">
-          <div className="min-w-0">
-            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">Sell With Balray Autos</div>
-            <h2 className="mt-3 break-words text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">Have a vehicle to sell?</h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[#68757D]">Submit your vehicle and connect with potential buyers through the Balray Autos marketplace.</p>
+          <div>
+            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+              Selling a Vehicle?
+            </div>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">
+              Put your vehicle in front of potential buyers.
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[#68757D]">
+              Submit your vehicle, machinery or automotive product to Balray
+              Autos and connect with potential buyers across South Africa.
+            </p>
           </div>
-          <Link href="/sell" className="w-full rounded-xl bg-[#34414A] px-7 py-4 text-center font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#4A5962] sm:w-auto">
+          <Link
+            href="/sell"
+            className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-7 py-4 text-center font-bold text-white shadow-md sm:w-auto"
+          >
             List Your Vehicle
           </Link>
         </div>
       </section>
+    </main>
+  );
+}
 
-      {/* ABOUT */}
-      <section className="w-full bg-white">
-        <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-20">
-          <div className="min-w-0">
-            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">About Balray Autos</div>
-            <h2 className="mt-3 break-words text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">More than just a vehicle website.</h2>
-            <p className="mt-5 text-base leading-7 text-[#68757D]">Balray Autos is being built as an automotive marketplace where buyers and sellers can connect around vehicles and automotive products.</p>
-            <p className="mt-4 text-base leading-7 text-[#68757D]">The goal is to make finding and listing automotive opportunities simpler, clearer and more accessible across South Africa.</p>
-            <Link href="/about" className="mt-7 inline-flex rounded-xl border border-[#B08D3C] px-5 py-3 font-bold text-[#8F7130] transition hover:bg-[#FBF7EC]">
-              Learn More
-            </Link>
+function ListingCard({ listing }: { listing: any }) {
+  return (
+    <Link
+      href={`/listing/${listing.id}`}
+      className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
+        listing.isSubscribedSeller
+          ? "border-2 border-[#8F7130] shadow-[0_15px_40px_rgba(143,113,48,0.25)]"
+          : listing.featured
+          ? "border-2 border-[#B08D3C] shadow-[0_15px_40px_rgba(176,141,60,0.20)]"
+          : "border border-[#D5DBDF] hover:border-[#B08D3C]/60 hover:shadow-[0_20px_50px_rgba(52,65,74,0.12)]"
+      }`}
+    >
+      <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
+        <img
+          src={listing.image}
+          alt={listing.title}
+          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+        />
+        <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
+          {listing.category}
+        </div>
+
+        {listing.isSubscribedSeller && (
+          <div className="absolute left-4 top-14 rounded-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C] px-3 py-2 text-xs font-bold text-white shadow-md">
+            🚀 BOOSTED
           </div>
-          <div className="w-full min-w-0">
-            <div className="grid w-full gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-6">
-                <div className="text-3xl font-black text-[#9A7B37]">SA</div>
-                <div className="mt-2 font-bold text-[#34414A]">South Africa</div>
-                <p className="mt-2 text-sm leading-6 text-[#6B747A]">Built for the South African automotive market.</p>
-              </div>
-              <div className="rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-6">
-                <div className="text-3xl font-black text-[#34414A]">24/7</div>
-                <div className="mt-2 font-bold text-[#34414A]">Online Marketplace</div>
-                <p className="mt-2 text-sm leading-6 text-[#6B747A]">Browse listings whenever you need them.</p>
-              </div>
-              <div className="rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-6">
-                <div className="text-3xl font-black text-[#9A7B37]">BUY</div>
-                <div className="mt-2 font-bold text-[#34414A]">Discover Vehicles</div>
-                <p className="mt-2 text-sm leading-6 text-[#6B747A]">Find vehicles and automotive products.</p>
-              </div>
-              <div className="rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-6">
-                <div className="text-3xl font-black text-[#34414A]">SELL</div>
-                <div className="mt-2 font-bold text-[#34414A]">List Your Vehicle</div>
-                <p className="mt-2 text-sm leading-6 text-[#6B747A]">Submit your listing to the marketplace.</p>
-              </div>
+        )}
+
+        {!listing.isSubscribedSeller && listing.featured && (
+          <div className="absolute left-4 top-14 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
+            ⭐ FEATURED
+          </div>
+        )}
+      </div>
+
+      <div className="p-5">
+        <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">
+          {listing.title}
+        </h3>
+
+        <div className="mt-3 text-2xl font-black text-[#9A7B37]">
+          {listing.price}
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+          <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
+            <div className="text-[#89939A]">Year</div>
+            <div className="mt-1 font-bold text-[#34414A]">{listing.year}</div>
+          </div>
+          <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
+            <div className="text-[#89939A]">Mileage</div>
+            <div className="mt-1 font-bold text-[#34414A]">
+              {listing.mileage}
             </div>
           </div>
         </div>
-      </section>
 
-      {/* FINAL CTA */}
-      <section className="w-full bg-[#F1F4F6]">
-        <div className="mx-auto w-full max-w-5xl px-4 py-16 text-center sm:px-6 lg:px-8 lg:py-20">
-          <div className="text-sm font-bold uppercase tracking-[0.2em] text-[#9A7B37]">Balray Autos</div>
-          <h2 className="mt-3 break-words text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl lg:text-5xl">Ready to find your next vehicle?</h2>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#66737C]">Explore the Balray Autos marketplace or list your vehicle and connect with potential buyers.</p>
-          <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:flex-row">
-            <Link href="/marketplace" className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 font-bold text-white shadow-md transition hover:brightness-105 sm:w-auto">
-              Browse Marketplace
-            </Link>
-            <Link href="/sell" className="w-full rounded-xl border border-[#B08D3C] bg-white px-6 py-4 font-bold text-[#8F7130] transition hover:bg-[#FBF7EC] sm:w-auto">
-              Sell a Vehicle
-            </Link>
-          </div>
+        <div className="mt-4 border-t border-[#E1E5E8] pt-4 text-sm text-[#66737C]">
+          📍 {listing.location}
         </div>
-      </section>
-
-      
-    </main>
+      </div>
+    </Link>
   );
 }
