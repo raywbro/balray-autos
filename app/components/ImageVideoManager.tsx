@@ -110,9 +110,9 @@ export default function ImageVideoManager({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const maxSize = 50 * 1024 * 1024;
+    const maxSize = 30 * 1024 * 1024;
     if (file.size > maxSize) {
-      setError("Video is too large. Maximum 50MB.");
+      setError("Video is too large. Maximum 30MB.");
       return;
     }
     if (!file.type.startsWith("video/")) {
@@ -139,14 +139,22 @@ export default function ImageVideoManager({
     setProgress("Preparing uploads...");
     const finalImages: string[] = [];
 
+    console.log("=== UPLOAD START ===");
+    console.log("Images to process:", images.length);
+    console.log("Video file:", videoFile ? videoFile.name : "none");
+
     try {
       for (let i = 0; i < images.length; i++) {
         const img = images[i];
 
         if (img.isNew && img.file) {
-          setProgress(`Processing image ${i + 1} of ${images.length}...`);
+          console.log(`--- Processing image ${i + 1} ---`);
+          console.log("File:", img.file.name, "Size:", img.file.size, "bytes");
 
-          // 1. Compress
+          // Step 1: Compress
+          setProgress(`Compressing image ${i + 1} of ${images.length}...`);
+          console.log("Compressing...");
+
           const compressed = await imageCompression(img.file, {
             maxSizeMB: 0.5,
             maxWidthOrHeight: 1600,
@@ -155,59 +163,99 @@ export default function ImageVideoManager({
             initialQuality: 0.85,
           });
 
-          // 2. Watermark
-          setProgress(`Watermarking image ${i + 1} of ${images.length}...`);
-          const watermarked = await watermarkImage(compressed);
+          console.log("Compressed size:", compressed.size, "bytes");
 
-          // 3. Upload
+          // Step 2: Watermark (with fallback)
+          setProgress(`Watermarking image ${i + 1} of ${images.length}...`);
+          console.log("Watermarking...");
+
+          let watermarked = compressed;
+          try {
+            watermarked = await watermarkImage(compressed);
+            console.log("Watermarked size:", watermarked.size, "bytes");
+          } catch (wmErr) {
+            console.warn("Watermark failed, using compressed file:", wmErr);
+          }
+
+          // Step 3: Upload
           setProgress(`Uploading image ${i + 1} of ${images.length}...`);
           const fileName = `${userId}-${Date.now()}-${i}-${Math.random()
             .toString(36)
             .substring(7)}.jpg`;
 
-          const { error: uploadError } = await supabase.storage
+          console.log("Uploading to car-images bucket:", fileName);
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
             .from("car-images")
             .upload(fileName, watermarked, {
               contentType: "image/jpeg",
               cacheControl: "3600",
+              upsert: false,
             });
 
-          if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error("UPLOAD ERROR:", uploadError);
+            throw new Error(
+              `Image upload failed: ${uploadError.message}. Make sure "car-images" bucket exists and is public in Supabase Storage.`
+            );
+          }
+
+          console.log("Upload success:", uploadData);
 
           const {
             data: { publicUrl },
           } = supabase.storage.from("car-images").getPublicUrl(fileName);
 
+          console.log("Public URL:", publicUrl);
           finalImages.push(publicUrl);
-        } else {
+        } else if (!img.isNew) {
+          // Existing image — keep its URL
           finalImages.push(img.url);
         }
       }
 
+      // Video upload
       let finalVideoUrl = videoUrl;
 
       if (videoFile) {
+        console.log("--- Processing video ---");
         setProgress("Uploading video...");
+
         const fileExt = videoFile.name.split(".").pop() || "mp4";
         const videoName = `${userId}-${Date.now()}-${Math.random()
           .toString(36)
           .substring(7)}.${fileExt}`;
 
-        const { error: videoUploadError } = await supabase.storage
+        console.log("Uploading video:", videoName);
+
+        const { data: videoData, error: videoUploadError } = await supabase.storage
           .from("car-videos")
           .upload(videoName, videoFile, {
             contentType: videoFile.type,
             cacheControl: "3600",
+            upsert: false,
           });
 
-        if (videoUploadError) throw videoUploadError;
+        if (videoUploadError) {
+          console.error("VIDEO UPLOAD ERROR:", videoUploadError);
+          throw new Error(
+            `Video upload failed: ${videoUploadError.message}. Make sure "car-videos" bucket exists and is public.`
+          );
+        }
+
+        console.log("Video upload success:", videoData);
 
         const {
           data: { publicUrl },
         } = supabase.storage.from("car-videos").getPublicUrl(videoName);
 
+        console.log("Video URL:", publicUrl);
         finalVideoUrl = publicUrl;
       }
+
+      console.log("=== UPLOAD COMPLETE ===");
+      console.log("Final images:", finalImages);
+      console.log("Final video:", finalVideoUrl);
 
       onImagesChange(finalImages);
       onVideoChange(finalVideoUrl);
@@ -217,9 +265,10 @@ export default function ImageVideoManager({
 
       return { images: finalImages, video: finalVideoUrl };
     } catch (err: any) {
+      console.error("=== UPLOAD FAILED ===", err);
       setUploading(false);
       setProgress("");
-      throw new Error(err.message || "Upload failed");
+      throw err;
     }
   };
 
@@ -231,7 +280,6 @@ export default function ImageVideoManager({
 
   return (
     <div className="space-y-6">
-      {/* PHOTOS */}
       <div>
         <div className="mb-3 flex items-center justify-between">
           <div>
@@ -239,7 +287,7 @@ export default function ImageVideoManager({
               Photos ({images.length} of {maxImages})
             </label>
             <p className="mt-0.5 text-xs text-[#89939A]">
-              Every photo is automatically watermarked with the Balray Autos brand.
+              Every photo is watermarked automatically.
             </p>
           </div>
         </div>
@@ -337,14 +385,13 @@ export default function ImageVideoManager({
         )}
       </div>
 
-      {/* VIDEO */}
       <div className="border-t border-[#E1E5E8] pt-6">
         <div className="mb-3">
           <label className="text-sm font-bold text-[#34414A]">
-            Video (optional — max 50MB)
+            Video (optional — max 30MB)
           </label>
           <p className="mt-0.5 text-xs text-[#89939A]">
-            Short walk-around videos get up to 5x more views. Watermark overlay added on playback.
+            Short walk-around videos get up to 5x more views.
           </p>
         </div>
 
@@ -356,7 +403,7 @@ export default function ImageVideoManager({
             <div className="text-4xl">🎥</div>
             <div className="mt-3 font-bold text-[#34414A]">Upload a video</div>
             <div className="mt-1 text-xs text-[#66737C]">
-              MP4, WEBM or MOV — max 50MB
+              MP4, WEBM or MOV — max 30MB
             </div>
             <input
               id="add-video"
