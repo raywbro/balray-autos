@@ -13,7 +13,7 @@ const categoryMap: Record<string, string> = {
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const now = new Date().toISOString();
 
   const { data: subscribedProfiles } = await supabase

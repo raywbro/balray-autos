@@ -1,79 +1,40 @@
-"use client";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import LayoutShell from "@/app/components/LayoutShell";
 
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import Navbar from "./Navbar";
-import Footer from "./Footer";
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
-const HIDDEN_PATHS = [
-  "/login",
-  "/signup",
-  "/forgot-password",
-  "/reset-password",
-  "/auth",
-];
+export const metadata: Metadata = {
+  title: "Balray Autos | Buy & Sell Cars in South Africa",
+  description:
+    "Buy and sell cars, bakkies, motorcycles, trucks, machinery and parts across South Africa. Trusted sellers. Real vehicles. Instant contact.",
+  metadataBase: new URL("https://balrayautos.co.za"),
+  openGraph: {
+    title: "Balray Autos | Buy & Sell Cars in South Africa",
+    description:
+      "Buy and sell cars, bakkies, motorcycles, trucks, machinery and parts across South Africa.",
+    url: "https://balrayautos.co.za",
+    siteName: "Balray Autos",
+    locale: "en_ZA",
+    type: "website",
+  },
+};
 
-export default function LayoutShell({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const supabase = createClient();
-  const [checked, setChecked] = useState(false);
-
-  const hide = HIDDEN_PATHS.some((p) => pathname.startsWith(p));
-
-  useEffect(() => {
-    if (hide) {
-      setChecked(true);
-      return;
-    }
-
-    const checkBan = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setChecked(true);
-          return;
-        }
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("banned")
-          .eq("id", user.id)
-          .single();
-
-        if (profile?.banned) {
-          await supabase.auth.signOut();
-          router.push("/login?banned=1");
-          return;
-        }
-      } catch (err) {
-        console.error("Ban check failed:", err);
-      } finally {
-        setChecked(true);
-      }
-    };
-
-    checkBan();
-  }, [hide, pathname, router, supabase]);
-
-  if (hide) {
-    return <>{children}</>;
-  }
-
-  if (!checked) {
-    return <div className="min-h-screen w-full bg-[#F7F8F9]" />;
-  }
-
   return (
-    <>
-      <Navbar />
-      {children}
-      <Footer />
-    </>
+    <html lang="en" className={inter.variable}>
+      <body className="font-sans antialiased bg-[#F7F8F9] text-[#34414A]">
+        <LayoutShell>{children}</LayoutShell>
+      </body>
+    </html>
   );
 }

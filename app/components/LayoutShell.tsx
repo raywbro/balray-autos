@@ -26,7 +26,6 @@ export default function LayoutShell({
 
   const hide = HIDDEN_PATHS.some((p) => pathname.startsWith(p));
 
-  // Check if user is banned and kick them out
   useEffect(() => {
     if (hide) {
       setChecked(true);
@@ -34,26 +33,29 @@ export default function LayoutShell({
     }
 
     const checkBan = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setChecked(true);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("banned")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.banned) {
+          await supabase.auth.signOut();
+          router.push("/login?banned=1");
+          return;
+        }
+      } catch (err) {
+        console.error("Ban check failed:", err);
+      } finally {
         setChecked(true);
-        return;
       }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("banned")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.banned) {
-        // Sign out and kick to login with ban message
-        await supabase.auth.signOut();
-        router.push("/login?banned=1");
-        return;
-      }
-
-      setChecked(true);
     };
 
     checkBan();
@@ -64,9 +66,7 @@ export default function LayoutShell({
   }
 
   if (!checked) {
-    return (
-      <div className="min-h-screen w-full bg-[#F7F8F9]" />
-    );
+    return <div className="min-h-screen w-full bg-[#F7F8F9]" />;
   }
 
   return (

@@ -50,7 +50,11 @@ export default function MyListingsPage() {
     setTimeout(() => setMessage(""), 5000);
   };
 
-  const handleDelete = async (id: string, images?: string[], videoUrl?: string | null) => {
+  const handleDelete = async (
+    id: string,
+    images?: string[],
+    videoUrl?: string | null
+  ) => {
     const confirmed = confirm(
       "Are you sure you want to delete this listing? This cannot be undone."
     );
@@ -59,7 +63,6 @@ export default function MyListingsPage() {
     setDeletingId(id);
 
     try {
-      // 1. Delete images from storage
       if (images && images.length > 0) {
         const imagePaths = images
           .map((url) => {
@@ -73,7 +76,6 @@ export default function MyListingsPage() {
         }
       }
 
-      // 2. Delete video from storage
       if (videoUrl) {
         const parts = videoUrl.split("/car-videos/");
         const videoPath = parts[1];
@@ -82,7 +84,6 @@ export default function MyListingsPage() {
         }
       }
 
-      // 3. HARD DELETE the row from the database
       const { error } = await supabase.from("listings").delete().eq("id", id);
 
       if (error) {
@@ -91,7 +92,6 @@ export default function MyListingsPage() {
         return;
       }
 
-      // 4. Remove from local state immediately
       setListings((prev) => prev.filter((l) => l.id !== id));
       showMessage("✓ Listing deleted permanently.");
     } catch (err: any) {
@@ -244,12 +244,6 @@ export default function MyListingsPage() {
                       className="rounded-xl border border-[#B08D3C] bg-white px-4 py-2.5 text-xs font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
                     >
                       View
-                    </Link>
-                    <Link
-                      href={`/edit-listing/${item.id}`}
-                      className="rounded-xl border border-[#34414A] bg-white px-4 py-2.5 text-xs font-bold text-[#34414A] hover:bg-[#F7F8F9]"
-                    >
-                      Edit
                     </Link>
                     {item.status !== "sold" && (
                       <button
