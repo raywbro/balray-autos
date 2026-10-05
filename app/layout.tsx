@@ -14,15 +14,6 @@ export const metadata: Metadata = {
   description:
     "Buy and sell cars, bakkies, motorcycles, trucks, machinery and parts across South Africa. Trusted sellers. Real vehicles. Instant contact.",
   metadataBase: new URL("https://balrayautos.co.za"),
-  openGraph: {
-    title: "Balray Autos | Buy & Sell Cars in South Africa",
-    description:
-      "Buy and sell cars, bakkies, motorcycles, trucks, machinery and parts across South Africa.",
-    url: "https://balrayautos.co.za",
-    siteName: "Balray Autos",
-    locale: "en_ZA",
-    type: "website",
-  },
 };
 
 export default function RootLayout({
