@@ -5,8 +5,6 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
 
-
-
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
   bakkies: "Bakkies & 4x4s",
@@ -16,7 +14,13 @@ const categoryMap: Record<string, string> = {
   parts: "Parts & Accessories",
 };
 
-function Stars({ rating, size = "base" }: { rating: number; size?: "sm" | "base" | "lg" }) {
+function Stars({
+  rating,
+  size = "base",
+}: {
+  rating: number;
+  size?: "sm" | "base" | "lg";
+}) {
   const sizeClass =
     size === "lg" ? "text-3xl" : size === "sm" ? "text-sm" : "text-xl";
   return (
@@ -32,8 +36,8 @@ type Badge = {
   id: string;
   icon: string;
   label: string;
-  description: string;
   color: string;
+  description: string;
 };
 
 export default function SellerProfilePage() {
@@ -55,16 +59,16 @@ export default function SellerProfilePage() {
 
   const params = useParams();
   const router = useRouter();
-  const supabase = createClient();
   const sellerId = params.id as string;
 
   useEffect(() => {
+    const supabase = createClient();
+
     const fetchSellerData = async () => {
       const { data: listingsData, error: listingsError } = await supabase
         .from("listings")
         .select("*")
         .eq("user_id", sellerId)
-        .order("featured", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (listingsError || !listingsData || listingsData.length === 0) {
@@ -74,34 +78,44 @@ export default function SellerProfilePage() {
       }
 
       const activeListings = listingsData.filter(
-        (l) => l.status === "active" && (!l.expires_at || new Date(l.expires_at) > new Date())
+        (l) =>
+          l.status === "active" &&
+          (!l.expires_at || new Date(l.expires_at) > new Date())
       );
       const soldListings = listingsData.filter((l) => l.status === "sold");
 
       const sample = listingsData[0];
-      const totalViews = listingsData.reduce((sum, item) => sum + (item.views || 0), 0);
-      const totalPhotos = listingsData.reduce((sum, item) => sum + (item.images?.length || 0), 0);
-      const avgPhotos = listingsData.length > 0 ? totalPhotos / listingsData.length : 0;
+      const totalViews = listingsData.reduce(
+        (sum, item) => sum + (item.views || 0),
+        0
+      );
+      const totalPhotos = listingsData.reduce(
+        (sum, item) => sum + (item.images?.length || 0),
+        0
+      );
+      const avgPhotos =
+        listingsData.length > 0 ? totalPhotos / listingsData.length : 0;
 
       const distinctCategories = new Set(listingsData.map((l) => l.category));
 
       const latestListingDate = new Date(listingsData[0].created_at);
-      const daysSinceLastListing =
-        (Date.now() - latestListingDate.getTime()) / (1000 * 60 * 60 * 24);
+      const daysSinceLastListing = Math.floor(
+        (Date.now() - latestListingDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
 
       setSeller({
-        name: sample.seller_name,
-        email: sample.seller_email,
-        phone: sample.seller_phone,
-        type: sample.seller_type,
-        location: sample.location,
+        id: sellerId,
+        name: sample.seller_name || "Seller",
+        phone: sample.seller_phone || "",
+        email: sample.seller_email || "",
+        type: sample.seller_type || "private",
         totalListings: activeListings.length,
-        totalViews: totalViews,
-        joinedAt: listingsData[listingsData.length - 1].created_at,
-        daysSinceLastListing,
+        totalViews,
         avgPhotos,
         distinctCategories: distinctCategories.size,
         soldCount: soldListings.length,
+        daysSinceLastListing,
+        joinedAt: sample.created_at,
       });
 
       const formatted = activeListings.map((item) => ({
@@ -118,9 +132,7 @@ export default function SellerProfilePage() {
             ? item.images[0]
             : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
       }));
-
       setListings(formatted);
-      setLoading(false);
     };
 
     const fetchReviews = async () => {
@@ -133,7 +145,11 @@ export default function SellerProfilePage() {
         .eq("seller_id", sellerId)
         .order("created_at", { ascending: false });
 
-      if (error) return;
+      if (error) {
+        console.error("Reviews error:", error);
+        setReviews([]);
+        return;
+      }
 
       const enriched = await Promise.all(
         (data || []).map(async (review) => {
@@ -146,7 +162,7 @@ export default function SellerProfilePage() {
 
           return {
             ...review,
-            reviewerName: userListing?.seller_name || "Verified User",
+            reviewerName: userListing?.seller_name || "Anonymous",
           };
         })
       );
@@ -155,19 +171,24 @@ export default function SellerProfilePage() {
 
       if (user) {
         const own = enriched.find((r) => r.reviewer_id === user.id);
-        if (own) {
-          setMyReview(own);
-          setReviewRating(own.rating);
-          setReviewComment(own.comment || "");
-        }
+        if (own) setMyReview(own);
       }
     };
 
-    if (sellerId) {
-      fetchSellerData();
-      fetchReviews();
-    }
-  }, [sellerId, supabase]);
+    const load = async () => {
+      try {
+        await fetchSellerData();
+        await fetchReviews();
+      } catch (err) {
+        console.error("Load failed:", err);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [sellerId]);
 
   useEffect(() => {
     if (!seller) return;
@@ -178,53 +199,43 @@ export default function SellerProfilePage() {
         ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
         : 0;
 
-    if (seller.phone) {
-      computed.push({
-        id: "phone",
-        icon: "📱",
-        label: "Phone Verified",
-        description: "This seller has verified their phone number with us.",
-        color: "from-blue-500 to-blue-600",
-      });
-    }
-
     if (seller.totalListings >= 5) {
       computed.push({
-        id: "top",
+        id: "established",
         icon: "🏆",
-        label: "Top Seller",
-        description: `Has ${seller.totalListings} active listings on Balray Autos.`,
+        label: "Established Seller",
         color: "from-[#8F7130] to-[#B08D3C]",
+        description: "Has 5 or more active listings on Balray Autos.",
       });
     }
 
     if (avgRating >= 4 && reviews.length >= 3) {
       computed.push({
-        id: "trusted",
-        icon: "💎",
-        label: "Trusted Seller",
-        description: `Rated ${avgRating.toFixed(1)} stars by ${reviews.length} buyers.`,
-        color: "from-purple-500 to-purple-600",
+        id: "top-rated",
+        icon: "⭐",
+        label: "Top Rated",
+        color: "from-[#B08D3C] to-[#D2B66A]",
+        description: "Maintains a 4+ star rating from at least 3 reviews.",
       });
     }
 
     if (seller.daysSinceLastListing <= 7) {
       computed.push({
         id: "active",
-        icon: "🔥",
+        icon: "⚡",
         label: "Active Seller",
-        description: "Recently posted a new listing — quick to respond.",
-        color: "from-red-500 to-orange-500",
+        color: "from-[#34414A] to-[#4A5962]",
+        description: "Posted a listing within the last 7 days.",
       });
     }
 
     if (seller.avgPhotos >= 4) {
       computed.push({
-        id: "photos",
+        id: "photographer",
         icon: "📸",
         label: "Photo Pro",
-        description: `Lists with high-quality photos (avg ${seller.avgPhotos.toFixed(1)} per listing).`,
-        color: "from-pink-500 to-pink-600",
+        color: "from-[#8F7130] to-[#A47F32]",
+        description: "Averages 4 or more photos per listing.",
       });
     }
 
@@ -232,9 +243,9 @@ export default function SellerProfilePage() {
       computed.push({
         id: "variety",
         icon: "🎯",
-        label: "Multi-Category",
-        description: `Sells across ${seller.distinctCategories} different categories.`,
-        color: "from-green-500 to-green-600",
+        label: "Variety Seller",
+        color: "from-[#B08D3C] to-[#8F7130]",
+        description: "Lists across 3 or more categories.",
       });
     }
 
@@ -242,9 +253,11 @@ export default function SellerProfilePage() {
       computed.push({
         id: "sold",
         icon: "✅",
-        label: "Successful Sales",
-        description: `Has successfully marked ${seller.soldCount} listing${seller.soldCount === 1 ? "" : "s"} as sold.`,
-        color: "from-teal-500 to-teal-600",
+        label: "Sold Successfully",
+        color: "from-green-600 to-green-700",
+        description: `Has successfully marked ${seller.soldCount} listing${
+          seller.soldCount === 1 ? "" : "s"
+        } as sold.`,
       });
     }
 
@@ -258,12 +271,12 @@ export default function SellerProfilePage() {
       return;
     }
     if (currentUser.id === sellerId) {
-      setReviewMessage("You cannot review yourself.");
+      setReviewMessage("You cannot review your own listings.");
       return;
     }
 
     setReviewSubmitting(true);
-    setReviewMessage("");
+    const supabase = createClient();
 
     if (myReview) {
       const { error } = await supabase
@@ -273,65 +286,59 @@ export default function SellerProfilePage() {
 
       if (error) {
         setReviewMessage("Error: " + error.message);
-        setReviewSubmitting(false);
       } else {
-        setReviewMessage("Review updated!");
         setReviews(
           reviews.map((r) =>
-            r.id === myReview.id ? { ...r, rating: reviewRating, comment: reviewComment } : r
+            r.id === myReview.id
+              ? { ...r, rating: reviewRating, comment: reviewComment }
+              : r
           )
         );
         setMyReview({ ...myReview, rating: reviewRating, comment: reviewComment });
-        setReviewSubmitting(false);
-        setTimeout(() => {
-          setReviewMessage("");
-          setShowReviewForm(false);
-        }, 2000);
+        setReviewMessage("✓ Review updated.");
+        setShowReviewForm(false);
+        setTimeout(() => setReviewMessage(""), 2000);
       }
     } else {
       const { data, error } = await supabase
         .from("reviews")
-        .insert([
-          {
-            seller_id: sellerId,
-            reviewer_id: currentUser.id,
-            rating: reviewRating,
-            comment: reviewComment,
-          },
-        ])
+        .insert({
+          seller_id: sellerId,
+          reviewer_id: currentUser.id,
+          rating: reviewRating,
+          comment: reviewComment,
+        })
         .select()
         .single();
 
       if (error) {
         setReviewMessage("Error: " + error.message);
-        setReviewSubmitting(false);
       } else {
-        setReviewMessage("Review submitted! Thank you.");
         const newReview = { ...data, reviewerName: "You" };
         setReviews([newReview, ...reviews]);
         setMyReview(newReview);
-        setReviewSubmitting(false);
-        setTimeout(() => {
-          setReviewMessage("");
-          setShowReviewForm(false);
-        }, 2000);
+        setReviewMessage("✓ Review posted.");
+        setShowReviewForm(false);
+        setReviewComment("");
+        setTimeout(() => setReviewMessage(""), 2000);
       }
     }
+    setReviewSubmitting(false);
   };
 
   const handleDeleteReview = async () => {
     if (!myReview) return;
     if (!confirm("Delete your review?")) return;
 
+    const supabase = createClient();
     const { error } = await supabase.from("reviews").delete().eq("id", myReview.id);
 
-    if (!error) {
+    if (error) {
+      setReviewMessage("Error: " + error.message);
+    } else {
       setReviews(reviews.filter((r) => r.id !== myReview.id));
       setMyReview(null);
-      setReviewRating(5);
-      setReviewComment("");
-      setShowReviewForm(false);
-      setReviewMessage("Review deleted.");
+      setReviewMessage("✓ Deleted.");
       setTimeout(() => setReviewMessage(""), 2000);
     }
   };
@@ -340,7 +347,7 @@ export default function SellerProfilePage() {
     return (
       <main className="min-h-screen w-full flex items-center justify-center bg-[#F7F8F9]">
         <div className="text-lg font-bold animate-pulse text-[#9A7B37]">
-          Loading seller profile...
+          Loading seller...
         </div>
       </main>
     );
@@ -349,12 +356,11 @@ export default function SellerProfilePage() {
   if (notFound || !seller) {
     return (
       <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
-        
         <div className="mx-auto max-w-3xl px-4 py-20 text-center">
           <div className="text-5xl">🔍</div>
           <h1 className="mt-6 text-3xl font-black text-[#34414A]">Seller Not Found</h1>
           <p className="mt-3 text-[#66737C]">
-            This seller has no active listings, or the profile no longer exists.
+            This seller has no active listings or the link is broken.
           </p>
           <Link
             href="/marketplace"
@@ -363,7 +369,6 @@ export default function SellerProfilePage() {
             Browse Marketplace
           </Link>
         </div>
-        
       </main>
     );
   }
@@ -371,7 +376,7 @@ export default function SellerProfilePage() {
   let cleanPhone = (seller.phone || "").replace(/[^0-9]/g, "");
   if (cleanPhone.startsWith("0")) cleanPhone = "27" + cleanPhone.substring(1);
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-    `Hi ${seller.name}, I found your profile on Balray Autos and I'm interested in your listings.`
+    `Hi ${seller.name}, I'm interested in your listings on Balray Autos.`
   )}`;
 
   const avgRating =
@@ -387,14 +392,14 @@ export default function SellerProfilePage() {
   const isOwnProfile = currentUser?.id === sellerId;
 
   const memberSince = seller.joinedAt
-    ? new Date(seller.joinedAt).toLocaleDateString("en-ZA", { year: "numeric", month: "long" })
+    ? new Date(seller.joinedAt).toLocaleDateString("en-ZA", {
+        month: "long",
+        year: "numeric",
+      })
     : "Recently";
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      
-
-      {/* PROFILE HEADER */}
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-[24px] border-[#D9DEE2]/70" />
         <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full border-[20px] border-[#C5CDD2]/50" />
@@ -402,7 +407,7 @@ export default function SellerProfilePage() {
         <div className="relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
             <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8F7130] via-[#D2B66A] to-[#A47F32] text-4xl font-black text-white shadow-md sm:h-28 sm:w-28">
-              {seller.name ? seller.name.charAt(0).toUpperCase() : "?"}
+              {seller.name?.charAt(0)?.toUpperCase() || "?"}
             </div>
 
             <div className="min-w-0 flex-1">
@@ -432,10 +437,11 @@ export default function SellerProfilePage() {
               )}
 
               <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-bold text-[#66737C]">
-                <span>📍 {seller.location}</span>
-                <span>🚗 {seller.totalListings} active listing{seller.totalListings === 1 ? "" : "s"}</span>
-                <span>👁️ {seller.totalViews} total views</span>
-                <span>📅 Member since {memberSince}</span>
+                <span>Member since {memberSince}</span>
+                <span>
+                  🚗 {seller.totalListings} active listing
+                  {seller.totalListings === 1 ? "" : "s"}
+                </span>
               </div>
             </div>
 
@@ -446,7 +452,7 @@ export default function SellerProfilePage() {
                 rel="noopener noreferrer"
                 className="inline-block w-full rounded-xl bg-[#25D366] px-6 py-4 text-center text-sm font-bold text-white shadow-md hover:bg-[#20BD5A] sm:w-auto"
               >
-                💬 WhatsApp Seller
+                💬 Contact Seller
               </a>
             </div>
           </div>
@@ -454,7 +460,7 @@ export default function SellerProfilePage() {
           {badges.length > 0 && (
             <div className="mt-8 rounded-2xl border border-[#D5DBDF] bg-white/80 p-5 backdrop-blur">
               <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
-                🛡️ Trust & Achievements
+                Seller Achievements
               </div>
               <div className="flex flex-wrap gap-3">
                 {badges.map((badge) => (
@@ -463,8 +469,7 @@ export default function SellerProfilePage() {
                     className={`group relative flex items-center gap-2 rounded-full bg-gradient-to-r ${badge.color} px-4 py-2 text-sm font-bold text-white shadow-md`}
                   >
                     <span className="text-lg">{badge.icon}</span>
-                    <span>{badge.label}</span>
-
+                    {badge.label}
                     <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden w-64 -translate-x-1/2 rounded-xl bg-[#34414A] p-3 text-xs font-normal text-white shadow-lg group-hover:block">
                       {badge.description}
                       <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-[#34414A]"></div>
@@ -477,88 +482,91 @@ export default function SellerProfilePage() {
         </div>
       </section>
 
-      {/* LISTINGS */}
       <section className="w-full bg-[#F7F8F9] py-12">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
             <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
-              All Listings
+              Active Listings
             </div>
             <h2 className="mt-2 text-3xl font-black tracking-tight text-[#34414A]">
-              Vehicles by {seller.name}
+              {listings.length} vehicle{listings.length === 1 ? "" : "s"} for sale
             </h2>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {listings.map((listing) => (
-              <article
-                key={listing.id}
-                className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
-                  listing.featured
-                    ? "border-2 border-[#B08D3C] shadow-[0_15px_40px_rgba(176,141,60,0.20)]"
-                    : "border border-[#D5DBDF] hover:border-[#B08D3C]/60 hover:shadow-[0_20px_50px_rgba(52,65,74,0.12)]"
-                }`}
-              >
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-                  <img
-                    src={listing.image}
-                    alt={listing.title}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
-                    {listing.category}
-                  </div>
-                  {listing.featured && (
-                    <div className="absolute right-4 top-4 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
-                      ⭐ FEATURED
+          {listings.length === 0 ? (
+            <div className="rounded-2xl border border-[#D5DBDF] bg-white p-10 text-center">
+              <p className="text-sm text-[#66737C]">
+                This seller has no active listings right now.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {listings.map((listing) => (
+                <Link
+                  key={listing.id}
+                  href={`/listing/${listing.id}`}
+                  className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
+                    listing.featured
+                      ? "border-2 border-[#B08D3C]"
+                      : "border border-[#D5DBDF]"
+                  }`}
+                >
+                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
+                    <img
+                      src={listing.image}
+                      alt={listing.title}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
+                      {listing.category}
                     </div>
-                  )}
-                </div>
-
-                <div className="p-5">
-                  <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">
-                    {listing.title}
-                  </h3>
-                  <div className="mt-3 text-2xl font-black text-[#9A7B37]">
-                    {listing.price}
+                    {listing.featured && (
+                      <div className="absolute right-4 top-4 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
+                        ⭐ FEATURED
+                      </div>
+                    )}
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
-                      <div className="text-[#89939A]">Year</div>
-                      <div className="mt-1 font-bold text-[#34414A]">{listing.year}</div>
+                  <div className="p-5">
+                    <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">
+                      {listing.title}
+                    </h3>
+                    <div className="mt-3 text-2xl font-black text-[#9A7B37]">
+                      {listing.price}
                     </div>
-                    <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
-                      <div className="text-[#89939A]">Mileage</div>
-                      <div className="mt-1 font-bold text-[#34414A]">{listing.mileage}</div>
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
+                        <div className="text-[#89939A]">Year</div>
+                        <div className="mt-1 font-bold text-[#34414A]">{listing.year}</div>
+                      </div>
+                      <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
+                        <div className="text-[#89939A]">Mileage</div>
+                        <div className="mt-1 font-bold text-[#34414A]">
+                          {listing.mileage}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 border-t border-[#E1E5E8] pt-4">
+                      <div className="text-sm text-[#66737C]">
+                        📍 {listing.location}
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-4 border-t border-[#E1E5E8] pt-4">
-                    <div className="text-sm text-[#66737C]">📍 {listing.location}</div>
-                  </div>
-                  <Link
-                    href={`/listing/${listing.id}`}
-                    className="mt-5 block w-full rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
-                  >
-                    View Listing
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* REVIEWS */}
       <section className="w-full bg-white py-16">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[1fr_1.5fr]">
-
             <div>
               <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
-                Reviews
+                Ratings
               </div>
               <h2 className="mt-2 text-3xl font-black tracking-tight text-[#34414A]">
-                Seller Reputation
+                Seller Reviews
               </h2>
 
               {reviews.length > 0 ? (
@@ -571,7 +579,8 @@ export default function SellerProfilePage() {
                       <Stars rating={Math.round(avgRating)} size="lg" />
                     </div>
                     <div className="mt-2 text-sm text-[#66737C]">
-                      Based on {reviews.length} review{reviews.length === 1 ? "" : "s"}
+                      Based on {reviews.length} review
+                      {reviews.length === 1 ? "" : "s"}
                     </div>
                   </div>
 
@@ -579,7 +588,7 @@ export default function SellerProfilePage() {
                     {ratingDist.map(({ star, count }) => (
                       <div key={star} className="flex items-center gap-3">
                         <span className="w-12 text-xs font-bold text-[#66737C]">
-                          {star} star
+                          {star} ★
                         </span>
                         <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#E1E5E8]">
                           <div
@@ -603,12 +612,32 @@ export default function SellerProfilePage() {
                 <div className="mt-6 rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-8 text-center">
                   <div className="text-4xl">⭐</div>
                   <p className="mt-3 text-sm text-[#66737C]">
-                    No reviews yet. Be the first to leave one!
+                    No reviews yet. Be the first to review this seller.
                   </p>
                 </div>
               )}
 
-              {!isOwnProfile && currentUser && (
+              {isOwnProfile ? (
+                <div className="mt-6">
+                  <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-5">
+                    <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
+                      This is your profile
+                    </div>
+                    <p className="mt-2 text-sm text-[#66737C]">
+                      You cannot review your own listings.
+                    </p>
+                  </div>
+                </div>
+              ) : !currentUser ? (
+                <div className="mt-6">
+                  <Link
+                    href="/login"
+                    className="block w-full rounded-xl border border-[#B08D3C] bg-white px-6 py-4 text-center font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+                  >
+                    Log in to leave a review
+                  </Link>
+                </div>
+              ) : (
                 <div className="mt-6">
                   {myReview ? (
                     <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-5">
@@ -618,12 +647,13 @@ export default function SellerProfilePage() {
                       <div className="mt-2 flex items-center gap-2">
                         <Stars rating={myReview.rating} size="sm" />
                         <span className="text-sm text-[#66737C]">
-                          ({myReview.rating} star{myReview.rating === 1 ? "" : "s"})
+                          ({myReview.rating} star
+                          {myReview.rating === 1 ? "" : "s"})
                         </span>
                       </div>
                       {myReview.comment && (
                         <p className="mt-2 text-sm leading-6 text-[#4A5962]">
-                          &ldquo;{myReview.comment}&rdquo;
+                          {myReview.comment}
                         </p>
                       )}
                       <div className="mt-4 flex gap-2">
@@ -631,7 +661,7 @@ export default function SellerProfilePage() {
                           onClick={() => setShowReviewForm(!showReviewForm)}
                           className="flex-1 rounded-lg border border-[#B08D3C] bg-white px-4 py-2 text-xs font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
                         >
-                          {showReviewForm ? "Cancel" : "Edit"}
+                          {showReviewForm ? "Cancel" : "Edit Review"}
                         </button>
                         <button
                           onClick={handleDeleteReview}
@@ -646,108 +676,100 @@ export default function SellerProfilePage() {
                       onClick={() => setShowReviewForm(!showReviewForm)}
                       className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 font-bold text-white shadow-md hover:brightness-105"
                     >
-                      ⭐ {showReviewForm ? "Cancel" : "Write a Review"}
+                      {showReviewForm ? "Cancel" : "Write a Review"}
                     </button>
                   )}
-                </div>
-              )}
 
-              {!currentUser && (
-                <div className="mt-6">
-                  <Link
-                    href="/login"
-                    className="block w-full rounded-xl border border-[#B08D3C] bg-white px-6 py-4 text-center font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
-                  >
-                    Log In to Write a Review
-                  </Link>
-                </div>
-              )}
-
-              {showReviewForm && (
-                <form
-                  onSubmit={handleSubmitReview}
-                  className="mt-6 rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm"
-                >
-                  <h3 className="text-lg font-black text-[#34414A]">
-                    {myReview ? "Update Your Review" : "Share Your Experience"}
-                  </h3>
-
-                  <div className="mt-4">
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">
-                      Rating *
-                    </label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setReviewRating(star)}
-                          className="text-4xl transition hover:scale-110"
-                          aria-label={`${star} stars`}
-                        >
-                          <span className={star <= reviewRating ? "text-[#B08D3C]" : "text-[#D5DBDF]"}>
-                            ★
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                    <p className="mt-1 text-xs text-[#89939A]">
-                      {reviewRating} of 5 stars
-                    </p>
-                  </div>
-
-                  <div className="mt-5">
-                    <label className="mb-2 block text-sm font-bold text-[#34414A]">
-                      Comment (optional)
-                    </label>
-                    <textarea
-                      value={reviewComment}
-                      onChange={(e) => setReviewComment(e.target.value)}
-                      rows={4}
-                      placeholder="Tell other buyers about your experience with this seller..."
-                      className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                    />
-                  </div>
-
-                  {reviewMessage && (
-                    <div
-                      className={`mt-4 rounded-xl border p-3 text-center text-sm font-bold ${
-                        reviewMessage.toLowerCase().includes("error") ||
-                        reviewMessage.toLowerCase().includes("cannot")
-                          ? "border-red-200 bg-red-50 text-red-600"
-                          : "border-green-200 bg-green-50 text-green-600"
-                      }`}
+                  {showReviewForm && (
+                    <form
+                      onSubmit={handleSubmitReview}
+                      className="mt-6 rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm"
                     >
-                      {reviewMessage}
-                    </div>
-                  )}
+                      <h3 className="text-lg font-black text-[#34414A]">
+                        {myReview ? "Update your review" : "Write a review"}
+                      </h3>
 
-                  <button
-                    type="submit"
-                    disabled={reviewSubmitting}
-                    className="mt-5 w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3.5 font-bold text-white shadow-md hover:brightness-105 disabled:opacity-60"
-                  >
-                    {reviewSubmitting
-                      ? "Submitting..."
-                      : myReview
-                      ? "Update Review"
-                      : "Submit Review"}
-                  </button>
-                </form>
+                      <div className="mt-4">
+                        <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                          Rating
+                        </label>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setReviewRating(star)}
+                              className="text-4xl transition hover:scale-110"
+                              aria-label={`${star} stars`}
+                            >
+                              <span
+                                className={
+                                  star <= reviewRating
+                                    ? "text-[#B08D3C]"
+                                    : "text-[#D5DBDF]"
+                                }
+                              >
+                                ★
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                        <p className="mt-1 text-xs text-[#89939A]">
+                          {reviewRating} star{reviewRating === 1 ? "" : "s"}
+                        </p>
+                      </div>
+
+                      <div className="mt-5">
+                        <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                          Your review
+                        </label>
+                        <textarea
+                          value={reviewComment}
+                          onChange={(e) => setReviewComment(e.target.value)}
+                          rows={4}
+                          placeholder="Tell other buyers about your experience with this seller..."
+                          className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                        />
+                      </div>
+
+                      {reviewMessage && (
+                        <div
+                          className={`mt-4 rounded-xl border p-3 text-center text-sm font-bold ${
+                            reviewMessage.startsWith("✓")
+                              ? "border-green-200 bg-green-50 text-green-700"
+                              : "border-red-200 bg-red-50 text-red-600"
+                          }`}
+                        >
+                          {reviewMessage}
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={reviewSubmitting}
+                        className="mt-5 w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3.5 font-bold text-white shadow-md hover:brightness-105 disabled:opacity-60"
+                      >
+                        {reviewSubmitting
+                          ? "Submitting..."
+                          : myReview
+                          ? "Update Review"
+                          : "Post Review"}
+                      </button>
+                    </form>
+                  )}
+                </div>
               )}
             </div>
 
             <div>
               <h3 className="text-lg font-black text-[#34414A]">
-                {reviews.length > 0
-                  ? `All Reviews (${reviews.length})`
-                  : "No Reviews Yet"}
+                All Reviews ({reviews.length})
               </h3>
 
               {reviews.length === 0 ? (
                 <div className="mt-4 rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-8 text-center">
                   <p className="text-sm text-[#66737C]">
-                    This seller hasn&apos;t received any reviews yet.
+                    No reviews yet. Be the first to review this seller.
                   </p>
                 </div>
               ) : (
@@ -759,7 +781,7 @@ export default function SellerProfilePage() {
                     >
                       <div className="flex items-start gap-4">
                         <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-sm font-black text-white">
-                          {review.reviewerName.charAt(0).toUpperCase()}
+                          {review.reviewerName?.charAt(0).toUpperCase() || "?"}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
@@ -772,11 +794,14 @@ export default function SellerProfilePage() {
                               </span>
                             )}
                             <span className="text-xs text-[#89939A]">
-                              {new Date(review.created_at).toLocaleDateString("en-ZA", {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                              })}
+                              {new Date(review.created_at).toLocaleDateString(
+                                "en-ZA",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                }
+                              )}
                             </span>
                           </div>
                           <div className="mt-1">
@@ -797,8 +822,6 @@ export default function SellerProfilePage() {
           </div>
         </div>
       </section>
-
-      
     </main>
   );
 }

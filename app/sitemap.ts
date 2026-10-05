@@ -1,204 +1,118 @@
 import { createClient } from "@supabase/supabase-js";
 import type { MetadataRoute } from "next";
 
-const SITE_URL = "https://www.balrayautos.co.za";
-
-// Keep in sync with CITIES in app/cars-for-sale/page.tsx
-const CITIES = [
-  "johannesburg",
-  "cape-town",
-  "durban",
-  "pretoria",
-  "gqeberha",
-  "bloemfontein",
-  "east-london",
-  "polokwane",
-  "nelspruit",
-  "kimberley",
-  "soweto",
-  "sandton",
-  "centurion",
-  "port-elizabeth",
-  "pietermaritzburg",
-  "rustenburg",
-  "potchefstroom",
-  "stellenbosch",
-  "paarl",
-  "george",
-];
-
-// Keep in sync with BRANDS in app/brands/page.tsx
-const BRANDS = [
-  "toyota",
-  "volkswagen",
-  "ford",
-  "nissan",
-  "hyundai",
-  "kia",
-  "honda",
-  "mazda",
-  "isuzu",
-  "suzuki",
-  "bmw",
-  "mercedes-benz",
-  "audi",
-  "land-rover",
-  "jeep",
-  "volvo",
-  "lexus",
-  "porsche",
-  "jaguar",
-  "mini",
-  "renault",
-  "chevrolet",
-  "peugeot",
-  "citroen",
-  "fiat",
-  "opel",
-  "datsun",
-  "mahindra",
-  "mg",
-  "chery",
-  "haval",
-  "gwm",
-  "omoda",
-  "jac",
-  "subaru",
-  "yamaha",
-  "kawasaki",
-  "harley",
-  "scania",
-  "man",
-  "jcb",
-  "caterpillar",
-  "kubota",
-];
+const BASE_URL = "https://balrayautos.co.za";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // Static pages
-  const staticPages: MetadataRoute.Sitemap = [
+  const staticRoutes: MetadataRoute.Sitemap = [
     {
-      url: `${SITE_URL}/`,
+      url: `${BASE_URL}`,
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 1.0,
     },
     {
-      url: `${SITE_URL}/marketplace`,
+      url: `${BASE_URL}/marketplace`,
       lastModified: new Date(),
       changeFrequency: "hourly",
       priority: 0.9,
     },
     {
-      url: `${SITE_URL}/cars-for-sale`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
-    {
-      url: `${SITE_URL}/brands`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
-    {
-      url: `${SITE_URL}/sell`,
+      url: `${BASE_URL}/sell`,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
-      url: `${SITE_URL}/start-selling`,
+      url: `${BASE_URL}/cars-for-sale`,
       lastModified: new Date(),
-      changeFrequency: "weekly",
+      changeFrequency: "daily",
       priority: 0.8,
     },
     {
-      url: `${SITE_URL}/blog`,
+      url: `${BASE_URL}/brands`,
       lastModified: new Date(),
-      changeFrequency: "daily",
+      changeFrequency: "weekly",
       priority: 0.7,
     },
     {
-      url: `${SITE_URL}/about`,
+      url: `${BASE_URL}/compare`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
-      url: `${SITE_URL}/contact`,
+      url: `${BASE_URL}/about`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
-      url: `${SITE_URL}/terms`,
+      url: `${BASE_URL}/contact`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
+      url: `${BASE_URL}/blog`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.6,
+    },
+    {
+      url: `${BASE_URL}/terms`,
       lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: `${SITE_URL}/privacy`,
+      url: `${BASE_URL}/privacy`,
       lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,
     },
   ];
 
-  // City pages
-  const cityPages: MetadataRoute.Sitemap = CITIES.map((slug) => ({
-    url: `${SITE_URL}/cars-for-sale/${slug}`,
-    lastModified: new Date(),
-    changeFrequency: "daily" as const,
-    priority: 0.8,
-  }));
+  let listingRoutes: MetadataRoute.Sitemap = [];
 
-  // Brand pages
-  const brandPages: MetadataRoute.Sitemap = BRANDS.map((slug) => ({
-    url: `${SITE_URL}/brands/${slug}`,
-    lastModified: new Date(),
-    changeFrequency: "daily" as const,
-    priority: 0.8,
-  }));
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey =
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  // Fetch all active listings
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-  );
+    if (!supabaseUrl || !supabaseKey) {
+      console.warn(
+        "Sitemap: Missing Supabase env vars, skipping dynamic listings."
+      );
+      return staticRoutes;
+    }
 
-  const now = new Date().toISOString();
-  const { data: listings } = await supabase
-    .from("listings")
-    .select("id, created_at, updated_at")
-    .eq("status", "active")
-    .or(`expires_at.is.null,expires_at.gt.${now}`);
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-  const listingPages: MetadataRoute.Sitemap = (listings || []).map((listing) => ({
-    url: `${SITE_URL}/listing/${listing.id}`,
-    lastModified: new Date(listing.updated_at || listing.created_at),
-    changeFrequency: "daily" as const,
-    priority: 0.7,
-  }));
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("listings")
+      .select("id, created_at, updated_at")
+      .eq("status", "active")
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order("created_at", { ascending: false })
+      .limit(5000);
 
-  // Fetch published blog posts
-  const { data: posts } = await supabase
-    .from("blog_posts")
-    .select("slug, updated_at, created_at")
-    .eq("published", true);
+    if (error) {
+      console.error("Sitemap fetch error:", error);
+      return staticRoutes;
+    }
 
-  const blogPages: MetadataRoute.Sitemap = (posts || []).map((post) => ({
-    url: `${SITE_URL}/blog/${post.slug}`,
-    lastModified: new Date(post.updated_at || post.created_at),
-    changeFrequency: "weekly" as const,
-    priority: 0.6,
-  }));
+    listingRoutes = (data || []).map((item) => ({
+      url: `${BASE_URL}/listing/${item.id}`,
+      lastModified: new Date(item.updated_at || item.created_at),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
+  } catch (err) {
+    console.error("Sitemap error:", err);
+  }
 
-  return [
-    ...staticPages,
-    ...cityPages,
-    ...brandPages,
-    ...listingPages,
-    ...blogPages,
-  ];
+  return [...staticRoutes, ...listingRoutes];
 }

@@ -21,7 +21,6 @@ export default function LayoutShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClient();
   const [checked, setChecked] = useState(false);
 
   const hide = HIDDEN_PATHS.some((p) => pathname.startsWith(p));
@@ -34,6 +33,7 @@ export default function LayoutShell({
 
     const checkBan = async () => {
       try {
+        const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           setChecked(true);
@@ -59,7 +59,7 @@ export default function LayoutShell({
     };
 
     checkBan();
-  }, [hide, pathname, router, supabase]);
+  }, [hide, router]);
 
   if (hide) {
     return <>{children}</>;

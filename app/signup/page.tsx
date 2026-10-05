@@ -16,7 +16,6 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   const passwordsMatch = password.length > 0 && password === confirmPassword;
   const passwordsDontMatch =
@@ -59,7 +58,8 @@ export default function SignUpPage() {
       formattedPhone = "+" + formattedPhone;
     }
 
-    // ⚠️ CHECK 1: Is this email banned?
+    const supabase = createClient();
+
     const { data: emailBanned } = await supabase.rpc("check_email_banned", {
       email_input: email.toLowerCase(),
     });
@@ -73,7 +73,6 @@ export default function SignUpPage() {
       return;
     }
 
-    // ⚠️ CHECK 2: Is this phone already registered (including banned users)?
     const { data: phoneExists } = await supabase.rpc("check_phone_exists", {
       phone_input: formattedPhone,
     });
@@ -116,6 +115,7 @@ export default function SignUpPage() {
     setSocialLoading("google");
     setMessage("");
 
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
