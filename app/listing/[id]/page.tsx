@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
-import OptimizedImage from "@/app/components/OptimizedImage";
 
 const categoryMap: Record<string, string> = {
   cars: "Cars & SUVs",
@@ -34,7 +33,6 @@ export default function ListingDetailPage() {
   const params = useParams();
   const router = useRouter();
   const listingId = params?.id as string;
-  const supabase = createClient();
 
   const [listing, setListing] = useState<any>(null);
   const [seller, setSeller] = useState<any>(null);
@@ -50,25 +48,28 @@ export default function ListingDetailPage() {
   const [reviewComment, setReviewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewMessage, setReviewMessage] = useState("");
-  const [reviewMessageType, setReviewMessageType] = useState<
-    "success" | "error"
-  >("success");
+  const [reviewMessageType, setReviewMessageType] = useState<"success" | "error">("success");
 
   useEffect(() => {
     if (!listingId) return;
 
     const load = async () => {
       try {
+        const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         setCurrentUser(user);
 
+        let amIAdmin = false;
         if (user) {
           const { data: profile } = await supabase
             .from("profiles")
             .select("role")
             .eq("id", user.id)
             .single();
-          if (profile?.role === "admin") setIsAdmin(true);
+          if (profile?.role === "admin") {
+            amIAdmin = true;
+            setIsAdmin(true);
+          }
         }
 
         const { data: listingData, error: listingError } = await supabase
@@ -78,7 +79,6 @@ export default function ListingDetailPage() {
           .single();
 
         if (listingError || !listingData) {
-          console.error("Listing error:", listingError);
           setNotFound(true);
           setLoading(false);
           return;
@@ -86,22 +86,19 @@ export default function ListingDetailPage() {
 
         const isOwner = user && listingData.user_id === user.id;
         const isActive = listingData.status === "active";
+        const isExpired =
+          listingData.expires_at && new Date(listingData.expires_at) < new Date();
 
-        if (!isActive && !isOwner) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user?.id || "")
-            .single();
-          if (profile?.role !== "admin") {
-            setNotFound(true);
-            setLoading(false);
-            return;
-          }
+        // Allow view if: active, OR owner, OR admin
+        if ((!isActive || isExpired) && !isOwner && !amIAdmin) {
+          setNotFound(true);
+          setLoading(false);
+          return;
         }
 
         setListing(listingData);
 
+        // Fetch seller profile
         const { data: sellerData } = await supabase
           .from("profiles")
           .select("*")
@@ -109,15 +106,19 @@ export default function ListingDetailPage() {
           .single();
         setSeller(sellerData);
 
-        try {
-          await supabase
-            .from("listings")
-            .update({ views: (listingData.views || 0) + 1 })
-            .eq("id", listingId);
-        } catch (err) {
-          console.error("View increment error:", err);
+        // Increment views (only if not the owner)
+        if (!isOwner) {
+          try {
+            await supabase
+              .from("listings")
+              .update({ views: (listingData.views || 0) + 1 })
+              .eq("id", listingId);
+          } catch (err) {
+            console.error("View increment failed:", err);
+          }
         }
 
+        // Fetch reviews
         const { data: reviewData, error: reviewError } = await supabase
           .from("listing_reviews")
           .select("*")
@@ -130,6 +131,7 @@ export default function ListingDetailPage() {
           setReviews(reviewData || []);
         }
 
+        // Load user's existing review
         if (user && user.id !== listingData.user_id) {
           const { data: existing } = await supabase
             .from("listing_reviews")
@@ -157,6 +159,7 @@ export default function ListingDetailPage() {
   }, [listingId]);
 
   const fetchReviews = async () => {
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("listing_reviews")
       .select("*")
@@ -185,6 +188,7 @@ export default function ListingDetailPage() {
     setSubmittingReview(true);
     setReviewMessage("");
 
+    const supabase = createClient();
     const reviewerName =
       currentUser.user_metadata?.full_name ||
       currentUser.email?.split("@")[0] ||
@@ -243,6 +247,7 @@ export default function ListingDetailPage() {
     if (!myReview) return;
     if (!confirm("Delete your review?")) return;
 
+    const supabase = createClient();
     const { error } = await supabase
       .from("listing_reviews")
       .delete()
@@ -287,7 +292,8 @@ export default function ListingDetailPage() {
             Listing not found
           </h1>
           <p className="mt-3 text-sm text-[#66737C]">
-            This listing may have been removed or is no longer available.
+            This listing may have been removed, is no longer available, or is
+            still pending admin approval.
           </p>
           <Link
             href="/marketplace"
@@ -310,6 +316,23 @@ export default function ListingDetailPage() {
   return (
     <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
       <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Preview banner for owner/admin when listing not public */}
+        {listing.status !== "active" && (isOwner || isAdmin) && (
+          <div className="mb-6 rounded-2xl border-2 border-yellow-400 bg-yellow-50 p-4 text-center">
+            <div className="text-sm font-black text-yellow-800">
+              👁️ Preview Mode — This listing is{" "}
+              <span className="uppercase">{listing.status}</span> and not yet
+              visible to the public
+            </div>
+            {isOwner && (
+              <p className="mt-1 text-xs text-yellow-700">
+                Only you and admins can see this page right now.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Breadcrumb */}
         <div className="mb-6 flex flex-wrap items-center gap-2 text-xs font-bold text-[#89939A]">
           <Link href="/" className="hover:text-[#8F7130]">
             Home
@@ -325,15 +348,14 @@ export default function ListingDetailPage() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          {/* LEFT: Images + description */}
           <div className="space-y-6">
             <div className="overflow-hidden rounded-3xl border border-[#D5DBDF] bg-white shadow-sm">
               <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-                <OptimizedImage
+                <img
                   src={images[activeImage]}
                   alt={`${listing.make} ${listing.model}`}
-                  fill={true}
-                  priority={true}
-                  sizes="(max-width: 1024px) 100vw, 60vw"
+                  className="h-full w-full object-cover"
                 />
               </div>
 
@@ -344,17 +366,16 @@ export default function ListingDetailPage() {
                       key={i}
                       type="button"
                       onClick={() => setActiveImage(i)}
-                      className={`relative h-16 w-24 flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
+                      className={`h-16 w-24 flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
                         activeImage === i
                           ? "border-[#B08D3C]"
                           : "border-transparent opacity-70 hover:opacity-100"
                       }`}
                     >
-                      <OptimizedImage
+                      <img
                         src={img}
                         alt={`Thumbnail ${i + 1}`}
-                        fill={true}
-                        sizes="96px"
+                        className="h-full w-full object-cover"
                       />
                     </button>
                   ))}
@@ -370,7 +391,6 @@ export default function ListingDetailPage() {
                 <video
                   src={listing.video_url}
                   controls
-                  preload="metadata"
                   className="w-full rounded-xl"
                   style={{ maxHeight: "400px" }}
                 />
@@ -384,6 +404,7 @@ export default function ListingDetailPage() {
               </p>
             </div>
 
+            {/* REVIEWS SECTION */}
             <div className="rounded-3xl border border-[#D5DBDF] bg-white p-6 shadow-sm sm:p-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -569,6 +590,7 @@ export default function ListingDetailPage() {
                               !confirm("Admin: delete this review permanently?")
                             )
                               return;
+                            const supabase = createClient();
                             await supabase
                               .from("listing_reviews")
                               .delete()
@@ -587,6 +609,7 @@ export default function ListingDetailPage() {
             </div>
           </div>
 
+          {/* RIGHT: Price, seller, contact */}
           <div className="space-y-6">
             <div className="rounded-3xl border border-[#D5DBDF] bg-white p-6 shadow-sm sm:p-8">
               <div className="text-xs font-black uppercase tracking-[0.14em] text-[#9A7B37]">
@@ -688,6 +711,15 @@ export default function ListingDetailPage() {
                 </div>
               </div>
             </div>
+
+            {isOwner && listing.status !== "active" && (
+              <Link
+                href={`/edit-listing/${listing.id}`}
+                className="block rounded-3xl border-2 border-[#34414A] bg-[#34414A] p-5 text-center text-sm font-bold text-white hover:bg-[#4A5962]"
+              >
+                ✏️ Edit This Listing
+              </Link>
+            )}
 
             <Link
               href="/marketplace"
