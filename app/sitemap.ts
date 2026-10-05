@@ -93,7 +93,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from("listings")
-      .select("id, created_at, updated_at")
+      .select("id, created_at")
       .eq("status", "active")
       .or(`expires_at.is.null,expires_at.gt.${now}`)
       .order("created_at", { ascending: false })
@@ -106,7 +106,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     listingRoutes = (data || []).map((item) => ({
       url: `${BASE_URL}/listing/${item.id}`,
-      lastModified: new Date(item.updated_at || item.created_at),
+      lastModified: new Date(item.created_at),
       changeFrequency: "weekly" as const,
       priority: 0.7,
     }));
