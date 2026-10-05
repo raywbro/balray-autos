@@ -47,7 +47,7 @@ export default function EditListingPage() {
         return;
       }
 
-      if (listingData.status !== "pending") {
+      if (listingData.status === "sold") {
         setForbidden(true);
         setLoading(false);
         return;
@@ -69,6 +69,8 @@ export default function EditListingPage() {
     const supabase = createClient();
 
     try {
+      const wasActive = listing.status === "active";
+
       const updates = {
         seller_type: formData.get("sellerType"),
         category: formData.get("category"),
@@ -82,6 +84,8 @@ export default function EditListingPage() {
         transmission: formData.get("transmission"),
         fuel: formData.get("fuel"),
         description: formData.get("description"),
+        status: "pending",
+        expires_at: null,
       };
 
       const { error } = await supabase
@@ -95,11 +99,18 @@ export default function EditListingPage() {
         return;
       }
 
-      setSuccessMessage("✓ Listing updated. Admin will review the changes.");
+      if (wasActive) {
+        setSuccessMessage(
+          "✓ Changes saved. Your listing is now back in review and will go live once admin approves it."
+        );
+      } else {
+        setSuccessMessage("✓ Listing updated. Admin will review shortly.");
+      }
+
       setSaving(false);
       setTimeout(() => {
         router.push("/my-listings");
-      }, 1500);
+      }, 1800);
     } catch (err: any) {
       setErrorMessage(err.message || "Something went wrong");
       setSaving(false);
@@ -126,8 +137,7 @@ export default function EditListingPage() {
           </h1>
           <p className="mt-3 text-sm text-[#66737C]">
             Either this listing doesn&apos;t exist, it&apos;s not yours, or it
-            has already been approved by admin. Only pending listings can be
-            edited.
+            has been marked as sold.
           </p>
           <Link
             href="/my-listings"
@@ -155,13 +165,39 @@ export default function EditListingPage() {
               Edit Your Listing
             </h1>
             <p className="mt-2 text-sm text-[#66737C]">
-              You can edit this listing until admin approves it.
+              {listing.status === "active"
+                ? "This listing is currently live. Editing will send it back to admin for approval before it goes live again."
+                : "This listing is pending. Admin will review your changes."}
             </p>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-300 bg-yellow-50 px-4 py-2 text-xs font-bold uppercase tracking-wider text-yellow-800">
-            ⏳ Pending Review
+          <div
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider ${
+              listing.status === "active"
+                ? "border border-green-300 bg-green-50 text-green-800"
+                : "border border-yellow-300 bg-yellow-50 text-yellow-800"
+            }`}
+          >
+            {listing.status === "active" ? "🟢 Live" : "⏳ Pending Review"}
           </div>
         </div>
+
+        {listing.status === "active" && (
+          <div className="mb-6 rounded-2xl border-2 border-yellow-300 bg-yellow-50 p-5">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <div className="text-sm font-black text-yellow-800">
+                  Heads up — editing a live listing
+                </div>
+                <p className="mt-1 text-xs leading-5 text-yellow-800/90">
+                  When you save, this listing will be taken off the marketplace
+                  and sent back to admin for re-approval. It will only go live
+                  again once admin approves your changes.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {errorMessage && (
           <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-center text-sm font-bold text-red-600">
@@ -425,17 +461,6 @@ export default function EditListingPage() {
                 defaultValue={listing.description || ""}
                 className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
               />
-            </div>
-
-            <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4">
-              <div className="flex items-start gap-3">
-                <span className="text-lg">ℹ️</span>
-                <p className="text-xs leading-5 text-[#8F7130]">
-                  <strong>Images & video cannot be changed here.</strong> If
-                  you need to swap photos, delete this listing and create a new
-                  one, or wait for admin to approve and update manually.
-                </p>
-              </div>
             </div>
 
             <div className="flex flex-col gap-3 border-t border-[#E1E5E8] pt-6 sm:flex-row">

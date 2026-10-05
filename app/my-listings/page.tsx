@@ -195,7 +195,6 @@ export default function MyListingsPage() {
               const isPending = item.status === "pending";
               const isActive = item.status === "active" && !expired;
               const isSold = item.status === "sold";
-              const isExpired = expired;
 
               return (
                 <div
@@ -233,7 +232,7 @@ export default function MyListingsPage() {
                               Sold
                             </span>
                           )}
-                          {isExpired && (
+                          {expired && (
                             <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-700">
                               Expired
                             </span>
@@ -247,7 +246,13 @@ export default function MyListingsPage() {
                         </p>
                         {isPending && (
                           <p className="mt-2 text-xs font-bold text-yellow-800">
-                            You can edit this listing until admin approves it.
+                            Awaiting admin approval.
+                          </p>
+                        )}
+                        {isActive && (
+                          <p className="mt-2 text-xs font-bold text-green-700">
+                            Live on marketplace. Editing will send it back for
+                            approval.
                           </p>
                         )}
                       </div>
@@ -256,13 +261,12 @@ export default function MyListingsPage() {
                     <div className="flex flex-wrap gap-2">
                       <Link
                         href={`/listing/${item.id}`}
-                        target="_blank"
                         className="rounded-xl border border-[#B08D3C] bg-white px-4 py-2.5 text-xs font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
                       >
                         View
                       </Link>
 
-                      {isPending && (
+                      {!isSold && (
                         <Link
                           href={`/edit-listing/${item.id}`}
                           className="rounded-xl bg-[#34414A] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#4A5962]"
