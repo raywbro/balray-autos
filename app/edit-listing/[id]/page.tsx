@@ -1,142 +1,107 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, useParams } from "next/navigation";
-import ImageVideoManager from "@/app/components/ImageVideoManager";
 
 export default function EditListingPage() {
+  const params = useParams();
+  const listingId = params?.id as string;
+  const router = useRouter();
+
   const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [listing, setListing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [listing, setListing] = useState<any>(null);
-
-  const uploadRef = useRef<
-    (() => Promise<{ images: string[]; video: string | null }>) | null
-  >(null);
-
-  const router = useRouter();
-  const params = useParams();
-  const supabase = createClient();
-  const id = params.id as string;
+  const [forbidden, setForbidden] = useState(false);
 
   useEffect(() => {
-    const loadListing = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+    const load = async () => {
+      const supabase = createClient();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !user) {
         router.push("/login");
         return;
       }
       setUser(user);
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-      setProfile(profileData);
-
-      const { data, error } = await supabase
+      const { data: listingData, error } = await supabase
         .from("listings")
         .select("*")
-        .eq("id", id)
+        .eq("id", listingId)
         .single();
 
-      if (error || !data) {
-        setErrorMessage("Listing not found.");
+      if (error || !listingData) {
+        setForbidden(true);
         setLoading(false);
         return;
       }
 
-      const isOwner = data.user_id === user.id;
-      const isAdmin = profileData?.role === "admin";
-
-      if (!isOwner && !isAdmin) {
-        setErrorMessage("You do not have permission to edit this listing.");
+      if (listingData.user_id !== user.id) {
+        setForbidden(true);
         setLoading(false);
         return;
       }
 
-      setListing(data);
+      if (listingData.status !== "pending") {
+        setForbidden(true);
+        setLoading(false);
+        return;
+      }
+
+      setListing(listingData);
       setLoading(false);
     };
+    load();
+  }, [listingId, router]);
 
-    if (id) loadListing();
-  }, [id, router, supabase]);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSaving(true);
     setErrorMessage("");
     setSuccessMessage("");
+    setSaving(true);
 
     const formData = new FormData(e.currentTarget);
-    const newPrice = Number(formData.get("price"));
-    const oldPrice = Number(listing.price);
-    const priceDropped = newPrice < oldPrice;
-    const previousPrice = priceDropped ? oldPrice : listing.previous_price || null;
+    const supabase = createClient();
 
     try {
-      let uploadedImages: string[] = listing.images || [];
-      let uploadedVideo: string | null = listing.video_url || null;
-
-      if (uploadRef.current) {
-        const result = await uploadRef.current();
-        uploadedImages = result.images;
-        uploadedVideo = result.video;
-      }
-
-      const updates: any = {
-        seller_name:
-          profile?.full_name ||
-          user.user_metadata?.full_name ||
-          listing.seller_name,
+      const updates = {
         seller_type: formData.get("sellerType"),
         category: formData.get("category"),
         condition: formData.get("condition"),
         make: formData.get("make"),
         model: formData.get("model"),
         year: formData.get("year") ? Number(formData.get("year")) : null,
-        price: newPrice,
+        price: Number(formData.get("price")),
         mileage: formData.get("mileage"),
         location: formData.get("location"),
         transmission: formData.get("transmission"),
         fuel: formData.get("fuel"),
         description: formData.get("description"),
-        images: uploadedImages,
-        video_url: uploadedVideo,
-        status: "pending",
       };
-
-      if (priceDropped) {
-        updates.previous_price = previousPrice;
-      }
 
       const { error } = await supabase
         .from("listings")
         .update(updates)
-        .eq("id", id);
+        .eq("id", listingId);
 
-      if (error) throw error;
-
-      if (priceDropped) {
-        const savings = oldPrice - newPrice;
-        setSuccessMessage(
-          `🎉 Listing updated! Price dropped by R${savings.toLocaleString()}. It will be re-approved by an admin.`
-        );
-      } else {
-        setSuccessMessage(
-          "Listing updated! It will need to be re-approved by an admin."
-        );
+      if (error) {
+        setErrorMessage(error.message);
+        setSaving(false);
+        return;
       }
+
+      setSuccessMessage("✓ Listing updated. Admin will review the changes.");
       setSaving(false);
-      setTimeout(() => router.push("/my-listings"), 2500);
-    } catch (error: any) {
-      setErrorMessage(error.message);
+      setTimeout(() => {
+        router.push("/my-listings");
+      }, 1500);
+    } catch (err: any) {
+      setErrorMessage(err.message || "Something went wrong");
       setSaving(false);
     }
   };
@@ -151,16 +116,22 @@ export default function EditListingPage() {
     );
   }
 
-  if (errorMessage && !listing) {
+  if (forbidden || !listing) {
     return (
-      <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
-        <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-          <h1 className="text-2xl font-black text-[#34414A] mb-4">
-            {errorMessage}
+      <main className="min-h-screen w-full flex items-center justify-center bg-[#F7F8F9] p-4">
+        <div className="max-w-md rounded-2xl border border-[#D5DBDF] bg-white p-8 text-center shadow-sm">
+          <div className="text-4xl">🔒</div>
+          <h1 className="mt-4 text-2xl font-black text-[#34414A]">
+            Cannot Edit This Listing
           </h1>
+          <p className="mt-3 text-sm text-[#66737C]">
+            Either this listing doesn&apos;t exist, it&apos;s not yours, or it
+            has already been approved by admin. Only pending listings can be
+            edited.
+          </p>
           <Link
             href="/my-listings"
-            className="inline-block rounded-xl bg-[#34414A] px-6 py-4 font-bold text-white"
+            className="mt-6 inline-block rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-sm font-bold text-white"
           >
             Back to My Listings
           </Link>
@@ -170,397 +141,320 @@ export default function EditListingPage() {
   }
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
-        <div className="relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
-          <div className="max-w-3xl">
-            <div className="mb-4 inline-flex items-center gap-3 rounded-full border border-[#D3B86A]/50 bg-[#FBF7EC] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#8F7130]">
-              <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-[#8F7130] to-[#D2B66A]" />
-              Edit Listing
-            </div>
-            <h1 className="text-4xl font-black tracking-tight text-[#34414A] sm:text-5xl">
-              Update Your
-              <br />
-              <span className="bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] bg-clip-text text-transparent">
-                Vehicle.
-              </span>
+    <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
+      <section className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Link
+              href="/my-listings"
+              className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37] hover:underline"
+            >
+              ← Back to My Listings
+            </Link>
+            <h1 className="mt-2 text-3xl font-black text-[#34414A]">
+              Edit Your Listing
             </h1>
-            <p className="mt-4 text-base leading-7 text-[#66737C]">
-              Change photos, video, or any detail. Your listing will go back to
-              pending review.
+            <p className="mt-2 text-sm text-[#66737C]">
+              You can edit this listing until admin approves it.
             </p>
           </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-300 bg-yellow-50 px-4 py-2 text-xs font-bold uppercase tracking-wider text-yellow-800">
+            ⏳ Pending Review
+          </div>
         </div>
-      </section>
 
-      <section className="w-full bg-[#F7F8F9]">
-        <div className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
-          <form
-            onSubmit={handleSubmit}
-            className="overflow-hidden rounded-3xl border border-[#D5DBDF] bg-white shadow-sm"
-          >
-            <div className="border-b border-[#E1E5E8] bg-[#34414A] px-6 py-8 sm:px-10">
-              <h2 className="text-2xl font-black text-white sm:text-3xl">
-                Edit Listing Details
-              </h2>
-              <p className="mt-2 text-sm text-[#D9DEE2]">
-                Contact details are locked. Everything else is editable.
-              </p>
+        {errorMessage && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-center text-sm font-bold text-red-600">
+            {errorMessage}
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-center text-sm font-bold text-green-700">
+            {successMessage}
+          </div>
+        )}
+
+        <form
+          onSubmit={handleSave}
+          className="overflow-hidden rounded-3xl border border-[#D5DBDF] bg-white shadow-sm"
+        >
+          <div className="border-b border-[#E1E5E8] bg-[#34414A] px-6 py-6 sm:px-8">
+            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#D2B66A]">
+              Edit Details
             </div>
+            <h2 className="mt-2 text-2xl font-black text-white">
+              {listing.year} {listing.make} {listing.model}
+            </h2>
+          </div>
 
-            {errorMessage && (
-              <div className="bg-red-50 p-4 text-center text-sm font-bold text-red-600 border-b border-red-200">
-                {errorMessage}
-              </div>
-            )}
-
-            {successMessage && (
-              <div className="bg-green-50 p-4 text-center text-sm font-bold text-green-600 border-b border-green-200">
-                {successMessage}
-              </div>
-            )}
-
-            <div className="space-y-10 p-6 sm:p-10">
+          <div className="space-y-8 p-6 sm:p-8">
+            <div className="grid gap-5 md:grid-cols-2">
               <div>
-                <div className="mb-5">
-                  <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
-                    01
-                  </div>
-                  <h3 className="mt-1 text-xl font-black text-[#34414A]">
-                    Your Information
-                  </h3>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4">
-                    <div className="flex items-start gap-3">
-                      <span className="text-lg">🔒</span>
-                      <p className="text-xs leading-5 text-[#8F7130]">
-                        Your name, email, and phone are locked to your account.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-5 md:grid-cols-3">
-                    <div>
-                      <label className="mb-2 block text-sm font-bold text-[#34414A]">
-                        Full Name
-                      </label>
-                      <div className="flex items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-4 py-3.5">
-                        <span className="text-lg">👤</span>
-                        <span className="truncate text-sm font-bold text-[#66737C]">
-                          {profile?.full_name ||
-                            user.user_metadata?.full_name ||
-                            "Not set"}
-                        </span>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-sm font-bold text-[#34414A]">
-                        Email
-                      </label>
-                      <div className="flex items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-4 py-3.5">
-                        <span className="text-lg">✉️</span>
-                        <span className="truncate text-sm font-bold text-[#66737C]">
-                          {user.email}
-                        </span>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-sm font-bold text-[#34414A]">
-                        Phone
-                      </label>
-                      <div className="flex items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-4 py-3.5">
-                        <span className="text-lg">📱</span>
-                        <span className="truncate text-sm font-bold text-[#66737C]">
-                          {profile?.phone ||
-                            user.user_metadata?.phone ||
-                            "Not set"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="sellerType"
-                      className="mb-2 block text-sm font-bold text-[#34414A]"
-                    >
-                      Seller Type *
-                    </label>
-                    <select
-                      id="sellerType"
-                      name="sellerType"
-                      required
-                      defaultValue={listing.seller_type}
-                      className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                    >
-                      <option value="private">Private Seller</option>
-                      <option value="dealer">Dealer</option>
-                      <option value="business">Business</option>
-                    </select>
-                  </div>
-                </div>
+                <label
+                  htmlFor="sellerType"
+                  className="mb-2 block text-sm font-bold text-[#34414A]"
+                >
+                  Seller Type *
+                </label>
+                <select
+                  id="sellerType"
+                  name="sellerType"
+                  required
+                  defaultValue={listing.seller_type || ""}
+                  className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                >
+                  <option value="" disabled>
+                    Select seller type
+                  </option>
+                  <option value="private">Private Seller</option>
+                  <option value="dealer">Dealer</option>
+                  <option value="business">Business</option>
+                </select>
               </div>
 
-              <div className="border-t border-[#E1E5E8] pt-10">
-                <div className="mb-5">
-                  <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
-                    02
-                  </div>
-                  <h3 className="mt-1 text-xl font-black text-[#34414A]">
-                    What Are You Selling?
-                  </h3>
-                </div>
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div>
-                    <label
-                      htmlFor="category"
-                      className="mb-2 block text-sm font-bold text-[#34414A]"
-                    >
-                      Category *
-                    </label>
-                    <select
-                      id="category"
-                      name="category"
-                      required
-                      defaultValue={listing.category}
-                      className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                    >
-                      <option value="cars">Cars & SUVs</option>
-                      <option value="bakkies">Bakkies & 4x4s</option>
-                      <option value="motorcycles">Motorcycles</option>
-                      <option value="trucks">Trucks & Commercial</option>
-                      <option value="machinery">Machinery & Equipment</option>
-                      <option value="parts">Parts & Accessories</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="condition"
-                      className="mb-2 block text-sm font-bold text-[#34414A]"
-                    >
-                      Condition *
-                    </label>
-                    <select
-                      id="condition"
-                      name="condition"
-                      required
-                      defaultValue={listing.condition}
-                      className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                    >
-                      <option value="new">New</option>
-                      <option value="used">Used</option>
-                      <option value="demo">Demo / Ex-Demo</option>
-                      <option value="refurbished">Refurbished</option>
-                    </select>
-                  </div>
-                </div>
+              <div>
+                <label
+                  htmlFor="category"
+                  className="mb-2 block text-sm font-bold text-[#34414A]"
+                >
+                  Category *
+                </label>
+                <select
+                  id="category"
+                  name="category"
+                  required
+                  defaultValue={listing.category || ""}
+                  className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                >
+                  <option value="" disabled>
+                    Select category
+                  </option>
+                  <option value="cars">Cars & SUVs</option>
+                  <option value="bakkies">Bakkies & 4x4s</option>
+                  <option value="motorcycles">Motorcycles</option>
+                  <option value="trucks">Trucks & Commercial</option>
+                  <option value="machinery">Machinery & Equipment</option>
+                  <option value="parts">Parts & Accessories</option>
+                </select>
               </div>
 
-              <div className="border-t border-[#E1E5E8] pt-10">
-                <div className="mb-5">
-                  <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
-                    03
-                  </div>
-                  <h3 className="mt-1 text-xl font-black text-[#34414A]">
-                    Vehicle / Product Details
-                  </h3>
-                </div>
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div>
-                    <label
-                      htmlFor="make"
-                      className="mb-2 block text-sm font-bold text-[#34414A]"
-                    >
-                      Make / Brand *
-                    </label>
-                    <input
-                      id="make"
-                      name="make"
-                      type="text"
-                      required
-                      defaultValue={listing.make}
-                      className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="model"
-                      className="mb-2 block text-sm font-bold text-[#34414A]"
-                    >
-                      Model / Product Name *
-                    </label>
-                    <input
-                      id="model"
-                      name="model"
-                      type="text"
-                      required
-                      defaultValue={listing.model}
-                      className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="year"
-                      className="mb-2 block text-sm font-bold text-[#34414A]"
-                    >
-                      Year
-                    </label>
-                    <input
-                      id="year"
-                      name="year"
-                      type="number"
-                      min="1900"
-                      max="2100"
-                      defaultValue={listing.year || ""}
-                      className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="price"
-                      className="mb-2 block text-sm font-bold text-[#34414A]"
-                    >
-                      Asking Price (R) *
-                    </label>
-                    <input
-                      id="price"
-                      name="price"
-                      type="number"
-                      min="0"
-                      required
-                      defaultValue={listing.price}
-                      className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="mileage"
-                      className="mb-2 block text-sm font-bold text-[#34414A]"
-                    >
-                      Mileage / Hours
-                    </label>
-                    <input
-                      id="mileage"
-                      name="mileage"
-                      type="text"
-                      defaultValue={listing.mileage || ""}
-                      className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="location"
-                      className="mb-2 block text-sm font-bold text-[#34414A]"
-                    >
-                      Location *
-                    </label>
-                    <input
-                      id="location"
-                      name="location"
-                      type="text"
-                      required
-                      defaultValue={listing.location}
-                      className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="transmission"
-                      className="mb-2 block text-sm font-bold text-[#34414A]"
-                    >
-                      Transmission
-                    </label>
-                    <select
-                      id="transmission"
-                      name="transmission"
-                      defaultValue={listing.transmission || ""}
-                      className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                    >
-                      <option value="">Select transmission</option>
-                      <option value="automatic">Automatic</option>
-                      <option value="manual">Manual</option>
-                      <option value="cvt">CVT</option>
-                      <option value="other">Other / N/A</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="fuel"
-                      className="mb-2 block text-sm font-bold text-[#34414A]"
-                    >
-                      Fuel Type
-                    </label>
-                    <select
-                      id="fuel"
-                      name="fuel"
-                      defaultValue={listing.fuel || ""}
-                      className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                    >
-                      <option value="">Select fuel type</option>
-                      <option value="petrol">Petrol</option>
-                      <option value="diesel">Diesel</option>
-                      <option value="hybrid">Hybrid</option>
-                      <option value="electric">Electric</option>
-                      <option value="other">Other / N/A</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="mt-5">
-                  <label
-                    htmlFor="description"
-                    className="mb-2 block text-sm font-bold text-[#34414A]"
-                  >
-                    Description *
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    required
-                    rows={6}
-                    defaultValue={listing.description}
-                    className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                  />
-                </div>
+              <div>
+                <label
+                  htmlFor="condition"
+                  className="mb-2 block text-sm font-bold text-[#34414A]"
+                >
+                  Condition *
+                </label>
+                <select
+                  id="condition"
+                  name="condition"
+                  required
+                  defaultValue={listing.condition || ""}
+                  className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                >
+                  <option value="" disabled>
+                    Select condition
+                  </option>
+                  <option value="new">New</option>
+                  <option value="used">Used</option>
+                  <option value="demo">Demo / Ex-Demo</option>
+                  <option value="refurbished">Refurbished</option>
+                </select>
               </div>
 
-              <div className="border-t border-[#E1E5E8] pt-10">
-                <div className="mb-5">
-                  <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
-                    04
-                  </div>
-                  <h3 className="mt-1 text-xl font-black text-[#34414A]">
-                    Photos & Video
-                  </h3>
-                  <p className="mt-1 text-sm text-[#66737C]">
-                    Add, remove, or reorder photos (max 10). Replace the video if you like.
-                  </p>
-                </div>
-
-                <ImageVideoManager
-                  userId={user.id}
-                  initialImages={listing.images || []}
-                  initialVideo={listing.video_url || null}
-                  onImagesChange={() => {}}
-                  onVideoChange={() => {}}
-                  maxImages={10}
-                  uploadRef={uploadRef}
+              <div>
+                <label
+                  htmlFor="make"
+                  className="mb-2 block text-sm font-bold text-[#34414A]"
+                >
+                  Make / Brand *
+                </label>
+                <input
+                  id="make"
+                  name="make"
+                  type="text"
+                  required
+                  defaultValue={listing.make || ""}
+                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
                 />
               </div>
 
-              <div className="border-t border-[#E1E5E8] pt-8">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-base font-bold text-white shadow-md transition hover:brightness-105 disabled:opacity-70 disabled:cursor-not-allowed"
+              <div>
+                <label
+                  htmlFor="model"
+                  className="mb-2 block text-sm font-bold text-[#34414A]"
                 >
-                  {saving ? "SAVING CHANGES..." : "SAVE CHANGES"}
-                </button>
+                  Model *
+                </label>
+                <input
+                  id="model"
+                  name="model"
+                  type="text"
+                  required
+                  defaultValue={listing.model || ""}
+                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="year"
+                  className="mb-2 block text-sm font-bold text-[#34414A]"
+                >
+                  Year
+                </label>
+                <input
+                  id="year"
+                  name="year"
+                  type="number"
+                  min="1900"
+                  max="2100"
+                  defaultValue={listing.year || ""}
+                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="price"
+                  className="mb-2 block text-sm font-bold text-[#34414A]"
+                >
+                  Price (R) *
+                </label>
+                <input
+                  id="price"
+                  name="price"
+                  type="number"
+                  min="0"
+                  required
+                  defaultValue={listing.price || ""}
+                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="mileage"
+                  className="mb-2 block text-sm font-bold text-[#34414A]"
+                >
+                  Mileage / Hours
+                </label>
+                <input
+                  id="mileage"
+                  name="mileage"
+                  type="text"
+                  defaultValue={listing.mileage || ""}
+                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="location"
+                  className="mb-2 block text-sm font-bold text-[#34414A]"
+                >
+                  Location *
+                </label>
+                <input
+                  id="location"
+                  name="location"
+                  type="text"
+                  required
+                  defaultValue={listing.location || ""}
+                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="transmission"
+                  className="mb-2 block text-sm font-bold text-[#34414A]"
+                >
+                  Transmission
+                </label>
+                <select
+                  id="transmission"
+                  name="transmission"
+                  defaultValue={listing.transmission || ""}
+                  className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                >
+                  <option value="">Select transmission</option>
+                  <option value="automatic">Automatic</option>
+                  <option value="manual">Manual</option>
+                  <option value="cvt">CVT</option>
+                  <option value="other">Other / N/A</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="fuel"
+                  className="mb-2 block text-sm font-bold text-[#34414A]"
+                >
+                  Fuel Type
+                </label>
+                <select
+                  id="fuel"
+                  name="fuel"
+                  defaultValue={listing.fuel || ""}
+                  className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                >
+                  <option value="">Select fuel type</option>
+                  <option value="petrol">Petrol</option>
+                  <option value="diesel">Diesel</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="electric">Electric</option>
+                  <option value="other">Other / N/A</option>
+                </select>
               </div>
             </div>
-          </form>
-        </div>
+
+            <div>
+              <label
+                htmlFor="description"
+                className="mb-2 block text-sm font-bold text-[#34414A]"
+              >
+                Description *
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                required
+                rows={6}
+                defaultValue={listing.description || ""}
+                className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+              />
+            </div>
+
+            <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4">
+              <div className="flex items-start gap-3">
+                <span className="text-lg">ℹ️</span>
+                <p className="text-xs leading-5 text-[#8F7130]">
+                  <strong>Images & video cannot be changed here.</strong> If
+                  you need to swap photos, delete this listing and create a new
+                  one, or wait for admin to approve and update manually.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-[#E1E5E8] pt-6 sm:flex-row">
+              <Link
+                href="/my-listings"
+                className="flex-1 rounded-xl border border-[#D5DBDF] bg-white px-6 py-4 text-center text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
+              >
+                Cancel
+              </Link>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-sm font-bold text-white shadow-md hover:brightness-105 disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </form>
       </section>
     </main>
   );
