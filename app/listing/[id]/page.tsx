@@ -76,7 +76,7 @@ export default function ListingDetailPage() {
           .from("listings")
           .select("*")
           .eq("id", listingId)
-          .single();
+          .maybeSingle();
 
         if (listingError || !listingData) {
           setNotFound(true);
@@ -85,12 +85,12 @@ export default function ListingDetailPage() {
         }
 
         const isOwner = user && listingData.user_id === user.id;
-        const isActive = listingData.status === "active";
-        const isExpired =
-          listingData.expires_at && new Date(listingData.expires_at) < new Date();
 
-        // Allow view if: active, OR owner, OR admin
-        if ((!isActive || isExpired) && !isOwner && !amIAdmin) {
+        // Allow viewing if: active, OR owner, OR admin
+        const canView =
+          listingData.status === "active" || isOwner || amIAdmin;
+
+        if (!canView) {
           setNotFound(true);
           setLoading(false);
           return;
@@ -98,16 +98,14 @@ export default function ListingDetailPage() {
 
         setListing(listingData);
 
-        // Fetch seller profile
         const { data: sellerData } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", listingData.user_id)
-          .single();
+          .maybeSingle();
         setSeller(sellerData);
 
-        // Increment views (only if not the owner)
-        if (!isOwner) {
+        if (!isOwner && listingData.status === "active") {
           try {
             await supabase
               .from("listings")
@@ -118,20 +116,16 @@ export default function ListingDetailPage() {
           }
         }
 
-        // Fetch reviews
         const { data: reviewData, error: reviewError } = await supabase
           .from("listing_reviews")
           .select("*")
           .eq("listing_id", listingId)
           .order("created_at", { ascending: false });
 
-        if (reviewError) {
-          console.error("Reviews fetch error:", reviewError);
-        } else {
+        if (!reviewError) {
           setReviews(reviewData || []);
         }
 
-        // Load user's existing review
         if (user && user.id !== listingData.user_id) {
           const { data: existing } = await supabase
             .from("listing_reviews")
@@ -200,7 +194,6 @@ export default function ListingDetailPage() {
         .update({
           rating: reviewRating,
           comment: reviewComment.trim() || null,
-          updated_at: new Date().toISOString(),
         })
         .eq("id", myReview.id);
 
@@ -226,7 +219,7 @@ export default function ListingDetailPage() {
         setReviewMessage("Error: " + error.message);
         setReviewMessageType("error");
       } else {
-        setReviewMessage("✓ Review posted. Thank you!");
+        setReviewMessage("✓ Review posted.");
         setReviewMessageType("success");
         await fetchReviews();
         const { data: existing } = await supabase
@@ -292,8 +285,7 @@ export default function ListingDetailPage() {
             Listing not found
           </h1>
           <p className="mt-3 text-sm text-[#66737C]">
-            This listing may have been removed, is no longer available, or is
-            still pending admin approval.
+            This listing doesn&apos;t exist or has been removed.
           </p>
           <Link
             href="/marketplace"
@@ -316,7 +308,6 @@ export default function ListingDetailPage() {
   return (
     <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
       <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Preview banner for owner/admin when listing not public */}
         {listing.status !== "active" && (isOwner || isAdmin) && (
           <div className="mb-6 rounded-2xl border-2 border-yellow-400 bg-yellow-50 p-4 text-center">
             <div className="text-sm font-black text-yellow-800">
@@ -324,23 +315,13 @@ export default function ListingDetailPage() {
               <span className="uppercase">{listing.status}</span> and not yet
               visible to the public
             </div>
-            {isOwner && (
-              <p className="mt-1 text-xs text-yellow-700">
-                Only you and admins can see this page right now.
-              </p>
-            )}
           </div>
         )}
 
-        {/* Breadcrumb */}
         <div className="mb-6 flex flex-wrap items-center gap-2 text-xs font-bold text-[#89939A]">
-          <Link href="/" className="hover:text-[#8F7130]">
-            Home
-          </Link>
+          <Link href="/" className="hover:text-[#8F7130]">Home</Link>
           <span>/</span>
-          <Link href="/marketplace" className="hover:text-[#8F7130]">
-            Marketplace
-          </Link>
+          <Link href="/marketplace" className="hover:text-[#8F7130]">Marketplace</Link>
           <span>/</span>
           <span className="text-[#34414A]">
             {listing.year} {listing.make} {listing.model}
@@ -348,7 +329,6 @@ export default function ListingDetailPage() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          {/* LEFT: Images + description */}
           <div className="space-y-6">
             <div className="overflow-hidden rounded-3xl border border-[#D5DBDF] bg-white shadow-sm">
               <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
@@ -372,11 +352,7 @@ export default function ListingDetailPage() {
                           : "border-transparent opacity-70 hover:opacity-100"
                       }`}
                     >
-                      <img
-                        src={img}
-                        alt={`Thumbnail ${i + 1}`}
-                        className="h-full w-full object-cover"
-                      />
+                      <img src={img} alt={`Thumb ${i + 1}`} className="h-full w-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -388,12 +364,7 @@ export default function ListingDetailPage() {
                 <div className="mb-3 text-sm font-black uppercase tracking-[0.14em] text-[#9A7B37]">
                   Video Walk-Around
                 </div>
-                <video
-                  src={listing.video_url}
-                  controls
-                  className="w-full rounded-xl"
-                  style={{ maxHeight: "400px" }}
-                />
+                <video src={listing.video_url} controls className="w-full rounded-xl" style={{ maxHeight: "400px" }} />
               </div>
             )}
 
@@ -404,52 +375,27 @@ export default function ListingDetailPage() {
               </p>
             </div>
 
-            {/* REVIEWS SECTION */}
             <div className="rounded-3xl border border-[#D5DBDF] bg-white p-6 shadow-sm sm:p-8">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-xl font-black text-[#34414A]">
-                    Reviews & Ratings
-                  </h2>
-                  {reviews.length > 0 ? (
-                    <div className="mt-2 flex items-center gap-3">
-                      <div className="flex items-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <span
-                            key={star}
-                            className={
-                              star <= Math.round(averageRating)
-                                ? "text-[#B08D3C]"
-                                : "text-[#D5DBDF]"
-                            }
-                          >
-                            ★
-                          </span>
-                        ))}
-                      </div>
-                      <span className="text-sm font-black text-[#34414A]">
-                        {averageRating.toFixed(1)}
-                      </span>
-                      <span className="text-xs text-[#89939A]">
-                        ({reviews.length} review
-                        {reviews.length === 1 ? "" : "s"})
-                      </span>
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-xs text-[#89939A]">
-                      No reviews yet — be the first.
-                    </p>
-                  )}
+              <h2 className="text-xl font-black text-[#34414A]">Reviews & Ratings</h2>
+
+              {reviews.length > 0 ? (
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <span key={star} className={star <= Math.round(averageRating) ? "text-[#B08D3C]" : "text-[#D5DBDF]"}>★</span>
+                    ))}
+                  </div>
+                  <span className="text-sm font-black text-[#34414A]">{averageRating.toFixed(1)}</span>
+                  <span className="text-xs text-[#89939A]">({reviews.length} reviews)</span>
                 </div>
-              </div>
+              ) : (
+                <p className="mt-2 text-xs text-[#89939A]">No reviews yet.</p>
+              )}
 
               {!currentUser ? (
                 <div className="mt-6 rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-5 text-center">
                   <p className="text-sm font-bold text-[#8F7130]">
-                    <Link href="/login" className="underline">
-                      Log in
-                    </Link>{" "}
-                    to leave a review.
+                    <Link href="/login" className="underline">Log in</Link> to leave a review.
                   </p>
                 </div>
               ) : isOwner ? (
@@ -461,7 +407,6 @@ export default function ListingDetailPage() {
                   <div className="text-sm font-black text-[#34414A]">
                     {myReview ? "Update your review" : "Leave a review"}
                   </div>
-
                   <div className="mt-3 flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
@@ -469,58 +414,45 @@ export default function ListingDetailPage() {
                         type="button"
                         onClick={() => setReviewRating(star)}
                         className={`text-3xl transition hover:scale-110 ${
-                          star <= reviewRating
-                            ? "text-[#B08D3C]"
-                            : "text-[#D5DBDF]"
+                          star <= reviewRating ? "text-[#B08D3C]" : "text-[#D5DBDF]"
                         }`}
-                        aria-label={`${star} star${star === 1 ? "" : "s"}`}
                       >
                         ★
                       </button>
                     ))}
                   </div>
-
                   <textarea
                     rows={3}
                     value={reviewComment}
                     onChange={(e) => setReviewComment(e.target.value)}
                     placeholder="Share your experience (optional)..."
-                    className="mt-4 w-full resize-y rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="mt-4 w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C]"
                   />
-
                   {reviewMessage && (
-                    <div
-                      className={`mt-3 rounded-xl border p-3 text-center text-xs font-bold ${
-                        reviewMessageType === "success"
-                          ? "border-green-200 bg-green-50 text-green-700"
-                          : "border-red-200 bg-red-50 text-red-600"
-                      }`}
-                    >
+                    <div className={`mt-3 rounded-xl border p-3 text-center text-xs font-bold ${
+                      reviewMessageType === "success"
+                        ? "border-green-200 bg-green-50 text-green-700"
+                        : "border-red-200 bg-red-50 text-red-600"
+                    }`}>
                       {reviewMessage}
                     </div>
                   )}
-
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={handleSubmitReview}
                       disabled={submittingReview || reviewRating < 1}
-                      className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-5 py-2.5 text-xs font-bold text-white shadow-md hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-5 py-2.5 text-xs font-bold text-white disabled:opacity-50"
                     >
-                      {submittingReview
-                        ? "Saving..."
-                        : myReview
-                        ? "Update Review"
-                        : "Post Review"}
+                      {submittingReview ? "Saving..." : myReview ? "Update Review" : "Post Review"}
                     </button>
-
                     {myReview && (
                       <button
                         type="button"
                         onClick={handleDeleteReview}
-                        className="rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-xs font-bold text-red-600 hover:bg-red-100"
+                        className="rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-xs font-bold text-red-600"
                       >
-                        Delete Review
+                        Delete
                       </button>
                     )}
                   </div>
@@ -534,70 +466,39 @@ export default function ListingDetailPage() {
                   </div>
                 ) : (
                   reviews.map((review) => (
-                    <div
-                      key={review.id}
-                      className="rounded-2xl border border-[#E1E5E8] bg-white p-5"
-                    >
+                    <div key={review.id} className="rounded-2xl border border-[#E1E5E8] bg-white p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-sm font-black text-white">
-                            {review.reviewer_name?.charAt(0).toUpperCase() ||
-                              "?"}
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-sm font-black text-white">
+                            {review.reviewer_name?.charAt(0).toUpperCase() || "?"}
                           </div>
                           <div>
-                            <div className="text-sm font-black text-[#34414A]">
-                              {review.reviewer_name}
-                            </div>
+                            <div className="text-sm font-black">{review.reviewer_name}</div>
                             <div className="text-xs text-[#89939A]">
-                              {new Date(review.created_at).toLocaleDateString(
-                                "en-ZA",
-                                {
-                                  day: "numeric",
-                                  month: "short",
-                                  year: "numeric",
-                                }
-                              )}
+                              {new Date(review.created_at).toLocaleDateString("en-ZA", {
+                                day: "numeric", month: "short", year: "numeric",
+                              })}
                             </div>
                           </div>
                         </div>
-
                         <div className="flex items-center gap-0.5">
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <span
-                              key={star}
-                              className={
-                                star <= review.rating
-                                  ? "text-[#B08D3C]"
-                                  : "text-[#D5DBDF]"
-                              }
-                            >
-                              ★
-                            </span>
+                            <span key={star} className={star <= review.rating ? "text-[#B08D3C]" : "text-[#D5DBDF]"}>★</span>
                           ))}
                         </div>
                       </div>
-
                       {review.comment && (
-                        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[#4A5962]">
-                          {review.comment}
-                        </p>
+                        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[#4A5962]">{review.comment}</p>
                       )}
-
                       {isAdmin && (
                         <button
                           onClick={async () => {
-                            if (
-                              !confirm("Admin: delete this review permanently?")
-                            )
-                              return;
+                            if (!confirm("Delete this review?")) return;
                             const supabase = createClient();
-                            await supabase
-                              .from("listing_reviews")
-                              .delete()
-                              .eq("id", review.id);
+                            await supabase.from("listing_reviews").delete().eq("id", review.id);
                             await fetchReviews();
                           }}
-                          className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100"
+                          className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600"
                         >
                           Admin: Delete
                         </button>
@@ -609,98 +510,69 @@ export default function ListingDetailPage() {
             </div>
           </div>
 
-          {/* RIGHT: Price, seller, contact */}
           <div className="space-y-6">
             <div className="rounded-3xl border border-[#D5DBDF] bg-white p-6 shadow-sm sm:p-8">
               <div className="text-xs font-black uppercase tracking-[0.14em] text-[#9A7B37]">
                 {categoryMap[listing.category] || listing.category}
               </div>
-
-              <h1 className="mt-2 text-2xl font-black leading-tight text-[#34414A] sm:text-3xl">
+              <h1 className="mt-2 text-2xl font-black leading-tight sm:text-3xl">
                 {listing.year} {listing.make} {listing.model}
               </h1>
-
               <div className="mt-5 text-3xl font-black text-[#9A7B37] sm:text-4xl">
                 R{Number(listing.price).toLocaleString()}
               </div>
-
               <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-xl bg-[#F7F8F9] px-4 py-3">
                   <div className="text-xs text-[#89939A]">Year</div>
-                  <div className="mt-1 font-bold text-[#34414A]">
-                    {listing.year || "N/A"}
-                  </div>
+                  <div className="mt-1 font-bold">{listing.year || "N/A"}</div>
                 </div>
                 <div className="rounded-xl bg-[#F7F8F9] px-4 py-3">
                   <div className="text-xs text-[#89939A]">Mileage</div>
-                  <div className="mt-1 font-bold text-[#34414A]">
-                    {listing.mileage || "N/A"}
-                  </div>
+                  <div className="mt-1 font-bold">{listing.mileage || "N/A"}</div>
                 </div>
                 <div className="rounded-xl bg-[#F7F8F9] px-4 py-3">
                   <div className="text-xs text-[#89939A]">Transmission</div>
-                  <div className="mt-1 font-bold text-[#34414A]">
-                    {transmissionMap[listing.transmission] ||
-                      listing.transmission ||
-                      "N/A"}
+                  <div className="mt-1 font-bold">
+                    {transmissionMap[listing.transmission] || listing.transmission || "N/A"}
                   </div>
                 </div>
                 <div className="rounded-xl bg-[#F7F8F9] px-4 py-3">
                   <div className="text-xs text-[#89939A]">Fuel</div>
-                  <div className="mt-1 font-bold text-[#34414A]">
-                    {fuelMap[listing.fuel] || listing.fuel || "N/A"}
-                  </div>
+                  <div className="mt-1 font-bold">{fuelMap[listing.fuel] || listing.fuel || "N/A"}</div>
                 </div>
               </div>
-
               <div className="mt-5 rounded-xl bg-[#F7F8F9] px-4 py-3">
                 <div className="text-xs text-[#89939A]">Location</div>
-                <div className="mt-1 font-bold text-[#34414A]">
-                  📍 {listing.location}
-                </div>
+                <div className="mt-1 font-bold">📍 {listing.location}</div>
               </div>
-
               <div className="mt-6 flex flex-col gap-3">
-                <a
-                  href={`tel:${listing.seller_phone}`}
-                  className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-center text-sm font-black text-white shadow-md hover:brightness-105"
-                >
+                <a href={`tel:${listing.seller_phone}`} className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-center text-sm font-black text-white">
                   📞 Call Seller
                 </a>
                 <a
-                  href={`https://wa.me/${listing.seller_phone.replace(
-                    /[^0-9]/g,
-                    ""
-                  )}?text=${encodeURIComponent(
-                    `Hi, I'm interested in your ${listing.year} ${listing.make} ${listing.model} listed on Balray Autos for R${Number(
-                      listing.price
-                    ).toLocaleString()}.`
+                  href={`https://wa.me/${listing.seller_phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                    `Hi, I'm interested in your ${listing.year} ${listing.make} ${listing.model} listed on Balray Autos for R${Number(listing.price).toLocaleString()}.`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-xl bg-[#25D366] px-6 py-4 text-center text-sm font-black text-white shadow-md hover:bg-[#20BD5A]"
+                  className="rounded-xl bg-[#25D366] px-6 py-4 text-center text-sm font-black text-white"
                 >
                   💬 WhatsApp Seller
                 </a>
               </div>
-
               <div className="mt-4 text-center text-xs text-[#89939A]">
                 👁️ {listing.views || 0} views
               </div>
             </div>
 
             <div className="rounded-3xl border border-[#D5DBDF] bg-white p-6 shadow-sm sm:p-8">
-              <div className="text-xs font-black uppercase tracking-[0.14em] text-[#9A7B37]">
-                Seller
-              </div>
+              <div className="text-xs font-black uppercase tracking-[0.14em] text-[#9A7B37]">Seller</div>
               <div className="mt-3 flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-lg font-black text-white">
                   {listing.seller_name?.charAt(0).toUpperCase() || "?"}
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-black text-[#34414A]">
-                    {listing.seller_name}
-                  </div>
+                  <div className="truncate text-sm font-black">{listing.seller_name}</div>
                   <div className="text-xs text-[#66737C]">
                     {seller?.seller_type === "dealer"
                       ? "Dealer"
@@ -712,7 +584,7 @@ export default function ListingDetailPage() {
               </div>
             </div>
 
-            {isOwner && listing.status !== "active" && (
+            {isOwner && listing.status !== "sold" && (
               <Link
                 href={`/edit-listing/${listing.id}`}
                 className="block rounded-3xl border-2 border-[#34414A] bg-[#34414A] p-5 text-center text-sm font-bold text-white hover:bg-[#4A5962]"
