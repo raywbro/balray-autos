@@ -37,7 +37,6 @@ export default function MyListingsPage() {
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-
     if (error) {
       console.error("Fetch error:", error);
       return;
@@ -56,14 +55,9 @@ export default function MyListingsPage() {
     images?: string[],
     videoUrl?: string | null
   ) => {
-    const confirmed = confirm(
-      "Are you sure you want to delete this listing? This cannot be undone."
-    );
-    if (!confirmed) return;
-
+    if (!confirm("Delete this listing? This cannot be undone.")) return;
     setDeletingId(id);
     const supabase = createClient();
-
     try {
       if (images && images.length > 0) {
         const imagePaths = images
@@ -72,12 +66,10 @@ export default function MyListingsPage() {
             return parts[1] || null;
           })
           .filter(Boolean) as string[];
-
         if (imagePaths.length > 0) {
           await supabase.storage.from("car-images").remove(imagePaths);
         }
       }
-
       if (videoUrl) {
         const parts = videoUrl.split("/car-videos/");
         const videoPath = parts[1];
@@ -85,17 +77,14 @@ export default function MyListingsPage() {
           await supabase.storage.from("car-videos").remove([videoPath]);
         }
       }
-
       const { error } = await supabase.from("listings").delete().eq("id", id);
-
       if (error) {
         showMessage("Error deleting: " + error.message, "error");
         setDeletingId(null);
         return;
       }
-
       setListings((prev) => prev.filter((l) => l.id !== id));
-      showMessage("✓ Listing deleted permanently.");
+      showMessage("✓ Listing deleted.");
     } catch (err: any) {
       showMessage("Error: " + (err.message || "Something went wrong"), "error");
     } finally {
@@ -104,31 +93,27 @@ export default function MyListingsPage() {
   };
 
   const handleMarkSold = async (id: string) => {
-    const confirmed = confirm("Mark this listing as sold?");
-    if (!confirmed) return;
-
+    if (!confirm("Mark this listing as sold?")) return;
     const supabase = createClient();
     const { error } = await supabase
       .from("listings")
       .update({ status: "sold" })
       .eq("id", id);
-
     if (error) {
       showMessage("Error: " + error.message, "error");
       return;
     }
-
     setListings((prev) =>
       prev.map((l) => (l.id === id ? { ...l, status: "sold" } : l))
     );
-    showMessage("✓ Listing marked as sold.");
+    showMessage("✓ Marked as sold.");
   };
 
   if (loading) {
     return (
       <main className="min-h-screen w-full flex items-center justify-center bg-[#F7F8F9]">
         <div className="text-lg font-bold animate-pulse text-[#9A7B37]">
-          Loading your listings...
+          Loading...
         </div>
       </main>
     );
@@ -177,9 +162,6 @@ export default function MyListingsPage() {
             <h2 className="mt-4 text-xl font-black text-[#34414A]">
               No listings yet
             </h2>
-            <p className="mt-2 text-sm text-[#66737C]">
-              Create your first listing to start selling.
-            </p>
             <Link
               href="/sell"
               className="mt-6 inline-block rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-sm font-bold text-white"
@@ -200,9 +182,7 @@ export default function MyListingsPage() {
                 <div
                   key={item.id}
                   className={`rounded-2xl border bg-white p-5 shadow-sm ${
-                    isPending
-                      ? "border-yellow-300 bg-yellow-50/40"
-                      : "border-[#D5DBDF]"
+                    isPending ? "border-yellow-300" : "border-[#D5DBDF]"
                   }`}
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -244,17 +224,6 @@ export default function MyListingsPage() {
                         <p className="text-xs text-[#66737C] mt-1">
                           📍 {item.location} • 👁️ {item.views || 0} views
                         </p>
-                        {isPending && (
-                          <p className="mt-2 text-xs font-bold text-yellow-800">
-                            Awaiting admin approval.
-                          </p>
-                        )}
-                        {isActive && (
-                          <p className="mt-2 text-xs font-bold text-green-700">
-                            Live on marketplace. Editing will send it back for
-                            approval.
-                          </p>
-                        )}
                       </div>
                     </div>
 

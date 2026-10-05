@@ -10,7 +10,6 @@ export default function EditListingPage() {
   const listingId = params?.id as string;
   const router = useRouter();
 
-  const [user, setUser] = useState<any>(null);
   const [listing, setListing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -21,13 +20,11 @@ export default function EditListingPage() {
   useEffect(() => {
     const load = async () => {
       const supabase = createClient();
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-      if (userError || !user) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         router.push("/login");
         return;
       }
-      setUser(user);
 
       const { data: listingData, error } = await supabase
         .from("listings")
@@ -99,18 +96,13 @@ export default function EditListingPage() {
         return;
       }
 
-      if (wasActive) {
-        setSuccessMessage(
-          "✓ Changes saved. Your listing is now back in review and will go live once admin approves it."
-        );
-      } else {
-        setSuccessMessage("✓ Listing updated. Admin will review shortly.");
-      }
-
+      setSuccessMessage(
+        wasActive
+          ? "✓ Saved. Your listing is back in review."
+          : "✓ Listing updated."
+      );
       setSaving(false);
-      setTimeout(() => {
-        router.push("/my-listings");
-      }, 1800);
+      setTimeout(() => router.push("/my-listings"), 1500);
     } catch (err: any) {
       setErrorMessage(err.message || "Something went wrong");
       setSaving(false);
@@ -121,7 +113,7 @@ export default function EditListingPage() {
     return (
       <main className="min-h-screen w-full flex items-center justify-center bg-[#F7F8F9]">
         <div className="text-lg font-bold animate-pulse text-[#9A7B37]">
-          Loading listing...
+          Loading...
         </div>
       </main>
     );
@@ -133,11 +125,10 @@ export default function EditListingPage() {
         <div className="max-w-md rounded-2xl border border-[#D5DBDF] bg-white p-8 text-center shadow-sm">
           <div className="text-4xl">🔒</div>
           <h1 className="mt-4 text-2xl font-black text-[#34414A]">
-            Cannot Edit This Listing
+            Cannot Edit
           </h1>
           <p className="mt-3 text-sm text-[#66737C]">
-            Either this listing doesn&apos;t exist, it&apos;s not yours, or it
-            has been marked as sold.
+            This listing doesn&apos;t exist, isn&apos;t yours, or is sold.
           </p>
           <Link
             href="/my-listings"
@@ -153,49 +144,25 @@ export default function EditListingPage() {
   return (
     <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
       <section className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <Link
-              href="/my-listings"
-              className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37] hover:underline"
-            >
-              ← Back to My Listings
-            </Link>
-            <h1 className="mt-2 text-3xl font-black text-[#34414A]">
-              Edit Your Listing
-            </h1>
-            <p className="mt-2 text-sm text-[#66737C]">
-              {listing.status === "active"
-                ? "This listing is currently live. Editing will send it back to admin for approval before it goes live again."
-                : "This listing is pending. Admin will review your changes."}
-            </p>
-          </div>
-          <div
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider ${
-              listing.status === "active"
-                ? "border border-green-300 bg-green-50 text-green-800"
-                : "border border-yellow-300 bg-yellow-50 text-yellow-800"
-            }`}
+        <div className="mb-6">
+          <Link
+            href="/my-listings"
+            className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37] hover:underline"
           >
-            {listing.status === "active" ? "🟢 Live" : "⏳ Pending Review"}
-          </div>
+            ← Back
+          </Link>
+          <h1 className="mt-2 text-3xl font-black">Edit Listing</h1>
+          <p className="mt-2 text-sm text-[#66737C]">
+            {listing.status === "active"
+              ? "This listing is live. Saving will send it back to admin for approval."
+              : "Saving updates your pending listing."}
+          </p>
         </div>
 
         {listing.status === "active" && (
-          <div className="mb-6 rounded-2xl border-2 border-yellow-300 bg-yellow-50 p-5">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">⚠️</span>
-              <div>
-                <div className="text-sm font-black text-yellow-800">
-                  Heads up — editing a live listing
-                </div>
-                <p className="mt-1 text-xs leading-5 text-yellow-800/90">
-                  When you save, this listing will be taken off the marketplace
-                  and sent back to admin for re-approval. It will only go live
-                  again once admin approves your changes.
-                </p>
-              </div>
-            </div>
+          <div className="mb-6 rounded-2xl border-2 border-yellow-300 bg-yellow-50 p-4 text-sm font-bold text-yellow-800">
+            ⚠️ Editing will take this listing off the marketplace until admin
+            re-approves.
           </div>
         )}
 
@@ -211,273 +178,178 @@ export default function EditListingPage() {
           </div>
         )}
 
-        <form
-          onSubmit={handleSave}
-          className="overflow-hidden rounded-3xl border border-[#D5DBDF] bg-white shadow-sm"
-        >
-          <div className="border-b border-[#E1E5E8] bg-[#34414A] px-6 py-6 sm:px-8">
-            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#D2B66A]">
-              Edit Details
-            </div>
-            <h2 className="mt-2 text-2xl font-black text-white">
-              {listing.year} {listing.make} {listing.model}
-            </h2>
-          </div>
-
-          <div className="space-y-8 p-6 sm:p-8">
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="sellerType"
-                  className="mb-2 block text-sm font-bold text-[#34414A]"
-                >
-                  Seller Type *
-                </label>
-                <select
-                  id="sellerType"
-                  name="sellerType"
-                  required
-                  defaultValue={listing.seller_type || ""}
-                  className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                >
-                  <option value="" disabled>
-                    Select seller type
-                  </option>
-                  <option value="private">Private Seller</option>
-                  <option value="dealer">Dealer</option>
-                  <option value="business">Business</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="category"
-                  className="mb-2 block text-sm font-bold text-[#34414A]"
-                >
-                  Category *
-                </label>
-                <select
-                  id="category"
-                  name="category"
-                  required
-                  defaultValue={listing.category || ""}
-                  className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                >
-                  <option value="" disabled>
-                    Select category
-                  </option>
-                  <option value="cars">Cars & SUVs</option>
-                  <option value="bakkies">Bakkies & 4x4s</option>
-                  <option value="motorcycles">Motorcycles</option>
-                  <option value="trucks">Trucks & Commercial</option>
-                  <option value="machinery">Machinery & Equipment</option>
-                  <option value="parts">Parts & Accessories</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="condition"
-                  className="mb-2 block text-sm font-bold text-[#34414A]"
-                >
-                  Condition *
-                </label>
-                <select
-                  id="condition"
-                  name="condition"
-                  required
-                  defaultValue={listing.condition || ""}
-                  className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                >
-                  <option value="" disabled>
-                    Select condition
-                  </option>
-                  <option value="new">New</option>
-                  <option value="used">Used</option>
-                  <option value="demo">Demo / Ex-Demo</option>
-                  <option value="refurbished">Refurbished</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="make"
-                  className="mb-2 block text-sm font-bold text-[#34414A]"
-                >
-                  Make / Brand *
-                </label>
-                <input
-                  id="make"
-                  name="make"
-                  type="text"
-                  required
-                  defaultValue={listing.make || ""}
-                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="model"
-                  className="mb-2 block text-sm font-bold text-[#34414A]"
-                >
-                  Model *
-                </label>
-                <input
-                  id="model"
-                  name="model"
-                  type="text"
-                  required
-                  defaultValue={listing.model || ""}
-                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="year"
-                  className="mb-2 block text-sm font-bold text-[#34414A]"
-                >
-                  Year
-                </label>
-                <input
-                  id="year"
-                  name="year"
-                  type="number"
-                  min="1900"
-                  max="2100"
-                  defaultValue={listing.year || ""}
-                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="price"
-                  className="mb-2 block text-sm font-bold text-[#34414A]"
-                >
-                  Price (R) *
-                </label>
-                <input
-                  id="price"
-                  name="price"
-                  type="number"
-                  min="0"
-                  required
-                  defaultValue={listing.price || ""}
-                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="mileage"
-                  className="mb-2 block text-sm font-bold text-[#34414A]"
-                >
-                  Mileage / Hours
-                </label>
-                <input
-                  id="mileage"
-                  name="mileage"
-                  type="text"
-                  defaultValue={listing.mileage || ""}
-                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="location"
-                  className="mb-2 block text-sm font-bold text-[#34414A]"
-                >
-                  Location *
-                </label>
-                <input
-                  id="location"
-                  name="location"
-                  type="text"
-                  required
-                  defaultValue={listing.location || ""}
-                  className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="transmission"
-                  className="mb-2 block text-sm font-bold text-[#34414A]"
-                >
-                  Transmission
-                </label>
-                <select
-                  id="transmission"
-                  name="transmission"
-                  defaultValue={listing.transmission || ""}
-                  className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                >
-                  <option value="">Select transmission</option>
-                  <option value="automatic">Automatic</option>
-                  <option value="manual">Manual</option>
-                  <option value="cvt">CVT</option>
-                  <option value="other">Other / N/A</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="fuel"
-                  className="mb-2 block text-sm font-bold text-[#34414A]"
-                >
-                  Fuel Type
-                </label>
-                <select
-                  id="fuel"
-                  name="fuel"
-                  defaultValue={listing.fuel || ""}
-                  className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
-                >
-                  <option value="">Select fuel type</option>
-                  <option value="petrol">Petrol</option>
-                  <option value="diesel">Diesel</option>
-                  <option value="hybrid">Hybrid</option>
-                  <option value="electric">Electric</option>
-                  <option value="other">Other / N/A</option>
-                </select>
-              </div>
+        <form onSubmit={handleSave} className="space-y-6 rounded-3xl border border-[#D5DBDF] bg-white p-6 shadow-sm sm:p-8">
+          <div className="grid gap-5 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-bold">Seller Type *</label>
+              <select
+                name="sellerType"
+                required
+                defaultValue={listing.seller_type || ""}
+                className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C]"
+              >
+                <option value="" disabled>Select</option>
+                <option value="private">Private Seller</option>
+                <option value="dealer">Dealer</option>
+                <option value="business">Business</option>
+              </select>
             </div>
 
             <div>
-              <label
-                htmlFor="description"
-                className="mb-2 block text-sm font-bold text-[#34414A]"
-              >
-                Description *
-              </label>
-              <textarea
-                id="description"
-                name="description"
+              <label className="mb-2 block text-sm font-bold">Category *</label>
+              <select
+                name="category"
                 required
-                rows={6}
-                defaultValue={listing.description || ""}
-                className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                defaultValue={listing.category || ""}
+                className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C]"
+              >
+                <option value="" disabled>Select</option>
+                <option value="cars">Cars & SUVs</option>
+                <option value="bakkies">Bakkies & 4x4s</option>
+                <option value="motorcycles">Motorcycles</option>
+                <option value="trucks">Trucks & Commercial</option>
+                <option value="machinery">Machinery & Equipment</option>
+                <option value="parts">Parts & Accessories</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold">Condition *</label>
+              <select
+                name="condition"
+                required
+                defaultValue={listing.condition || ""}
+                className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C]"
+              >
+                <option value="" disabled>Select</option>
+                <option value="new">New</option>
+                <option value="used">Used</option>
+                <option value="demo">Demo / Ex-Demo</option>
+                <option value="refurbished">Refurbished</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold">Make *</label>
+              <input
+                name="make"
+                type="text"
+                required
+                defaultValue={listing.make || ""}
+                className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C]"
               />
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-[#E1E5E8] pt-6 sm:flex-row">
-              <Link
-                href="/my-listings"
-                className="flex-1 rounded-xl border border-[#D5DBDF] bg-white px-6 py-4 text-center text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
-              >
-                Cancel
-              </Link>
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-sm font-bold text-white shadow-md hover:brightness-105 disabled:opacity-60"
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </button>
+            <div>
+              <label className="mb-2 block text-sm font-bold">Model *</label>
+              <input
+                name="model"
+                type="text"
+                required
+                defaultValue={listing.model || ""}
+                className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C]"
+              />
             </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold">Year</label>
+              <input
+                name="year"
+                type="number"
+                defaultValue={listing.year || ""}
+                className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C]"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold">Price (R) *</label>
+              <input
+                name="price"
+                type="number"
+                required
+                defaultValue={listing.price || ""}
+                className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C]"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold">Mileage</label>
+              <input
+                name="mileage"
+                type="text"
+                defaultValue={listing.mileage || ""}
+                className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C]"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold">Location *</label>
+              <input
+                name="location"
+                type="text"
+                required
+                defaultValue={listing.location || ""}
+                className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C]"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold">Transmission</label>
+              <select
+                name="transmission"
+                defaultValue={listing.transmission || ""}
+                className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C]"
+              >
+                <option value="">Select</option>
+                <option value="automatic">Automatic</option>
+                <option value="manual">Manual</option>
+                <option value="cvt">CVT</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold">Fuel Type</label>
+              <select
+                name="fuel"
+                defaultValue={listing.fuel || ""}
+                className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C]"
+              >
+                <option value="">Select</option>
+                <option value="petrol">Petrol</option>
+                <option value="diesel">Diesel</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="electric">Electric</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-bold">Description *</label>
+            <textarea
+              name="description"
+              required
+              rows={6}
+              defaultValue={listing.description || ""}
+              className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C]"
+            />
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/my-listings"
+              className="flex-1 rounded-xl border border-[#D5DBDF] bg-white px-6 py-4 text-center text-sm font-bold"
+            >
+              Cancel
+            </Link>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-sm font-bold text-white disabled:opacity-60"
+            >
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
           </div>
         </form>
       </section>
