@@ -3,272 +3,347 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import HeroBanner from "@/app/components/HeroBanner";
+import OptimizedImage from "@/app/components/OptimizedImage";
 
-export default function MyListingsPage() {
+const categoryMap: Record<string, string> = {
+  cars: "Cars & SUVs",
+  bakkies: "Bakkies & 4x4s",
+  motorcycles: "Motorcycles",
+  trucks: "Trucks & Commercial",
+  machinery: "Machinery & Equipment",
+  parts: "Parts & Accessories",
+};
+
+export default function HomePage() {
   const [listings, setListings] = useState<any[]>([]);
+  const [featuredListings, setFeaturedListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<"success" | "error">("success");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
-    const load = async () => {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        router.push("/login");
-        return;
+    const fetchHomeListings = async () => {
+      try {
+        const now = new Date().toISOString();
+
+        const { data: subscribedProfiles } = await supabase
+          .from("profiles")
+          .select("id")
+          .neq("subscription_tier", "none")
+          .gt("subscription_expires_at", now);
+
+        const subscribedIds = new Set(
+          (subscribedProfiles || []).map((p) => p.id)
+        );
+
+        const { data, error } = await supabase
+          .from("listings")
+          .select("*")
+          .eq("status", "active")
+          .or(`expires_at.is.null,expires_at.gt.${now}`)
+          .order("created_at", { ascending: false })
+          .limit(60);
+
+        if (error) {
+          console.error("Home fetch error:", error);
+          setLoading(false);
+          return;
+        }
+
+        const formatted = (data || []).map((item) => ({
+          id: item.id,
+          userId: item.user_id,
+          title: `${item.year ? item.year + " " : ""}${item.make} ${item.model}`,
+          category: categoryMap[item.category] || item.category,
+          price: `R${Number(item.price).toLocaleString()}`,
+          priceValue: Number(item.price),
+          year: item.year ? item.year.toString() : "N/A",
+          mileage: item.mileage || "N/A",
+          location: item.location,
+          featured: item.featured || false,
+          isSubscribedSeller: subscribedIds.has(item.user_id),
+          views: item.views || 0,
+          createdAt: item.created_at,
+          image:
+            item.images && item.images.length > 0
+              ? item.images[0]
+              : "https://images.unsplash.com/photo-1551830820-330a71b99659?auto=format&fit=crop&w=1200&q=80",
+        }));
+
+        const sorted = [...formatted].sort((a, b) => {
+          if (a.isSubscribedSeller && !b.isSubscribedSeller) return -1;
+          if (!a.isSubscribedSeller && b.isSubscribedSeller) return 1;
+          if (a.featured && !b.featured) return -1;
+          if (!a.featured && b.featured) return 1;
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        });
+
+        setListings(sorted.slice(0, 6));
+        setFeaturedListings(
+          sorted.filter((l) => l.featured || l.isSubscribedSeller).slice(0, 6)
+        );
+      } catch (err) {
+        console.error("Home fetch failed:", err);
+      } finally {
+        setLoading(false);
       }
-      setUser(user);
-      await fetchListings(user.id);
-      setLoading(false);
     };
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
-  const fetchListings = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("listings")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+    fetchHomeListings();
 
-    if (error) {
-      console.error("Fetch error:", error);
-      return;
-    }
-    setListings(data || []);
-  };
-
-  const showMessage = (msg: string, type: "success" | "error" = "success") => {
-    setMessage(msg);
-    setMessageType(type);
-    setTimeout(() => setMessage(""), 5000);
-  };
-
-  const handleDelete = async (
-    id: string,
-    images?: string[],
-    videoUrl?: string | null
-  ) => {
-    const confirmed = confirm(
-      "Are you sure you want to delete this listing? This cannot be undone."
-    );
-    if (!confirmed) return;
-
-    setDeletingId(id);
-
-    try {
-      if (images && images.length > 0) {
-        const imagePaths = images
-          .map((url) => {
-            const parts = url.split("/car-images/");
-            return parts[1] || null;
-          })
-          .filter(Boolean) as string[];
-
-        if (imagePaths.length > 0) {
-          await supabase.storage.from("car-images").remove(imagePaths);
+    const channel = supabase
+      .channel("home-listings")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "listings",
+        },
+        () => {
+          fetchHomeListings();
         }
-      }
+      )
+      .subscribe();
 
-      if (videoUrl) {
-        const parts = videoUrl.split("/car-videos/");
-        const videoPath = parts[1];
-        if (videoPath) {
-          await supabase.storage.from("car-videos").remove([videoPath]);
-        }
-      }
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
 
-      const { error } = await supabase.from("listings").delete().eq("id", id);
-
-      if (error) {
-        showMessage("Error deleting: " + error.message, "error");
-        setDeletingId(null);
-        return;
-      }
-
-      setListings((prev) => prev.filter((l) => l.id !== id));
-      showMessage("✓ Listing deleted permanently.");
-    } catch (err: any) {
-      console.error("Delete failed:", err);
-      showMessage("Error: " + (err.message || "Something went wrong"), "error");
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const handleMarkSold = async (id: string) => {
-    const confirmed = confirm("Mark this listing as sold?");
-    if (!confirmed) return;
-
-    const { error } = await supabase
-      .from("listings")
-      .update({ status: "sold" })
-      .eq("id", id);
-
-    if (error) {
-      showMessage("Error: " + error.message, "error");
-      return;
-    }
-
-    setListings((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, status: "sold" } : l))
-    );
-    showMessage("✓ Listing marked as sold.");
-  };
-
-  if (loading) {
-    return (
-      <main className="min-h-screen w-full flex items-center justify-center bg-[#F7F8F9]">
-        <div className="text-lg font-bold animate-pulse text-[#9A7B37]">
-          Loading your listings...
-        </div>
-      </main>
-    );
-  }
-
-  if (!user) return null;
+  const categories = [
+    { name: "Cars & SUVs", slug: "cars", icon: "🚗" },
+    { name: "Bakkies & 4x4s", slug: "bakkies", icon: "🛻" },
+    { name: "Motorcycles", slug: "motorcycles", icon: "🏍️" },
+    { name: "Trucks & Commercial", slug: "trucks", icon: "🚚" },
+    { name: "Machinery & Equipment", slug: "machinery", icon: "🚜" },
+    { name: "Parts & Accessories", slug: "parts", icon: "🔧" },
+  ];
 
   return (
-    <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
-      <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
+      <HeroBanner
+        subtitle="Buy and sell cars, bakkies, motorcycles, trucks, machinery and parts across South Africa. Trusted sellers. Real vehicles. Instant contact."
+        primaryCTA={{ label: "Browse Marketplace", href: "/marketplace" }}
+        secondaryCTA={{ label: "Sell Your Vehicle", href: "/sell" }}
+      />
+
+      <section className="w-full bg-[#F7F8F9]">
+        <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+              Browse Categories
+            </div>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">
+              Find What You&apos;re Looking For
+            </h2>
+          </div>
+
+          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            {categories.map((cat) => (
+              <Link
+                key={cat.slug}
+                href={`/marketplace?category=${cat.slug}`}
+                className="group flex flex-col items-center gap-3 rounded-2xl border border-[#D5DBDF] bg-white p-5 text-center shadow-sm transition hover:-translate-y-1 hover:border-[#B08D3C] hover:shadow-md"
+              >
+                <div className="text-4xl transition group-hover:scale-110">
+                  {cat.icon}
+                </div>
+                <div className="text-sm font-bold text-[#34414A]">
+                  {cat.name}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {featuredListings.length > 0 && (
+        <section className="w-full bg-gradient-to-b from-white to-[#F7F8F9]">
+          <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+                  Featured & Boosted
+                </div>
+                <h2 className="mt-3 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">
+                  Top Picks
+                </h2>
+              </div>
+              <Link
+                href="/marketplace"
+                className="self-start rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+              >
+                View All →
+              </Link>
+            </div>
+
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredListings.map((listing, index) => (
+                <ListingCard
+                  key={listing.id}
+                  listing={listing}
+                  priority={index === 0}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="w-full bg-[#F7F8F9]">
+        <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+                Fresh Arrivals
+              </div>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">
+                Latest Listings
+              </h2>
+            </div>
+            <Link
+              href="/marketplace"
+              className="self-start rounded-xl border border-[#B08D3C] bg-white px-5 py-3 text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+            >
+              View All →
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="mt-10 rounded-2xl border border-[#D5DBDF] bg-white p-10 text-center animate-pulse">
+              <div className="text-4xl">🚗</div>
+              <h3 className="mt-4 text-xl font-black text-[#34414A]">
+                Loading listings...
+              </h3>
+            </div>
+          ) : listings.length === 0 ? (
+            <div className="mt-10 rounded-2xl border border-[#D5DBDF] bg-white p-10 text-center">
+              <div className="text-4xl">🔍</div>
+              <h3 className="mt-4 text-xl font-black text-[#34414A]">
+                No listings available yet
+              </h3>
+              <p className="mt-2 text-sm text-[#66737C]">
+                Be the first to list your vehicle.
+              </p>
+              <Link
+                href="/sell"
+                className="mt-6 inline-block rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-sm font-bold text-white"
+              >
+                Sell Your Vehicle
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {listings.map((listing) => (
+                <ListingCard
+                  key={listing.id}
+                  listing={listing}
+                  priority={false}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="w-full bg-gradient-to-r from-[#E6EAED] via-[#F7F8F9] to-[#DCE2E6]">
+        <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:px-8 lg:py-16">
           <div>
             <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
-              My Listings
+              Selling a Vehicle?
             </div>
-            <h1 className="mt-2 text-3xl font-black text-[#34414A]">
-              Manage Your Adverts
-            </h1>
-            <p className="mt-2 text-sm text-[#66737C]">
-              {listings.length} listing{listings.length === 1 ? "" : "s"}
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">
+              Put your vehicle in front of potential buyers.
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[#68757D]">
+              Submit your vehicle, machinery or automotive product to Balray
+              Autos and connect with potential buyers across South Africa.
             </p>
           </div>
           <Link
             href="/sell"
-            className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-center text-sm font-bold text-white shadow-md"
+            className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-7 py-4 text-center font-bold text-white shadow-md sm:w-auto"
           >
-            + New Listing
+            List Your Vehicle
           </Link>
         </div>
-
-        {message && (
-          <div
-            className={`mb-6 rounded-xl border p-4 text-center text-sm font-bold ${
-              messageType === "success"
-                ? "border-[#D3B86A]/50 bg-[#FBF7EC] text-[#8F7130]"
-                : "border-red-200 bg-red-50 text-red-600"
-            }`}
-          >
-            {message}
-          </div>
-        )}
-
-        {listings.length === 0 ? (
-          <div className="rounded-2xl border border-[#D5DBDF] bg-white p-10 text-center">
-            <div className="text-4xl">🚗</div>
-            <h2 className="mt-4 text-xl font-black text-[#34414A]">
-              No listings yet
-            </h2>
-            <p className="mt-2 text-sm text-[#66737C]">
-              Create your first listing to start selling.
-            </p>
-            <Link
-              href="/sell"
-              className="mt-6 inline-block rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-sm font-bold text-white"
-            >
-              Create Listing
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {listings.map((item) => {
-              const expired =
-                item.expires_at && new Date(item.expires_at) < new Date();
-
-              return (
-                <div
-                  key={item.id}
-                  className="flex flex-col gap-4 rounded-2xl border border-[#D5DBDF] bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between"
-                >
-                  <div className="flex items-center gap-4">
-                    <img
-                      src={item.images?.[0] || "/placeholder.png"}
-                      alt={item.model}
-                      className="h-20 w-28 rounded-xl bg-[#E9EDF0] object-cover"
-                    />
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="text-lg font-black text-[#34414A]">
-                          {item.year} {item.make} {item.model}
-                        </h3>
-                        {item.status === "active" && !expired && (
-                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">
-                            Active
-                          </span>
-                        )}
-                        {item.status === "pending" && (
-                          <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-700">
-                            Pending Review
-                          </span>
-                        )}
-                        {item.status === "sold" && (
-                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">
-                            Sold
-                          </span>
-                        )}
-                        {expired && (
-                          <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-700">
-                            Expired
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm font-bold text-[#9A7B37]">
-                        R{Number(item.price).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-[#66737C] mt-1">
-                        📍 {item.location} • 👁️ {item.views || 0} views
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      href={`/listing/${item.id}`}
-                      target="_blank"
-                      className="rounded-xl border border-[#B08D3C] bg-white px-4 py-2.5 text-xs font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
-                    >
-                      View
-                    </Link>
-                    {item.status !== "sold" && (
-                      <button
-                        onClick={() => handleMarkSold(item.id)}
-                        className="rounded-xl border border-[#B08D3C] bg-[#FBF7EC] px-4 py-2.5 text-xs font-bold text-[#8F7130] hover:bg-[#F5EDD8]"
-                      >
-                        Mark Sold
-                      </button>
-                    )}
-                    <button
-                      onClick={() =>
-                        handleDelete(item.id, item.images, item.video_url)
-                      }
-                      disabled={deletingId === item.id}
-                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-100 disabled:opacity-60"
-                    >
-                      {deletingId === item.id ? "Deleting..." : "Delete"}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </section>
     </main>
+  );
+}
+
+function ListingCard({
+  listing,
+  priority = false,
+}: {
+  listing: any;
+  priority?: boolean;
+}) {
+  return (
+    <Link
+      href={`/listing/${listing.id}`}
+      className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
+        listing.isSubscribedSeller
+          ? "border-2 border-[#8F7130] shadow-[0_15px_40px_rgba(143,113,48,0.25)]"
+          : listing.featured
+          ? "border-2 border-[#B08D3C] shadow-[0_15px_40px_rgba(176,141,60,0.20)]"
+          : "border border-[#D5DBDF] hover:border-[#B08D3C]/60 hover:shadow-[0_20px_50px_rgba(52,65,74,0.12)]"
+      }`}
+    >
+      <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
+        <OptimizedImage
+          src={listing.image}
+          alt={listing.title}
+          fill={true}
+          priority={priority}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        />
+        <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
+          {listing.category}
+        </div>
+
+        {listing.isSubscribedSeller && (
+          <div className="absolute left-4 top-14 rounded-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C] px-3 py-2 text-xs font-bold text-white shadow-md">
+            🚀 BOOSTED
+          </div>
+        )}
+
+        {!listing.isSubscribedSeller && listing.featured && (
+          <div className="absolute left-4 top-14 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
+            ⭐ FEATURED
+          </div>
+        )}
+      </div>
+
+      <div className="p-5">
+        <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">
+          {listing.title}
+        </h3>
+
+        <div className="mt-3 text-2xl font-black text-[#9A7B37]">
+          {listing.price}
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+          <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
+            <div className="text-[#89939A]">Year</div>
+            <div className="mt-1 font-bold text-[#34414A]">{listing.year}</div>
+          </div>
+          <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
+            <div className="text-[#89939A]">Mileage</div>
+            <div className="mt-1 font-bold text-[#34414A]">
+              {listing.mileage}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 border-t border-[#E1E5E8] pt-4 text-sm text-[#66737C]">
+          📍 {listing.location}
+        </div>
+      </div>
+    </Link>
   );
 }
