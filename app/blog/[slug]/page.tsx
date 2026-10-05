@@ -5,78 +5,49 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams } from "next/navigation";
 
-
-
 export default function BlogPostPage() {
+  const params = useParams();
+  const slug = params?.slug as string;
+
   const [post, setPost] = useState<any>(null);
-  const [relatedPosts, setRelatedPosts] = useState<any[]>([]);
+  const [related, setRelated] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const params = useParams();
-  const supabase = createClient();
-  const slug = params.slug as string;
 
   useEffect(() => {
-    const fetchPost = async () => {
+    if (!slug) return;
+
+    const load = async () => {
+      const supabase = createClient();
       const { data, error } = await supabase
         .from("blog_posts")
         .select("*")
         .eq("slug", slug)
         .eq("published", true)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
-        console.error("Error fetching post:", error);
         setNotFound(true);
         setLoading(false);
         return;
       }
 
       setPost(data);
-      setLoading(false);
-
-      try {
-        await supabase.rpc("increment_post_view", { post_id: data.id });
-      } catch (err) {
-        console.error("Error incrementing views:", err);
-      }
 
       const { data: relatedData } = await supabase
         .from("blog_posts")
-        .select("id, title, slug, cover_image, excerpt, created_at, views")
+        .select("*")
         .eq("published", true)
+        .eq("category", data.category)
         .neq("id", data.id)
-        .order("created_at", { ascending: false })
         .limit(3);
 
-      setRelatedPosts(relatedData || []);
+      setRelated(relatedData || []);
+      setLoading(false);
     };
 
-    if (slug) fetchPost();
-  }, [slug, supabase]);
-
-  const handleShare = async () => {
-    const url = window.location.href;
-    const shareData = {
-      title: post?.title,
-      text: post?.excerpt || post?.title,
-      url: url,
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        // User cancelled
-      }
-    } else {
-      navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
-  };
+    load();
+  }, [slug]);
 
   if (loading) {
     return (
@@ -90,252 +61,180 @@ export default function BlogPostPage() {
 
   if (notFound || !post) {
     return (
-      <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
-        
-        <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-          <div className="text-5xl">📰</div>
-          <h1 className="mt-6 text-3xl font-black text-[#34414A]">
-            Article Not Found
+      <main className="min-h-screen w-full flex items-center justify-center bg-[#F7F8F9] p-4">
+        <div className="max-w-md rounded-2xl border border-[#D5DBDF] bg-white p-8 text-center shadow-sm">
+          <div className="text-4xl">📰</div>
+          <h1 className="mt-4 text-2xl font-black text-[#34414A]">
+            Article not found
           </h1>
-          <p className="mt-3 text-[#66737C]">
-            This article may have been removed or the link is broken.
+          <p className="mt-3 text-sm text-[#66737C]">
+            This article doesn&apos;t exist or has been removed.
           </p>
           <Link
             href="/blog"
-            className="mt-8 inline-block rounded-xl bg-[#34414A] px-6 py-4 font-bold text-white"
+            className="mt-6 inline-block rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-sm font-bold text-white"
           >
             Back to Blog
           </Link>
         </div>
-        
       </main>
     );
   }
 
-  return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      
+  const publishedDate = new Date(post.published_at).toLocaleDateString(
+    "en-ZA",
+    { day: "numeric", month: "long", year: "numeric" }
+  );
 
-      {/* BREADCRUMB */}
-      <div className="bg-white border-b border-[#E1E5E8]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+  return (
+    <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
+      <section className="relative h-[40vh] min-h-[280px] w-full overflow-hidden bg-[#34414A] sm:h-[50vh]">
+        <img
+          src={post.cover_image}
+          alt={post.title}
+          className="h-full w-full object-cover opacity-70"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#34414A] via-[#34414A]/40 to-transparent" />
+      </section>
+
+      <article className="relative mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
+        <div className="-mt-24 rounded-3xl border border-[#D5DBDF] bg-white p-6 shadow-lg sm:-mt-32 sm:p-10">
           <Link
             href="/blog"
-            className="flex items-center gap-2 text-sm font-bold text-[#9A7B37] hover:underline"
+            className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37] hover:underline"
           >
             ← Back to Blog
           </Link>
-        </div>
-      </div>
 
-      {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-[24px] border-[#D9DEE2]/70" />
-        <div className="relative mx-auto w-full max-w-4xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
-          <div className="text-center">
-            <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-[#D3B86A]/50 bg-[#FBF7EC] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#8F7130]">
-              <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-[#8F7130] to-[#D2B66A]" />
-              Balray Autos Blog
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <span className="rounded-full bg-[#FBF7EC] px-3 py-1 text-xs font-black uppercase tracking-wider text-[#8F7130]">
+              {post.category}
+            </span>
+            <span className="text-xs font-bold text-[#89939A]">
+              {post.read_time} min read
+            </span>
+          </div>
+
+          <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight text-[#34414A] sm:text-4xl lg:text-5xl">
+            {post.title}
+          </h1>
+
+          <p className="mt-4 text-lg leading-8 text-[#66737C]">
+            {post.excerpt}
+          </p>
+
+          <div className="mt-8 flex items-center gap-4 border-y border-[#E1E5E8] py-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-lg font-black text-white">
+              {post.author_name.charAt(0)}
             </div>
-
-            <h1 className="text-3xl font-black leading-tight tracking-tight text-[#34414A] sm:text-4xl lg:text-5xl">
-              {post.title}
-            </h1>
-
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-bold text-[#66737C]">
-              <span>
-                📅{" "}
-                {new Date(post.created_at).toLocaleDateString("en-ZA", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </span>
-              <span>👁️ {post.views || 0} views</span>
-              <span>⏱️ ~{Math.ceil((post.content?.split(" ").length || 0) / 200)} min read</span>
+            <div>
+              <div className="text-sm font-black text-[#34414A]">
+                {post.author_name}
+              </div>
+              <div className="text-xs text-[#89939A]">
+                {post.author_role} • {publishedDate}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* MAIN CONTENT */}
-      <section className="w-full bg-[#F7F8F9] py-12">
-        <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
+          <div className="mt-8">
+            {post.content.split("\n\n").map((paragraph: string, i: number) => (
+              <p
+                key={i}
+                className="mb-5 text-base leading-8 text-[#4A5962] sm:text-lg"
+              >
+                {paragraph}
+              </p>
+            ))}
+          </div>
 
-          {post.cover_image && (
-            <div className="mb-10 overflow-hidden rounded-3xl border border-[#D5DBDF] bg-white shadow-sm">
-              <img
-                src={post.cover_image}
-                alt={post.title}
-                className="aspect-[16/9] w-full object-cover"
-              />
-            </div>
-          )}
-
-          <article className="rounded-3xl border border-[#D5DBDF] bg-white p-6 shadow-sm sm:p-10">
-            {post.excerpt && (
-              <div className="mb-8 border-l-4 border-[#B08D3C] bg-[#FBF7EC] p-5 italic">
-                <p className="text-base leading-7 text-[#8F7130]">
-                  {post.excerpt}
+          <div className="mt-10 rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-xl text-white">
+                ✓
+              </div>
+              <div>
+                <div className="text-sm font-black text-[#34414A]">
+                  Expert-Verified Content
+                </div>
+                <p className="mt-1 text-xs leading-5 text-[#8F7130]">
+                  This article was written by {post.author_name},{" "}
+                  {post.author_role}, and reviewed by the Balray Autos editorial
+                  team. We independently verify all automotive and financial
+                  advice before publishing.
                 </p>
               </div>
-            )}
-
-            <div className="prose-content">
-              {post.content.split(/\n\n+/).map((paragraph: string, idx: number) => {
-                const trimmed = paragraph.trim();
-                if (!trimmed) return null;
-
-                const isHeader =
-                  trimmed.length < 80 &&
-                  trimmed === trimmed.toUpperCase() &&
-                  /[A-Z]/.test(trimmed) &&
-                  !trimmed.match(/^[0-9]/);
-
-                if (isHeader) {
-                  return (
-                    <h2
-                      key={idx}
-                      className="mt-10 mb-4 text-2xl font-black leading-tight text-[#34414A]"
-                    >
-                      {trimmed}
-                    </h2>
-                  );
-                }
-
-                if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
-                  const items = trimmed
-                    .split("\n")
-                    .map((line) => line.replace(/^[-•]\s+/, "").trim())
-                    .filter(Boolean);
-
-                  return (
-                    <ul key={idx} className="my-5 space-y-2 pl-6">
-                      {items.map((item, i) => (
-                        <li
-                          key={i}
-                          className="list-disc text-base leading-7 text-[#4A5962]"
-                        >
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  );
-                }
-
-                return (
-                  <p
-                    key={idx}
-                    className="mb-5 text-base leading-8 text-[#4A5962]"
-                  >
-                    {trimmed}
-                  </p>
-                );
-              })}
-            </div>
-
-            <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-[#E1E5E8] pt-8">
-              <div className="text-sm font-bold text-[#66737C]">
-                Found this helpful? Share it!
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={handleShare}
-                  className="rounded-xl border border-[#D5DBDF] bg-white px-5 py-3 text-sm font-bold text-[#34414A] hover:bg-[#F7F8F9]"
-                >
-                  {copied ? "✓ Link Copied!" : "🔗 Copy Link"}
-                </button>
-                <a
-                  href={`https://wa.me/?text=${encodeURIComponent(
-                    `${post.title} - ${typeof window !== "undefined" ? window.location.href : ""}`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-xl border border-[#25D366]/40 bg-[#25D366]/10 px-5 py-3 text-sm font-bold text-[#128C7E] hover:bg-[#25D366]/20"
-                >
-                  💬 Share on WhatsApp
-                </a>
-              </div>
-            </div>
-          </article>
-
-          {relatedPosts.length > 0 && (
-            <div className="mt-14">
-              <div className="mb-6">
-                <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
-                  Keep Reading
-                </div>
-                <h2 className="mt-2 text-2xl font-black text-[#34414A]">
-                  More From the Blog
-                </h2>
-              </div>
-
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {relatedPosts.map((rp) => (
-                  <Link
-                    key={rp.id}
-                    href={`/blog/${rp.slug}`}
-                    className="group overflow-hidden rounded-2xl border border-[#D5DBDF] bg-white shadow-sm transition hover:-translate-y-1 hover:border-[#B08D3C]/60"
-                  >
-                    <div className="relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-[#34414A] to-[#4A5962]">
-                      {rp.cover_image ? (
-                        <img
-                          src={rp.cover_image}
-                          alt={rp.title}
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-4xl text-white/80">
-                          📰
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <h3 className="line-clamp-2 text-base font-black leading-6 text-[#34414A] group-hover:text-[#9A7B37]">
-                        {rp.title}
-                      </h3>
-                      <div className="mt-2 text-xs text-[#89939A]">
-                        {new Date(rp.created_at).toLocaleDateString("en-ZA", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-14 rounded-3xl border-2 border-[#B08D3C] bg-gradient-to-br from-[#FBF7EC] to-[#F7F8F9] p-8 text-center sm:p-12">
-            <div className="text-4xl">🚗</div>
-            <h2 className="mt-4 text-2xl font-black text-[#34414A] sm:text-3xl">
-              Ready to find your next vehicle?
-            </h2>
-            <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[#66737C]">
-              Browse thousands of vehicles on Balray Autos — or list your own
-              for free in under 5 minutes.
-            </p>
-            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link
-                href="/marketplace"
-                className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 font-bold text-white shadow-md hover:brightness-105"
-              >
-                Browse Marketplace
-              </Link>
-              <Link
-                href="/sell"
-                className="rounded-xl border border-[#B08D3C] bg-white px-6 py-4 font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
-              >
-                List Your Vehicle
-              </Link>
             </div>
           </div>
         </div>
-      </section>
+      </article>
 
-      
+      {related.length > 0 && (
+        <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+              Keep Reading
+            </div>
+            <h2 className="mt-2 text-3xl font-black tracking-tight text-[#34414A]">
+              Related Articles
+            </h2>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {related.map((r) => (
+              <Link
+                key={r.id}
+                href={`/blog/${r.slug}`}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-[#D5DBDF] bg-white shadow-sm transition hover:-translate-y-1 hover:border-[#B08D3C] hover:shadow-lg"
+              >
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
+                  <img
+                    src={r.cover_image}
+                    alt={r.title}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  />
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  <div className="mb-2 text-xs font-black uppercase tracking-wider text-[#8F7130]">
+                    {r.category}
+                  </div>
+                  <h3 className="text-lg font-black leading-tight text-[#34414A] transition group-hover:text-[#8F7130]">
+                    {r.title}
+                  </h3>
+                  <p className="mt-3 line-clamp-3 flex-1 text-sm leading-6 text-[#66737C]">
+                    {r.excerpt}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="w-full bg-gradient-to-r from-[#34414A] via-[#2A343C] to-[#1F262C]">
+        <div className="mx-auto w-full max-w-4xl px-4 py-16 text-center sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-black text-white sm:text-4xl">
+            Ready to list your vehicle?
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-base text-white/70">
+            Join thousands of South African buyers and sellers on Balray Autos.
+          </p>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link
+              href="/sell"
+              className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-8 py-4 font-bold text-white shadow-md"
+            >
+              Sell Your Vehicle
+            </Link>
+            <Link
+              href="/marketplace"
+              className="rounded-xl border border-white/30 bg-white/5 px-8 py-4 font-bold text-white backdrop-blur hover:bg-white/10"
+            >
+              Browse Marketplace
+            </Link>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
