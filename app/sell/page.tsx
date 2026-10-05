@@ -9,8 +9,6 @@ import ImageVideoManager from "@/app/components/ImageVideoManager";
 import HeroBanner from "@/app/components/HeroBanner";
 
 const FREE_LISTING_LIMIT = 3;
-
-// South African phone number pattern
 const SA_PHONE_REGEX = /(\+27|27|0)[\s\-.]?[1-9](?:[\s\-.]?\d){8}/g;
 
 function containsPhoneNumber(text: string): boolean {
@@ -20,30 +18,36 @@ function containsPhoneNumber(text: string): boolean {
 }
 
 export default function SellPage() {
-  const [submitted, setSubmitted] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showCamera, setShowCamera] = useState(false);
 
   const [listingCount, setListingCount] = useState(0);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
-  const [subscriptionTier, setSubscriptionTier] = useState<string>("none");
+  const [subscriptionTier, setSubscriptionTier] = useState("none");
   const [subscriptionExpiry, setSubscriptionExpiry] = useState<string | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
+
+  // Phone-required gate
+  const [needsPhone, setNeedsPhone] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
 
   const uploadRef = useRef<
     (() => Promise<{ images: string[]; video: string | null }>) | null
   >(null);
 
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     const checkUser = async () => {
       try {
+        const supabase = createClient();
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) {
           router.push("/login");
@@ -51,53 +55,106 @@ export default function SellPage() {
         }
         setUser(user);
 
-        const { data: profileData, error: profileError } = await supabase
+        const { data: profileData } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
           .single();
 
-        if (profileError) {
-          console.error("Profile error:", profileError);
-        }
-
         setProfile(profileData || {});
 
-        // Count ALL their listings
-        const { count, error: countError } = await supabase
+        // Check if phone is missing
+        const phone =
+          profileData?.phone || user.user_metadata?.phone || "";
+        if (!phone || phone.trim() === "") {
+          setNeedsPhone(true);
+          setLoading(false);
+          return;
+        }
+
+        const { count } = await supabase
           .from("listings")
           .select("*", { count: "exact", head: true })
           .eq("user_id", user.id);
 
-        if (countError) console.error("Count error:", countError);
-
         const total = count || 0;
         setListingCount(total);
 
-        // Check active subscription
         const tier = profileData?.subscription_tier || "none";
         const expiry = profileData?.subscription_expires_at || null;
         const isActive =
-          tier !== "none" &&
-          expiry !== null &&
-          new Date(expiry) > new Date();
+          tier !== "none" && expiry !== null && new Date(expiry) > new Date();
 
         setSubscriptionTier(tier);
         setSubscriptionExpiry(expiry);
         setHasActiveSubscription(isActive);
 
-        // Show paywall if user has 3+ listings AND no active subscription
         if (total >= FREE_LISTING_LIMIT && !isActive) {
           setShowPaywall(true);
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error("Load error:", err);
       } finally {
         setLoading(false);
       }
     };
     checkUser();
-  }, [router, supabase]);
+  }, [router]);
+
+  const handleSavePhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPhoneError("");
+
+    const cleanPhone = phoneInput.replace(/[^0-9]/g, "");
+    if (cleanPhone.length < 10) {
+      setPhoneError("Please enter a valid South African number (e.g. 0821234567).");
+      return;
+    }
+
+    let formattedPhone = cleanPhone;
+    if (formattedPhone.startsWith("0")) {
+      formattedPhone = "+27" + formattedPhone.substring(1);
+    } else if (!formattedPhone.startsWith("27")) {
+      formattedPhone = "+27" + formattedPhone;
+    } else {
+      formattedPhone = "+" + formattedPhone;
+    }
+
+    setSavingPhone(true);
+    const supabase = createClient();
+
+    // Check if phone is used by another account
+    const { data: exists } = await supabase.rpc("check_phone_exists", {
+      phone_input: formattedPhone,
+    });
+
+    if (exists) {
+      setPhoneError(
+        "This phone number is already registered to another account."
+      );
+      setSavingPhone(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ phone: formattedPhone })
+      .eq("id", user.id);
+
+    if (error) {
+      setPhoneError("Could not save phone: " + error.message);
+      setSavingPhone(false);
+      return;
+    }
+
+    await supabase.auth.updateUser({
+      data: { phone: formattedPhone },
+    });
+
+    setProfile({ ...profile, phone: formattedPhone });
+    setNeedsPhone(false);
+    setSavingPhone(false);
+  };
 
   const handleCameraCapture = (files: File[]) => {
     setShowCamera(false);
@@ -113,7 +170,11 @@ export default function SellPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // Double-check paywall
+    if (needsPhone) {
+      setErrorMessage("Please add your phone number before posting.");
+      return;
+    }
+
     if (listingCount >= FREE_LISTING_LIMIT && !hasActiveSubscription) {
       setShowPaywall(true);
       return;
@@ -124,7 +185,6 @@ export default function SellPage() {
 
     const formData = new FormData(event.currentTarget);
 
-    // Phone filter
     const description = (formData.get("description") as string) || "";
     const make = (formData.get("make") as string) || "";
     const model = (formData.get("model") as string) || "";
@@ -137,7 +197,7 @@ export default function SellPage() {
       containsPhoneNumber(location)
     ) {
       setErrorMessage(
-        "Your listing contains a phone number. Please remove it — buyers can contact you using the Call/WhatsApp buttons on your listing. This keeps the platform safe from scams."
+        "Your listing contains a phone number. Please remove it — buyers contact you via the Call/WhatsApp buttons on your listing."
       );
       setUploading(false);
       return;
@@ -153,6 +213,7 @@ export default function SellPage() {
         uploadedVideo = result.video;
       }
 
+      const supabase = createClient();
       const lockedEmail = user.email;
       const lockedPhone = profile?.phone || user.user_metadata?.phone || "";
       const lockedName =
@@ -235,68 +296,97 @@ export default function SellPage() {
 
   if (!user) return null;
 
-  // ============ PAYWALL ============
-  if (showPaywall) {
-    const daysLeft =
-      subscriptionExpiry && hasActiveSubscription
-        ? Math.ceil(
-            (new Date(subscriptionExpiry).getTime() - Date.now()) /
-              (1000 * 60 * 60 * 24)
-          )
-        : 0;
+  // ===== PHONE REQUIRED GATE =====
+  if (needsPhone) {
+    return (
+      <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A] p-4 flex items-center justify-center">
+        <div className="w-full max-w-md rounded-3xl border-2 border-[#B08D3C] bg-white p-8 shadow-lg">
+          <div className="text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-3xl text-white">
+              📱
+            </div>
+            <h1 className="mt-5 text-2xl font-black text-[#34414A]">
+              Add Your Phone Number
+            </h1>
+            <p className="mt-3 text-sm text-[#66737C]">
+              You signed up with Google. We need your phone number so buyers can
+              call or WhatsApp you about your listings.
+            </p>
+          </div>
 
+          <form onSubmit={handleSavePhone} className="mt-6 space-y-4">
+            <div>
+              <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                South African Phone Number
+              </label>
+              <input
+                type="tel"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                placeholder="e.g. 082 123 4567"
+                required
+                className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+              />
+              {phoneError && (
+                <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-600">
+                  {phoneError}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={savingPhone}
+              className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-sm font-bold text-white shadow-md hover:brightness-105 disabled:opacity-60"
+            >
+              {savingPhone ? "Saving..." : "Save & Continue"}
+            </button>
+
+            <p className="text-center text-xs text-[#89939A]">
+              This phone can only be linked to one account.
+            </p>
+          </form>
+        </div>
+      </main>
+    );
+  }
+
+  // ===== PAYWALL =====
+  if (showPaywall) {
     return (
       <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
         <section className="relative overflow-hidden bg-black px-4 py-16 text-center sm:px-6 sm:py-24 lg:px-8">
-          <div className="pointer-events-none absolute left-10 top-10 h-32 w-32 rounded-full border border-[#D2B66A]/10" />
-          <div className="pointer-events-none absolute bottom-10 right-10 h-40 w-40 rounded-full border border-[#D2B66A]/10" />
-
           <div className="relative z-10 mx-auto max-w-2xl">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-4xl shadow-xl">
               🔒
             </div>
-
             <h1 className="mt-6 text-3xl font-black text-white sm:text-4xl">
               You&apos;ve Used All 3 Free Listings
             </h1>
-
             <p className="mt-4 text-base leading-7 text-white/80">
               You&apos;ve posted {listingCount} free listings. To post another
-              advert, subscribe to a weekly, monthly or yearly plan and wait for
-              admin to confirm your payment.
+              advert, subscribe and wait for admin to confirm your payment.
             </p>
 
             <div className="mt-8 rounded-2xl border-2 border-[#D3B86A]/60 bg-white/5 p-6 text-left backdrop-blur-sm">
               <div className="text-xs font-black uppercase tracking-[0.16em] text-[#D2B66A]">
                 Subscription Unlocks
               </div>
-
               <div className="mt-5 space-y-4">
                 <div className="flex items-start gap-3">
                   <span className="text-lg text-green-400">✓</span>
                   <span className="text-sm text-white/90">
-                    <strong className="text-white">Unlimited adverts</strong> —
-                    post as many as you want during your plan
+                    <strong>Unlimited adverts</strong> during your plan
                   </span>
                 </div>
                 <div className="flex items-start gap-3">
                   <span className="text-lg text-green-400">✓</span>
                   <span className="text-sm text-white/90">
-                    <strong className="text-white">
-                      All your listings go to the TOP
-                    </strong>{" "}
-                    of the marketplace (boosted sellers first)
-                  </span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-lg text-green-400">✓</span>
-                  <span className="text-sm text-white/90">
-                    <strong className="text-white">Priority review</strong> of
-                    new listings by admin
+                    All your listings go to the <strong>TOP</strong> of the
+                    marketplace
                   </span>
                 </div>
               </div>
-
               <div className="mt-6 grid grid-cols-3 gap-3 border-t border-white/10 pt-6">
                 <div className="text-center">
                   <div className="text-2xl font-black text-white">R39</div>
@@ -321,37 +411,17 @@ export default function SellPage() {
 
             <Link
               href="/account/subscription"
-              className="mt-8 inline-block w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-8 py-4 font-bold text-white shadow-xl transition hover:brightness-110 sm:w-auto"
+              className="mt-8 inline-block w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-8 py-4 font-bold text-white shadow-xl hover:brightness-110 sm:w-auto"
             >
               🚀 Subscribe Now
             </Link>
-
-            <p className="mt-5 text-xs text-white/60">
-              You&apos;ll be able to post again within 1 hour of admin
-              confirming your payment.
-            </p>
-
-            <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link
-                href="/my-listings"
-                className="rounded-xl border border-white/30 bg-white/5 px-6 py-3 text-sm font-bold text-white hover:bg-white/10"
-              >
-                View My Existing Listings
-              </Link>
-              <Link
-                href="/marketplace"
-                className="rounded-xl border border-white/30 bg-white/5 px-6 py-3 text-sm font-bold text-white hover:bg-white/10"
-              >
-                Browse Marketplace
-              </Link>
-            </div>
           </div>
         </section>
       </main>
     );
   }
 
-  // ============ NORMAL SELL FORM ============
+  // ===== SELL FORM =====
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
       <HeroBanner
@@ -373,8 +443,6 @@ export default function SellPage() {
 
       <section id="sell-form" className="w-full bg-[#F7F8F9]">
         <div className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-
-          {/* FREE LISTING COUNTER */}
           {!hasActiveSubscription && (
             <div className="mb-6 overflow-hidden rounded-2xl border border-[#D3B86A]/50 bg-gradient-to-r from-[#FBF7EC] to-[#F7F8F9] p-5">
               <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -413,13 +481,10 @@ export default function SellPage() {
                   <div className="mt-1 text-sm font-black text-green-700">
                     ✅ Unlimited posting unlocked
                     {subscriptionExpiry &&
-                      ` — expires ${new Date(
-                        subscriptionExpiry
-                      ).toLocaleDateString("en-ZA", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}`}
+                      ` — expires ${new Date(subscriptionExpiry).toLocaleDateString(
+                        "en-ZA",
+                        { day: "numeric", month: "short", year: "numeric" }
+                      )}`}
                   </div>
                 </div>
               </div>
@@ -431,10 +496,7 @@ export default function SellPage() {
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#FBF7EC] text-4xl">
                 ✓
               </div>
-              <div className="mt-6 text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
-                Listing Submitted
-              </div>
-              <h2 className="mt-3 text-3xl font-black text-[#34414A] sm:text-4xl">
+              <h2 className="mt-6 text-3xl font-black text-[#34414A] sm:text-4xl">
                 Thank You!
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[#66737C]">
@@ -593,9 +655,7 @@ export default function SellPage() {
                         <option value="bakkies">Bakkies & 4x4s</option>
                         <option value="motorcycles">Motorcycles</option>
                         <option value="trucks">Trucks & Commercial</option>
-                        <option value="machinery">
-                          Machinery & Equipment
-                        </option>
+                        <option value="machinery">Machinery & Equipment</option>
                         <option value="parts">Parts & Accessories</option>
                       </select>
                     </div>
@@ -793,8 +853,7 @@ export default function SellPage() {
                       <span>⚠️</span>
                       <span>
                         Phone numbers in descriptions are automatically blocked
-                        to protect buyers from scams. Buyers contact you via the
-                        Call/WhatsApp buttons on your listing.
+                        to protect buyers from scams.
                       </span>
                     </div>
                   </div>
