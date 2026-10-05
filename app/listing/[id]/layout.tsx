@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 
+// Cache metadata for 5 minutes so it doesn't re-fetch on every visit
+export const revalidate = 300;
+
 export async function generateMetadata({
   params,
 }: {
@@ -7,19 +10,19 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
 
+  const fallback: Metadata = {
+    title: "Vehicle Listing | Balray Autos",
+    description:
+      "Browse vehicles for sale on Balray Autos — South Africa's trusted automotive marketplace.",
+  };
+
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey =
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-    if (!supabaseUrl || !supabaseKey) {
-      return {
-        title: "Vehicle Listing | Balray Autos",
-        description:
-          "Browse vehicles for sale on Balray Autos — South Africa's trusted automotive marketplace.",
-      };
-    }
+    if (!supabaseUrl || !supabaseKey) return fallback;
 
     const { createClient } = await import("@supabase/supabase-js");
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -30,13 +33,7 @@ export async function generateMetadata({
       .eq("id", id)
       .maybeSingle();
 
-    if (!listing) {
-      return {
-        title: "Vehicle Listing | Balray Autos",
-        description:
-          "Browse vehicles for sale on Balray Autos — South Africa's trusted automotive marketplace.",
-      };
-    }
+    if (!listing) return fallback;
 
     const title = `${listing.year ? listing.year + " " : ""}${listing.make} ${listing.model} | Balray Autos`;
     const description = listing.description
@@ -62,11 +59,7 @@ export async function generateMetadata({
     };
   } catch (err) {
     console.error("Listing metadata error:", err);
-    return {
-      title: "Vehicle Listing | Balray Autos",
-      description:
-        "Browse vehicles for sale on Balray Autos — South Africa's trusted automotive marketplace.",
-    };
+    return fallback;
   }
 }
 
