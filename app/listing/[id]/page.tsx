@@ -53,7 +53,11 @@ function saveRecentlyViewed(listingId: string) {
 
 function Stars({ rating, size = "base" }: { rating: number; size?: "sm" | "base" | "lg" }) {
   const sizeClass =
-    size === "lg" ? "text-2xl sm:text-3xl" : size === "sm" ? "text-xs sm:text-sm" : "text-base sm:text-xl";
+    size === "lg"
+      ? "text-2xl sm:text-3xl"
+      : size === "sm"
+      ? "text-xs sm:text-sm"
+      : "text-base sm:text-xl";
   return (
     <span className={`inline-flex items-center gap-0.5 ${sizeClass} text-[#B08D3C]`}>
       {[1, 2, 3, 4, 5].map((i) => (
@@ -407,8 +411,8 @@ export default function ListingDetailPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen w-full flex items-center justify-center bg-[#F7F8F9]">
-        <div className="text-lg font-bold animate-pulse text-[#9A7B37]">
+      <main className="min-h-screen w-full max-w-full overflow-x-hidden flex items-center justify-center bg-[#F7F8F9]">
+        <div className="text-base sm:text-lg font-bold animate-pulse text-[#9A7B37]">
           Loading vehicle details...
         </div>
       </main>
@@ -417,16 +421,16 @@ export default function ListingDetailPage() {
 
   if (!listing) {
     return (
-      <main className="min-h-screen w-full flex flex-col items-center justify-center bg-[#F7F8F9] p-4 text-center">
+      <main className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col items-center justify-center bg-[#F7F8F9] p-4 text-center">
         <h1 className="text-2xl font-black text-[#34414A] mb-4 sm:text-3xl">
           Listing Not Found
         </h1>
-        <p className="text-[#66737C] mb-8">
+        <p className="text-[#66737C] mb-8 text-sm sm:text-base">
           This vehicle may have been sold or removed.
         </p>
         <Link
           href="/marketplace"
-          className="rounded-xl bg-[#34414A] px-6 py-4 font-bold text-white"
+          className="rounded-xl bg-[#34414A] px-6 py-4 font-bold text-white text-sm sm:text-base"
         >
           Back to Marketplace
         </Link>
@@ -471,10 +475,10 @@ export default function ListingDetailPage() {
   const isOwnListing = currentUser?.id === listing.sellerId;
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
       {/* BREADCRUMB */}
-      <div className="bg-white border-b border-[#E1E5E8]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
+      <div className="w-full bg-white border-b border-[#E1E5E8]">
+        <div className="mx-auto w-full max-w-7xl px-3 py-3 sm:px-6 sm:py-4 lg:px-8">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-2 text-xs font-bold text-[#9A7B37] hover:underline sm:text-sm"
@@ -484,34 +488,36 @@ export default function ListingDetailPage() {
         </div>
       </div>
 
-      <section className="w-full bg-[#F7F8F9] py-4 sm:py-10">
+      <section className="w-full max-w-full overflow-x-hidden bg-[#F7F8F9] py-4 sm:py-10">
         <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 lg:px-8">
-          <div className="grid gap-6 sm:gap-10 lg:grid-cols-[2fr_1fr]">
+          <div className="grid w-full max-w-full gap-5 sm:gap-8 lg:grid-cols-[2fr_1fr] lg:gap-10">
             {/* LEFT COLUMN */}
-            <div>
+            <div className="w-full max-w-full min-w-0">
               {/* MAIN IMAGE */}
               <button
                 type="button"
                 onClick={() => setLightboxOpen(true)}
-                className="group relative block aspect-[4/3] w-full cursor-zoom-in overflow-hidden rounded-2xl border border-[#D5DBDF] bg-[#E9EDF0] sm:aspect-[16/10]"
+                className="group relative block w-full max-w-full cursor-zoom-in overflow-hidden rounded-2xl border border-[#D5DBDF] bg-[#E9EDF0]"
               >
-                <img
-                  src={listing.images[activeImage]}
-                  alt={listing.title}
-                  className="h-full w-full object-cover"
-                />
-                <div className="absolute left-3 top-3 rounded-full bg-[#34414A]/90 px-2.5 py-1.5 text-[10px] font-bold text-white backdrop-blur sm:left-4 sm:top-4 sm:px-4 sm:py-2 sm:text-sm">
+                <div className="aspect-[4/3] w-full max-w-full sm:aspect-[16/10]">
+                  <img
+                    src={listing.images[activeImage]}
+                    alt={listing.title}
+                    className="block h-full w-full max-w-full object-cover"
+                  />
+                </div>
+                <div className="absolute left-2.5 top-2.5 rounded-full bg-[#34414A]/90 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur sm:left-4 sm:top-4 sm:px-4 sm:py-2 sm:text-sm">
                   {listing.category}
                 </div>
 
                 {listing.hasPriceDrop && (
-                  <div className="absolute left-3 top-11 animate-pulse rounded-full bg-red-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-lg sm:left-4 sm:top-16 sm:px-4 sm:py-2 sm:text-sm">
+                  <div className="absolute left-2.5 top-9 animate-pulse rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-bold text-white shadow-lg sm:left-4 sm:top-16 sm:px-4 sm:py-2 sm:text-sm">
                     💰 DROP -{listing.percentOff}%
                   </div>
                 )}
 
                 {listing.images.length > 1 && (
-                  <div className="absolute right-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur sm:right-4 sm:top-4 sm:px-3 sm:py-1 sm:text-xs">
+                  <div className="absolute right-2.5 top-2.5 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur sm:right-4 sm:top-4 sm:px-3 sm:py-1 sm:text-xs">
                     {activeImage + 1} / {listing.images.length}
                   </div>
                 )}
@@ -519,7 +525,7 @@ export default function ListingDetailPage() {
 
               {/* THUMBNAILS */}
               {listing.images.length > 1 && (
-                <div className="mt-3 flex gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-4 sm:gap-3">
+                <div className="mt-2.5 flex w-full max-w-full gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-4 sm:gap-3">
                   {listing.images.map((img: string, index: number) => (
                     <button
                       key={index}
@@ -533,7 +539,7 @@ export default function ListingDetailPage() {
                       <img
                         src={img}
                         alt={`Thumbnail ${index}`}
-                        className="h-full w-full object-cover"
+                        className="block h-full w-full max-w-full object-cover"
                       />
                     </button>
                   ))}
@@ -542,7 +548,7 @@ export default function ListingDetailPage() {
 
               {/* VIDEO */}
               {listing.videoUrl && (
-                <div className="mt-4 rounded-2xl border border-[#D5DBDF] bg-white p-3 sm:mt-6 sm:p-4">
+                <div className="mt-3 w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white p-3 sm:mt-6 sm:p-4">
                   <div className="mb-2 flex items-center gap-2 sm:mb-3">
                     <span className="text-lg sm:text-xl">🎥</span>
                     <div className="text-xs font-black text-[#34414A] sm:text-sm">
@@ -558,9 +564,9 @@ export default function ListingDetailPage() {
 
               {/* PRICE DROP BANNER */}
               {listing.hasPriceDrop && (
-                <div className="mt-4 rounded-2xl border-2 border-red-300 bg-gradient-to-r from-red-50 to-orange-50 p-4 sm:mt-6 sm:p-5">
+                <div className="mt-3 w-full max-w-full rounded-2xl border-2 border-red-300 bg-gradient-to-r from-red-50 to-orange-50 p-3 sm:mt-6 sm:p-5">
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-600 text-xl text-white shadow-md sm:h-14 sm:w-14 sm:text-2xl">
+                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-red-600 text-lg text-white shadow-md sm:h-14 sm:w-14 sm:text-2xl">
                       💰
                     </div>
                     <div className="min-w-0 flex-1">
@@ -584,7 +590,7 @@ export default function ListingDetailPage() {
               )}
 
               {/* DESCRIPTION */}
-              <div className="mt-6 rounded-2xl border border-[#D5DBDF] bg-white p-4 sm:mt-8 sm:p-6 lg:p-8">
+              <div className="mt-4 w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white p-4 sm:mt-8 sm:p-6 lg:p-8">
                 <h2 className="text-lg font-black text-[#34414A] mb-3 sm:text-2xl sm:mb-4">
                   Description
                 </h2>
@@ -594,7 +600,7 @@ export default function ListingDetailPage() {
               </div>
 
               {/* SHARE BUTTONS */}
-              <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-6 sm:gap-3">
+              <div className="mt-3 flex w-full max-w-full flex-wrap items-center gap-2 sm:mt-6 sm:gap-3">
                 <button
                   onClick={handleShare}
                   className="flex-1 rounded-xl border border-[#D5DBDF] bg-white px-4 py-2.5 text-xs font-bold text-[#34414A] hover:bg-[#F7F8F9] sm:flex-initial sm:px-5 sm:py-3 sm:text-sm"
@@ -622,20 +628,20 @@ export default function ListingDetailPage() {
               </div>
 
               {/* REVIEWS */}
-              <div className="mt-8 rounded-2xl border border-[#D5DBDF] bg-white p-4 sm:mt-12 sm:p-6 lg:p-8">
-                <div className="mb-5 sm:mb-6">
+              <div className="mt-6 w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white p-4 sm:mt-12 sm:p-6 lg:p-8">
+                <div className="mb-4 sm:mb-6">
                   <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9A7B37] sm:text-sm">
                     Buyer Reviews
                   </div>
-                  <h2 className="mt-1 text-xl font-black text-[#34414A] sm:mt-2 sm:text-2xl">
+                  <h2 className="mt-1 text-lg font-black text-[#34414A] sm:mt-2 sm:text-2xl">
                     What Buyers Say
                   </h2>
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr] lg:gap-8">
-                  <div>
+                <div className="grid w-full max-w-full gap-5 lg:grid-cols-[1fr_1.5fr] lg:gap-8">
+                  <div className="w-full max-w-full min-w-0">
                     {reviews.length > 0 ? (
-                      <div className="rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-4 sm:p-5">
+                      <div className="w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-4 sm:p-5">
                         <div className="text-center">
                           <div className="text-3xl font-black text-[#34414A] sm:text-5xl">
                             {avgListingRating.toFixed(1)}
@@ -651,7 +657,7 @@ export default function ListingDetailPage() {
                         <div className="mt-4 space-y-1.5 sm:mt-5 sm:space-y-2">
                           {listingRatingDist.map(({ star, count }) => (
                             <div key={star} className="flex items-center gap-2 sm:gap-3">
-                              <span className="w-8 text-[10px] font-bold text-[#66737C] sm:w-10 sm:text-xs">
+                              <span className="w-8 flex-shrink-0 text-[10px] font-bold text-[#66737C] sm:w-10 sm:text-xs">
                                 {star} ★
                               </span>
                               <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#E1E5E8] sm:h-2">
@@ -665,7 +671,7 @@ export default function ListingDetailPage() {
                                   }}
                                 />
                               </div>
-                              <span className="w-5 text-right text-[10px] font-bold text-[#66737C] sm:w-6 sm:text-xs">
+                              <span className="w-5 flex-shrink-0 text-right text-[10px] font-bold text-[#66737C] sm:w-6 sm:text-xs">
                                 {count}
                               </span>
                             </div>
@@ -673,7 +679,7 @@ export default function ListingDetailPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-5 text-center sm:p-6">
+                      <div className="w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-5 text-center sm:p-6">
                         <div className="text-3xl sm:text-4xl">⭐</div>
                         <p className="mt-2 text-xs text-[#66737C] sm:mt-3 sm:text-sm">
                           No reviews yet. Be the first!
@@ -682,9 +688,9 @@ export default function ListingDetailPage() {
                     )}
 
                     {!isOwnListing && currentUser && (
-                      <div className="mt-4 sm:mt-5">
+                      <div className="mt-4 w-full max-w-full sm:mt-5">
                         {myReview ? (
-                          <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4">
+                          <div className="w-full max-w-full rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4">
                             <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9A7B37] sm:text-xs">
                               Your Review
                             </div>
@@ -726,7 +732,7 @@ export default function ListingDetailPage() {
                     )}
 
                     {!currentUser && (
-                      <div className="mt-4 sm:mt-5">
+                      <div className="mt-4 w-full max-w-full sm:mt-5">
                         <Link
                           href="/login"
                           className="block w-full rounded-xl border border-[#B08D3C] bg-white px-4 py-3 text-center text-xs font-bold text-[#8F7130] hover:bg-[#FBF7EC] sm:px-5 sm:py-3.5 sm:text-sm"
@@ -737,17 +743,17 @@ export default function ListingDetailPage() {
                     )}
 
                     {isOwnListing && (
-                      <div className="mt-4 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] p-3 text-center text-[10px] text-[#89939A] sm:mt-5 sm:p-4 sm:text-xs">
+                      <div className="mt-4 w-full max-w-full rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] p-3 text-center text-[10px] text-[#89939A] sm:mt-5 sm:p-4 sm:text-xs">
                         This is your listing — you can&apos;t review it.
                       </div>
                     )}
                   </div>
 
-                  <div>
+                  <div className="w-full max-w-full min-w-0">
                     {showReviewForm && !myReview && (
                       <form
                         onSubmit={handleSubmitReview}
-                        className="mb-5 rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-4 sm:mb-6 sm:p-5"
+                        className="mb-5 w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-4 sm:mb-6 sm:p-5"
                       >
                         <h3 className="text-sm font-black text-[#34414A] sm:text-base">
                           Share Your Experience
@@ -791,7 +797,7 @@ export default function ListingDetailPage() {
                             onChange={(e) => setReviewComment(e.target.value)}
                             rows={4}
                             placeholder="Tell other buyers what you think..."
-                            className="w-full resize-y rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                            className="w-full max-w-full resize-y rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
                           />
                         </div>
 
@@ -819,7 +825,7 @@ export default function ListingDetailPage() {
                     )}
 
                     {reviews.length > 0 && (
-                      <div>
+                      <div className="w-full max-w-full">
                         <h3 className="mb-3 text-sm font-black text-[#34414A] sm:mb-4 sm:text-base">
                           All Reviews ({reviews.length})
                         </h3>
@@ -827,7 +833,7 @@ export default function ListingDetailPage() {
                           {reviews.map((review) => (
                             <div
                               key={review.id}
-                              className="rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-3 sm:p-4"
+                              className="w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-3 sm:p-4"
                             >
                               <div className="flex items-start gap-3">
                                 <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-xs font-black text-white sm:h-10 sm:w-10 sm:text-sm">
@@ -868,7 +874,7 @@ export default function ListingDetailPage() {
                     )}
 
                     {reviews.length === 0 && !showReviewForm && (
-                      <div className="rounded-2xl border border-dashed border-[#D5DBDF] bg-[#F7F8F9] p-6 text-center sm:p-8">
+                      <div className="w-full max-w-full rounded-2xl border border-dashed border-[#D5DBDF] bg-[#F7F8F9] p-6 text-center sm:p-8">
                         <p className="text-xs text-[#66737C] sm:text-sm">
                           Be the first to review this vehicle.
                         </p>
@@ -880,33 +886,35 @@ export default function ListingDetailPage() {
 
               {/* SIMILAR LISTINGS */}
               {similar.length > 0 && (
-                <div className="mt-8 sm:mt-12">
+                <div className="mt-6 w-full max-w-full sm:mt-12">
                   <div className="mb-4 sm:mb-5">
                     <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9A7B37] sm:text-sm">
                       You Might Also Like
                     </div>
-                    <h2 className="mt-1 text-xl font-black text-[#34414A] sm:mt-2 sm:text-2xl">
+                    <h2 className="mt-1 text-lg font-black text-[#34414A] sm:mt-2 sm:text-2xl">
                       Similar {listing.category}
                     </h2>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+                  <div className="grid w-full max-w-full grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
                     {similar.map((item) => (
                       <Link
                         key={item.id}
                         href={`/listing/${item.id}`}
-                        className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
+                        className={`group flex w-full max-w-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
                           item.featured
                             ? "border-2 border-[#B08D3C]"
                             : "border border-[#D5DBDF] hover:border-[#B08D3C]/60"
                         }`}
                       >
-                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#E9EDF0] sm:aspect-[16/10]">
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                          />
+                        <div className="relative w-full max-w-full overflow-hidden bg-[#E9EDF0]">
+                          <div className="aspect-[4/3] w-full max-w-full sm:aspect-[16/10]">
+                            <img
+                              src={item.image}
+                              alt={item.title}
+                              className="block h-full w-full max-w-full object-cover transition duration-500 group-hover:scale-105"
+                            />
+                          </div>
                           {item.featured && (
                             <div className="absolute right-2 top-2 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-2 py-0.5 text-[10px] font-bold text-white shadow-md sm:right-3 sm:top-3 sm:px-3 sm:py-1 sm:text-xs">
                               ⭐ FEATURED
@@ -920,7 +928,7 @@ export default function ListingDetailPage() {
                           <div className="mt-2 text-base font-black text-[#9A7B37] sm:text-xl">
                             {item.price}
                           </div>
-                          <div className="mt-1 text-[10px] text-[#66737C] sm:mt-2 sm:text-xs">
+                          <div className="mt-1 truncate text-[10px] text-[#66737C] sm:mt-2 sm:text-xs">
                             📍 {item.location}
                           </div>
                         </div>
@@ -932,10 +940,10 @@ export default function ListingDetailPage() {
             </div>
 
             {/* RIGHT COLUMN */}
-            <div className="space-y-4 sm:space-y-6">
+            <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
               {/* TITLE + PRICE */}
-              <div className="rounded-2xl border border-[#D5DBDF] bg-white p-4 sm:p-6 lg:p-8">
-                <h1 className="text-xl font-black leading-tight text-[#34414A] sm:text-3xl">
+              <div className="w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white p-4 sm:p-6 lg:p-8">
+                <h1 className="text-xl font-black leading-tight text-[#34414A] sm:text-3xl break-words">
                   {listing.title}
                 </h1>
 
@@ -974,7 +982,7 @@ export default function ListingDetailPage() {
                 </div>
 
                 {/* FINANCING */}
-                <div className="mt-3 rounded-xl border border-[#D3B86A]/50 bg-gradient-to-r from-[#FBF7EC] to-[#F7F8F9] p-3 sm:mt-4 sm:p-4">
+                <div className="mt-3 w-full max-w-full rounded-xl border border-[#D3B86A]/50 bg-gradient-to-r from-[#FBF7EC] to-[#F7F8F9] p-3 sm:mt-4 sm:p-4">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9A7B37] sm:text-xs">
@@ -1006,12 +1014,12 @@ export default function ListingDetailPage() {
 
               {/* CALCULATOR */}
               {showCalculator && (
-                <div className="rounded-2xl border border-[#D5DBDF] bg-white p-4 shadow-sm sm:p-6">
+                <div className="w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white p-4 shadow-sm sm:p-6">
                   <div className="mb-4 flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-lg text-white">
                       💳
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h3 className="text-sm font-black text-[#34414A] sm:text-lg">
                         Financing Calculator
                       </h3>
@@ -1022,7 +1030,7 @@ export default function ListingDetailPage() {
                   </div>
 
                   <div className="mt-4 sm:mt-5">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <label className="text-xs font-bold text-[#34414A] sm:text-sm">
                         Deposit
                       </label>
@@ -1037,7 +1045,7 @@ export default function ListingDetailPage() {
                       step="5"
                       value={depositPercent}
                       onChange={(e) => setDepositPercent(Number(e.target.value))}
-                      className="mt-2 w-full accent-[#B08D3C]"
+                      className="mt-2 w-full max-w-full accent-[#B08D3C]"
                     />
                   </div>
 
@@ -1064,7 +1072,7 @@ export default function ListingDetailPage() {
                   </div>
 
                   <div className="mt-4 sm:mt-5">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <label className="text-xs font-bold text-[#34414A] sm:text-sm">
                         Interest Rate
                       </label>
@@ -1079,7 +1087,7 @@ export default function ListingDetailPage() {
                       step="0.25"
                       value={interestRate}
                       onChange={(e) => setInterestRate(Number(e.target.value))}
-                      className="mt-2 w-full accent-[#B08D3C]"
+                      className="mt-2 w-full max-w-full accent-[#B08D3C]"
                     />
                   </div>
 
@@ -1138,42 +1146,42 @@ export default function ListingDetailPage() {
               )}
 
               {/* SPECS */}
-              <div className="rounded-2xl border border-[#D5DBDF] bg-white p-4 sm:p-6 lg:p-8">
+              <div className="w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white p-4 sm:p-6 lg:p-8">
                 <h3 className="mb-3 text-sm font-black text-[#34414A] sm:mb-4 sm:text-lg">
                   Vehicle Details
                 </h3>
-                <div className="grid grid-cols-2 gap-2.5 text-xs sm:gap-4 sm:text-sm">
-                  <div className="rounded-lg bg-[#F7F8F9] p-2.5 sm:p-3">
+                <div className="grid w-full max-w-full grid-cols-2 gap-2.5 text-xs sm:gap-4 sm:text-sm">
+                  <div className="min-w-0 rounded-lg bg-[#F7F8F9] p-2.5 sm:p-3">
                     <div className="text-[#89939A]">Year</div>
                     <div className="mt-0.5 truncate font-bold text-[#34414A] sm:mt-1">
                       {listing.year}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-[#F7F8F9] p-2.5 sm:p-3">
+                  <div className="min-w-0 rounded-lg bg-[#F7F8F9] p-2.5 sm:p-3">
                     <div className="text-[#89939A]">Mileage</div>
                     <div className="mt-0.5 truncate font-bold text-[#34414A] sm:mt-1">
                       {listing.mileage}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-[#F7F8F9] p-2.5 sm:p-3">
+                  <div className="min-w-0 rounded-lg bg-[#F7F8F9] p-2.5 sm:p-3">
                     <div className="text-[#89939A]">Transmission</div>
                     <div className="mt-0.5 truncate font-bold text-[#34414A] sm:mt-1">
                       {listing.transmission}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-[#F7F8F9] p-2.5 sm:p-3">
+                  <div className="min-w-0 rounded-lg bg-[#F7F8F9] p-2.5 sm:p-3">
                     <div className="text-[#89939A]">Fuel</div>
                     <div className="mt-0.5 truncate font-bold text-[#34414A] sm:mt-1">
                       {listing.fuel}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-[#F7F8F9] p-2.5 sm:p-3">
+                  <div className="min-w-0 rounded-lg bg-[#F7F8F9] p-2.5 sm:p-3">
                     <div className="text-[#89939A]">Condition</div>
                     <div className="mt-0.5 truncate font-bold capitalize text-[#34414A] sm:mt-1">
                       {listing.condition}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-[#F7F8F9] p-2.5 sm:p-3">
+                  <div className="min-w-0 rounded-lg bg-[#F7F8F9] p-2.5 sm:p-3">
                     <div className="text-[#89939A]">Category</div>
                     <div className="mt-0.5 truncate font-bold text-[#34414A] sm:mt-1">
                       {listing.category}
@@ -1183,7 +1191,7 @@ export default function ListingDetailPage() {
               </div>
 
               {/* CONTACT SELLER */}
-              <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4 sm:p-6 lg:p-8">
+              <div className="w-full max-w-full rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4 sm:p-6 lg:p-8">
                 <h3 className="mb-2 text-sm font-black text-[#8F7130] sm:text-lg">
                   Contact Seller
                 </h3>
@@ -1195,7 +1203,7 @@ export default function ListingDetailPage() {
                   {listing.sellerName} ({listing.sellerType}) →
                 </Link>
 
-                <div className="flex flex-col gap-2.5 sm:gap-3">
+                <div className="flex w-full max-w-full flex-col gap-2.5 sm:gap-3">
                   <a
                     href={whatsappUrl}
                     target="_blank"
@@ -1268,7 +1276,7 @@ export default function ListingDetailPage() {
           <img
             src={listing.images[activeImage]}
             alt={listing.title}
-            className="max-h-[85vh] max-w-[92vw] object-contain sm:max-h-[90vh] sm:max-w-[90vw]"
+            className="block max-h-[85vh] max-w-[92vw] object-contain sm:max-h-[90vh] sm:max-w-[90vw]"
             onClick={(e) => e.stopPropagation()}
           />
 
@@ -1300,7 +1308,11 @@ export default function ListingDetailPage() {
                       : "border-transparent opacity-60 hover:opacity-100"
                   }`}
                 >
-                  <img src={img} alt={`Thumb ${index}`} className="h-full w-full object-cover" />
+                  <img
+                    src={img}
+                    alt={`Thumb ${index}`}
+                    className="block h-full w-full max-w-full object-cover"
+                  />
                 </button>
               ))}
             </div>
@@ -1333,7 +1345,7 @@ export default function ListingDetailPage() {
             ) : (
               <>
                 <div className="flex items-start justify-between gap-2">
-                  <div>
+                  <div className="min-w-0">
                     <h2 className="text-xl font-black text-[#34414A] sm:text-2xl">
                       Report Listing
                     </h2>
@@ -1359,7 +1371,7 @@ export default function ListingDetailPage() {
                       value={reportReason}
                       onChange={(e) => setReportReason(e.target.value)}
                       required
-                      className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                      className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
                     >
                       <option value="" disabled>Select a reason</option>
                       <option value="Suspected scam or fraud">Suspected scam or fraud</option>
@@ -1381,7 +1393,7 @@ export default function ListingDetailPage() {
                       onChange={(e) => setReportDetails(e.target.value)}
                       rows={4}
                       placeholder="Tell us more about the issue..."
-                      className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                      className="w-full max-w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
                     />
                   </div>
 
