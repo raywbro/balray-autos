@@ -69,9 +69,8 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[#D9DEE2] bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-50 w-full max-w-full border-b border-[#D9DEE2] bg-white/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-3 py-2.5 sm:px-6 sm:py-3 lg:px-8">
-
         <Link
           href="/"
           onClick={() => setMenuOpen(false)}
@@ -148,7 +147,7 @@ export default function Navbar() {
         <button
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9DEE2] bg-white text-xl font-bold text-[#34414A] md:hidden"
+          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-[#D9DEE2] bg-white text-xl font-bold text-[#34414A] md:hidden"
           aria-label="Open navigation menu"
         >
           {menuOpen ? "✕" : "☰"}
@@ -156,7 +155,7 @@ export default function Navbar() {
       </div>
 
       {menuOpen && (
-        <div className="border-t border-[#D9DEE2] bg-white md:hidden">
+        <div className="w-full max-w-full border-t border-[#D9DEE2] bg-white md:hidden">
           <nav className="mx-auto flex w-full max-w-7xl flex-col gap-1 px-3 py-3 sm:px-6">
             <Link href="/" onClick={() => setMenuOpen(false)} className={mobileLinkClass("/")}>
               Home
@@ -204,7 +203,7 @@ export default function Navbar() {
             {user ? (
               <button
                 onClick={handleLogout}
-                className="mt-3 rounded-xl bg-red-50 px-5 py-3.5 text-center text-base font-bold text-red-600"
+                className="mt-3 w-full rounded-xl bg-red-50 px-5 py-3.5 text-center text-base font-bold text-red-600"
               >
                 LOG OUT
               </button>
@@ -212,7 +211,7 @@ export default function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMenuOpen(false)}
-                className="mt-3 rounded-xl bg-[#34414A] px-5 py-3.5 text-center text-base font-bold text-white"
+                className="mt-3 w-full rounded-xl bg-[#34414A] px-5 py-3.5 text-center text-base font-bold text-white"
               >
                 LOG IN
               </Link>

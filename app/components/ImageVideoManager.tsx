@@ -151,7 +151,6 @@ export default function ImageVideoManager({
           console.log(`--- Processing image ${i + 1} ---`);
           console.log("File:", img.file.name, "Size:", img.file.size, "bytes");
 
-          // Step 1: Compress
           setProgress(`Compressing image ${i + 1} of ${images.length}...`);
           console.log("Compressing...");
 
@@ -165,7 +164,6 @@ export default function ImageVideoManager({
 
           console.log("Compressed size:", compressed.size, "bytes");
 
-          // Step 2: Watermark (with fallback)
           setProgress(`Watermarking image ${i + 1} of ${images.length}...`);
           console.log("Watermarking...");
 
@@ -177,7 +175,6 @@ export default function ImageVideoManager({
             console.warn("Watermark failed, using compressed file:", wmErr);
           }
 
-          // Step 3: Upload
           setProgress(`Uploading image ${i + 1} of ${images.length}...`);
           const fileName = `${userId}-${Date.now()}-${i}-${Math.random()
             .toString(36)
@@ -209,12 +206,10 @@ export default function ImageVideoManager({
           console.log("Public URL:", publicUrl);
           finalImages.push(publicUrl);
         } else if (!img.isNew) {
-          // Existing image — keep its URL
           finalImages.push(img.url);
         }
       }
 
-      // Video upload
       let finalVideoUrl = videoUrl;
 
       if (videoFile) {
@@ -279,10 +274,10 @@ export default function ImageVideoManager({
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <div>
+    <div className="w-full max-w-full space-y-6">
+      <div className="w-full max-w-full">
+        <div className="mb-3 flex w-full max-w-full items-center justify-between gap-2">
+          <div className="min-w-0">
             <label className="text-sm font-bold text-[#34414A]">
               Photos ({images.length} of {maxImages})
             </label>
@@ -293,28 +288,30 @@ export default function ImageVideoManager({
         </div>
 
         {images.length > 0 && (
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          <div className="mb-4 grid w-full max-w-full grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
             {images.map((img, index) => (
               <div
                 key={img.id}
-                className={`relative overflow-hidden rounded-xl border-2 ${
+                className={`relative w-full max-w-full overflow-hidden rounded-xl border-2 ${
                   index === 0 ? "border-[#B08D3C]" : "border-[#D5DBDF]"
                 }`}
               >
-                <img
-                  src={img.preview || img.url}
-                  alt={`Image ${index + 1}`}
-                  className="aspect-[16/10] h-full w-full object-cover"
-                />
+                <div className="aspect-[4/3] w-full max-w-full">
+                  <img
+                    src={img.preview || img.url}
+                    alt={`Image ${index + 1}`}
+                    className="block h-full w-full max-w-full object-cover"
+                  />
+                </div>
 
                 {index === 0 && (
-                  <div className="absolute left-2 top-2 rounded-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C] px-2 py-1 text-[10px] font-bold text-white shadow-md">
+                  <div className="absolute left-1.5 top-1.5 rounded-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C] px-2 py-0.5 text-[9px] font-bold text-white shadow-md sm:text-[10px]">
                     MAIN
                   </div>
                 )}
 
                 {img.isNew && (
-                  <div className="absolute left-2 bottom-2 rounded-full bg-blue-600 px-2 py-1 text-[10px] font-bold text-white shadow-md">
+                  <div className="absolute left-1.5 top-7 rounded-full bg-blue-600 px-2 py-0.5 text-[9px] font-bold text-white shadow-md sm:top-8 sm:text-[10px]">
                     NEW
                   </div>
                 )}
@@ -322,18 +319,18 @@ export default function ImageVideoManager({
                 <button
                   type="button"
                   onClick={() => handleRemoveImage(img.id)}
-                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white shadow-md transition hover:bg-red-700"
+                  className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-sm font-bold text-white shadow-md transition hover:bg-red-700"
                   aria-label="Remove"
                 >
                   ×
                 </button>
 
-                <div className="absolute bottom-2 left-2 right-2 flex justify-between gap-1">
+                <div className="absolute bottom-1.5 left-1.5 right-1.5 flex justify-between gap-1">
                   <button
                     type="button"
                     onClick={() => moveImage(index, "left")}
                     disabled={index === 0}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-sm font-bold text-[#34414A] shadow-md transition hover:bg-white disabled:opacity-30"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-xs font-bold text-[#34414A] shadow-md transition hover:bg-white disabled:opacity-30"
                   >
                     ←
                   </button>
@@ -341,7 +338,7 @@ export default function ImageVideoManager({
                     <button
                       type="button"
                       onClick={() => makeMain(index)}
-                      className="flex h-7 items-center justify-center rounded-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C] px-2 text-[10px] font-bold text-white shadow-md transition hover:brightness-110"
+                      className="flex h-7 items-center justify-center rounded-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C] px-2 text-[9px] font-bold text-white shadow-md transition hover:brightness-110 sm:text-[10px]"
                     >
                       ★ MAIN
                     </button>
@@ -350,7 +347,7 @@ export default function ImageVideoManager({
                     type="button"
                     onClick={() => moveImage(index, "right")}
                     disabled={index === images.length - 1}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-sm font-bold text-[#34414A] shadow-md transition hover:bg-white disabled:opacity-30"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-xs font-bold text-[#34414A] shadow-md transition hover:bg-white disabled:opacity-30"
                   >
                     →
                   </button>
@@ -363,10 +360,10 @@ export default function ImageVideoManager({
         {images.length < maxImages && (
           <label
             htmlFor="add-photos"
-            className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D5DBDF] bg-[#F7F8F9] px-6 py-8 text-center transition hover:border-[#B08D3C] hover:bg-[#FBF7EC]"
+            className="flex w-full max-w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D5DBDF] bg-[#F7F8F9] px-4 py-6 text-center transition hover:border-[#B08D3C] hover:bg-[#FBF7EC] sm:px-6 sm:py-8"
           >
-            <div className="text-4xl">📁</div>
-            <div className="mt-3 font-bold text-[#34414A]">
+            <div className="text-3xl sm:text-4xl">📁</div>
+            <div className="mt-3 text-sm font-bold text-[#34414A] sm:text-base">
               {images.length === 0 ? "Choose photos" : "Add more photos"}
             </div>
             <div className="mt-1 text-xs text-[#66737C]">
@@ -385,7 +382,7 @@ export default function ImageVideoManager({
         )}
       </div>
 
-      <div className="border-t border-[#E1E5E8] pt-6">
+      <div className="w-full max-w-full border-t border-[#E1E5E8] pt-6">
         <div className="mb-3">
           <label className="text-sm font-bold text-[#34414A]">
             Video (optional — max 30MB)
@@ -398,10 +395,12 @@ export default function ImageVideoManager({
         {!videoUrl && !videoFile ? (
           <label
             htmlFor="add-video"
-            className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D3B86A] bg-[#FBF7EC] px-6 py-8 text-center transition hover:border-[#8F7130] hover:bg-[#F5EDD8]"
+            className="flex w-full max-w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D3B86A] bg-[#FBF7EC] px-4 py-6 text-center transition hover:border-[#8F7130] hover:bg-[#F5EDD8] sm:px-6 sm:py-8"
           >
-            <div className="text-4xl">🎥</div>
-            <div className="mt-3 font-bold text-[#34414A]">Upload a video</div>
+            <div className="text-3xl sm:text-4xl">🎥</div>
+            <div className="mt-3 text-sm font-bold text-[#34414A] sm:text-base">
+              Upload a video
+            </div>
             <div className="mt-1 text-xs text-[#66737C]">
               MP4, WEBM or MOV — max 30MB
             </div>
@@ -415,13 +414,13 @@ export default function ImageVideoManager({
             />
           </label>
         ) : (
-          <div className="rounded-2xl border border-[#D5DBDF] bg-white p-4">
+          <div className="w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white p-3 sm:p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-2xl text-white">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-xl text-white sm:h-12 sm:w-12 sm:text-2xl">
                   🎥
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-bold text-[#34414A]">
                     {videoFile ? videoFile.name : "Video attached"}
                   </div>
@@ -435,7 +434,7 @@ export default function ImageVideoManager({
               <button
                 type="button"
                 onClick={removeVideo}
-                className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-100"
+                className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-100 sm:w-auto"
               >
                 Remove
               </button>
@@ -445,7 +444,7 @@ export default function ImageVideoManager({
               <video
                 src={videoUrl}
                 controls
-                className="mt-3 w-full rounded-xl"
+                className="mt-3 block w-full max-w-full rounded-xl"
                 style={{ maxHeight: "200px" }}
               />
             )}
@@ -453,7 +452,7 @@ export default function ImageVideoManager({
             {videoFile && (
               <label
                 htmlFor="replace-video"
-                className="mt-3 block cursor-pointer rounded-xl border border-[#D5DBDF] bg-[#F7F8F9] px-4 py-2 text-center text-xs font-bold text-[#34414A] hover:bg-[#EEF1F3]"
+                className="mt-3 block w-full max-w-full cursor-pointer rounded-xl border border-[#D5DBDF] bg-[#F7F8F9] px-4 py-2 text-center text-xs font-bold text-[#34414A] hover:bg-[#EEF1F3]"
               >
                 🔄 Replace video
                 <input
@@ -470,13 +469,13 @@ export default function ImageVideoManager({
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+        <div className="w-full max-w-full rounded-xl border border-red-200 bg-red-50 p-3 text-center text-xs font-bold text-red-600">
           {error}
         </div>
       )}
 
       {uploading && progress && (
-        <div className="rounded-xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-3 text-center text-xs font-bold text-[#8F7130]">
+        <div className="w-full max-w-full rounded-xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-3 text-center text-xs font-bold text-[#8F7130]">
           {progress}
         </div>
       )}

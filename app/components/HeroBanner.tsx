@@ -30,10 +30,10 @@ export default function HeroBanner({
   secondaryCTA,
 }: Props) {
   return (
-    <section className="relative w-full bg-black">
+    <section className="relative w-full max-w-full overflow-x-hidden bg-black">
       {/* TOP BAR: BUY | SELL | CONNECT */}
       <div className="relative z-20 border-b border-white/10 bg-black">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-end px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-end px-3 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.24em] text-white sm:gap-5 sm:text-sm sm:tracking-[0.28em]">
             <Link href="/marketplace" className="transition hover:text-[#D2B66A]">
               Buy
@@ -51,32 +51,31 @@ export default function HeroBanner({
       </div>
 
       {/* MAIN BANNER */}
-      <div className="relative w-full bg-gradient-to-br from-[#0a0a0a] via-[#141414] to-[#0a0a0a] px-4 py-12 text-center sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-        {/* Decorative gold circles */}
-        <div className="pointer-events-none absolute left-10 top-10 h-32 w-32 rounded-full border border-[#D2B66A]/10" />
-        <div className="pointer-events-none absolute bottom-10 right-10 h-40 w-40 rounded-full border border-[#D2B66A]/10" />
+      <div className="relative w-full max-w-full bg-gradient-to-br from-[#0a0a0a] via-[#141414] to-[#0a0a0a] px-4 py-10 text-center sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+        <div className="pointer-events-none absolute left-6 top-10 h-24 w-24 rounded-full border border-[#D2B66A]/10 sm:left-10 sm:h-32 sm:w-32" />
+        <div className="pointer-events-none absolute bottom-10 right-6 h-28 w-28 rounded-full border border-[#D2B66A]/10 sm:right-10 sm:h-40 sm:w-40" />
 
         {/* TAGLINE */}
-        <div className="relative z-10 flex items-center justify-center gap-3">
-          <span className="h-[2px] w-10 bg-gradient-to-r from-transparent to-[#D2B66A] sm:w-16" />
-          <h1 className="text-[11px] font-black uppercase tracking-[0.28em] text-white sm:text-base sm:tracking-[0.4em]">
+        <div className="relative z-10 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+          <span className="hidden h-[2px] w-10 bg-gradient-to-r from-transparent to-[#D2B66A] sm:block sm:w-16" />
+          <h1 className="text-[10px] font-black uppercase tracking-[0.24em] text-white sm:text-base sm:tracking-[0.4em]">
             Connecting Buyers &amp; Sellers
           </h1>
-          <span className="h-[2px] w-10 bg-gradient-to-l from-transparent to-[#D2B66A] sm:w-16" />
+          <span className="hidden h-[2px] w-10 bg-gradient-to-l from-transparent to-[#D2B66A] sm:block sm:w-16" />
         </div>
 
         {/* SUBTITLE */}
-        <p className="relative z-10 mx-auto mt-5 max-w-md text-xs leading-6 text-white/80 sm:max-w-2xl sm:text-base sm:leading-7">
+        <p className="relative z-10 mx-auto mt-4 max-w-md text-xs leading-6 text-white/80 sm:mt-5 sm:max-w-2xl sm:text-base sm:leading-7">
           {subtitle}
         </p>
 
         {/* CTAs */}
         {(primaryCTA || secondaryCTA) && (
-          <div className="relative z-10 mx-auto mt-8 flex max-w-md flex-col justify-center gap-3 sm:max-w-none sm:flex-row">
+          <div className="relative z-10 mx-auto mt-6 flex w-full max-w-md flex-col justify-center gap-3 sm:mt-8 sm:max-w-none sm:flex-row">
             {primaryCTA && (
               <Link
                 href={primaryCTA.href}
-                className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-7 py-3.5 text-center text-sm font-bold text-white shadow-xl transition hover:brightness-110"
+                className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3.5 text-center text-sm font-bold text-white shadow-xl transition hover:brightness-110 sm:w-auto sm:px-7"
               >
                 {primaryCTA.label}
               </Link>
@@ -84,7 +83,7 @@ export default function HeroBanner({
             {secondaryCTA && (
               <Link
                 href={secondaryCTA.href}
-                className="rounded-xl border-2 border-[#D2B66A]/60 bg-white/5 px-7 py-3.5 text-center text-sm font-bold text-white transition hover:bg-white/10"
+                className="w-full rounded-xl border-2 border-[#D2B66A]/60 bg-white/5 px-6 py-3.5 text-center text-sm font-bold text-white transition hover:bg-white/10 sm:w-auto sm:px-7"
               >
                 {secondaryCTA.label}
               </Link>
@@ -95,7 +94,7 @@ export default function HeroBanner({
 
       {/* CATEGORY ROW */}
       <div className="relative z-10 border-t border-white/10 bg-black">
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-3 gap-x-1 gap-y-5 px-2 py-5 sm:grid-cols-3 sm:gap-x-3 sm:px-6 sm:py-6 lg:grid-cols-6 lg:px-8">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-3 gap-x-1 gap-y-4 px-2 py-4 sm:gap-x-3 sm:gap-y-5 sm:px-6 sm:py-6 lg:grid-cols-6 lg:px-8">
           {categories.map((cat) => (
             <Link
               key={cat.title}

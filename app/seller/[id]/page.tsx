@@ -22,7 +22,11 @@ function Stars({
   size?: "sm" | "base" | "lg";
 }) {
   const sizeClass =
-    size === "lg" ? "text-3xl" : size === "sm" ? "text-sm" : "text-xl";
+    size === "lg"
+      ? "text-2xl sm:text-3xl"
+      : size === "sm"
+      ? "text-xs sm:text-sm"
+      : "text-base sm:text-xl";
   return (
     <span className={`inline-flex items-center gap-0.5 ${sizeClass} text-[#B08D3C]`}>
       {[1, 2, 3, 4, 5].map((i) => (
@@ -345,8 +349,8 @@ export default function SellerProfilePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen w-full flex items-center justify-center bg-[#F7F8F9]">
-        <div className="text-lg font-bold animate-pulse text-[#9A7B37]">
+      <main className="min-h-screen w-full max-w-full overflow-x-hidden flex items-center justify-center bg-[#F7F8F9] p-4">
+        <div className="text-base font-bold animate-pulse text-[#9A7B37] sm:text-lg">
           Loading seller...
         </div>
       </main>
@@ -355,16 +359,18 @@ export default function SellerProfilePage() {
 
   if (notFound || !seller) {
     return (
-      <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A]">
-        <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-          <div className="text-5xl">🔍</div>
-          <h1 className="mt-6 text-3xl font-black text-[#34414A]">Seller Not Found</h1>
-          <p className="mt-3 text-[#66737C]">
+      <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
+        <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:py-20">
+          <div className="text-4xl sm:text-5xl">🔍</div>
+          <h1 className="mt-6 text-2xl font-black text-[#34414A] sm:text-3xl">
+            Seller Not Found
+          </h1>
+          <p className="mt-3 text-sm text-[#66737C] sm:text-base">
             This seller has no active listings or the link is broken.
           </p>
           <Link
             href="/marketplace"
-            className="mt-8 inline-block rounded-xl bg-[#34414A] px-6 py-4 font-bold text-white"
+            className="mt-8 inline-block rounded-xl bg-[#34414A] px-6 py-4 text-sm font-bold text-white sm:text-base"
           >
             Browse Marketplace
           </Link>
@@ -399,20 +405,20 @@ export default function SellerProfilePage() {
     : "Recently";
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-      <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
+      <section className="relative w-full max-w-full overflow-hidden bg-gradient-to-br from-white via-[#F4F6F7] to-[#E4E9EC]">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border-[24px] border-[#D9DEE2]/70" />
         <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full border-[20px] border-[#C5CDD2]/50" />
 
-        <div className="relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
-            <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8F7130] via-[#D2B66A] to-[#A47F32] text-4xl font-black text-white shadow-md sm:h-28 sm:w-28">
+        <div className="relative mx-auto w-full max-w-7xl px-3 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
+          <div className="flex w-full max-w-full flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
+            <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8F7130] via-[#D2B66A] to-[#A47F32] text-3xl font-black text-white shadow-md sm:h-28 sm:w-28 sm:text-4xl">
               {seller.name?.charAt(0)?.toUpperCase() || "?"}
             </div>
 
             <div className="min-w-0 flex-1">
-              <div className="mb-2 inline-flex items-center gap-3 rounded-full border border-[#D3B86A]/50 bg-[#FBF7EC] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#8F7130]">
-                <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-[#8F7130] to-[#D2B66A]" />
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#D3B86A]/50 bg-[#FBF7EC] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8F7130] sm:gap-3 sm:px-4 sm:py-2 sm:text-xs">
+                <span className="h-2 w-2 flex-shrink-0 rounded-full bg-gradient-to-r from-[#8F7130] to-[#D2B66A] sm:h-2.5 sm:w-2.5" />
                 {seller.type === "dealer"
                   ? "Verified Dealer"
                   : seller.type === "business"
@@ -420,23 +426,23 @@ export default function SellerProfilePage() {
                   : "Private Seller"}
               </div>
 
-              <h1 className="break-words text-3xl font-black tracking-tight text-[#34414A] sm:text-4xl">
+              <h1 className="break-words text-2xl font-black tracking-tight text-[#34414A] sm:text-4xl">
                 {seller.name}
               </h1>
 
               {reviews.length > 0 && (
-                <div className="mt-3 flex items-center gap-3">
-                  <Stars rating={Math.round(avgRating)} />
-                  <span className="text-sm font-bold text-[#34414A]">
+                <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
+                  <Stars rating={Math.round(avgRating)} size="sm" />
+                  <span className="text-xs font-bold text-[#34414A] sm:text-sm">
                     {avgRating.toFixed(1)}
                   </span>
-                  <span className="text-sm text-[#66737C]">
+                  <span className="text-xs text-[#66737C] sm:text-sm">
                     ({reviews.length} review{reviews.length === 1 ? "" : "s"})
                   </span>
                 </div>
               )}
 
-              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-bold text-[#66737C]">
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-bold text-[#66737C] sm:mt-4 sm:gap-x-5 sm:text-sm">
                 <span>Member since {memberSince}</span>
                 <span>
                   🚗 {seller.totalListings} active listing
@@ -445,12 +451,12 @@ export default function SellerProfilePage() {
               </div>
             </div>
 
-            <div className="flex-shrink-0">
+            <div className="w-full flex-shrink-0 sm:w-auto">
               <a
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block w-full rounded-xl bg-[#25D366] px-6 py-4 text-center text-sm font-bold text-white shadow-md hover:bg-[#20BD5A] sm:w-auto"
+                className="block w-full rounded-xl bg-[#25D366] px-6 py-3.5 text-center text-sm font-bold text-white shadow-md hover:bg-[#20BD5A] sm:w-auto sm:py-4"
               >
                 💬 Contact Seller
               </a>
@@ -458,22 +464,18 @@ export default function SellerProfilePage() {
           </div>
 
           {badges.length > 0 && (
-            <div className="mt-8 rounded-2xl border border-[#D5DBDF] bg-white/80 p-5 backdrop-blur">
-              <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+            <div className="mt-6 w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white/80 p-4 backdrop-blur sm:mt-8 sm:p-5">
+              <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#9A7B37] sm:text-xs">
                 Seller Achievements
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 {badges.map((badge) => (
                   <div
                     key={badge.id}
-                    className={`group relative flex items-center gap-2 rounded-full bg-gradient-to-r ${badge.color} px-4 py-2 text-sm font-bold text-white shadow-md`}
+                    className={`group relative flex items-center gap-2 rounded-full bg-gradient-to-r ${badge.color} px-3 py-1.5 text-xs font-bold text-white shadow-md sm:px-4 sm:py-2 sm:text-sm`}
                   >
-                    <span className="text-lg">{badge.icon}</span>
+                    <span className="text-base sm:text-lg">{badge.icon}</span>
                     {badge.label}
-                    <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden w-64 -translate-x-1/2 rounded-xl bg-[#34414A] p-3 text-xs font-normal text-white shadow-lg group-hover:block">
-                      {badge.description}
-                      <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-[#34414A]"></div>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -482,71 +484,75 @@ export default function SellerProfilePage() {
         </div>
       </section>
 
-      <section className="w-full bg-[#F7F8F9] py-12">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-8">
-            <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+      <section className="w-full max-w-full overflow-x-hidden bg-[#F7F8F9] py-8 sm:py-12">
+        <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 lg:px-8">
+          <div className="mb-6 sm:mb-8">
+            <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37] sm:text-sm">
               Active Listings
             </div>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-[#34414A]">
+            <h2 className="mt-1 text-2xl font-black tracking-tight text-[#34414A] sm:mt-2 sm:text-3xl">
               {listings.length} vehicle{listings.length === 1 ? "" : "s"} for sale
             </h2>
           </div>
 
           {listings.length === 0 ? (
-            <div className="rounded-2xl border border-[#D5DBDF] bg-white p-10 text-center">
+            <div className="w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white p-8 text-center sm:p-10">
               <p className="text-sm text-[#66737C]">
                 This seller has no active listings right now.
               </p>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid w-full max-w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
               {listings.map((listing) => (
                 <Link
                   key={listing.id}
                   href={`/listing/${listing.id}`}
-                  className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
+                  className={`group flex w-full max-w-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
                     listing.featured
                       ? "border-2 border-[#B08D3C]"
                       : "border border-[#D5DBDF]"
                   }`}
                 >
-                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E9EDF0]">
-                    <img
-                      src={listing.image}
-                      alt={listing.title}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute left-4 top-4 rounded-full bg-[#34414A]/90 px-3 py-2 text-xs font-bold text-white backdrop-blur">
+                  <div className="relative w-full max-w-full overflow-hidden bg-[#E9EDF0]">
+                    <div className="aspect-[4/3] w-full max-w-full sm:aspect-[16/10]">
+                      <img
+                        src={listing.image}
+                        alt={listing.title}
+                        className="block h-full w-full max-w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                    <div className="absolute left-2.5 top-2.5 rounded-full bg-[#34414A]/90 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur sm:left-4 sm:top-4 sm:px-3 sm:py-2 sm:text-xs">
                       {listing.category}
                     </div>
                     {listing.featured && (
-                      <div className="absolute right-4 top-4 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-3 py-2 text-xs font-bold text-white shadow-md">
+                      <div className="absolute right-2.5 top-2.5 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-2.5 py-1 text-[10px] font-bold text-white shadow-md sm:right-4 sm:top-4 sm:px-3 sm:py-2 sm:text-xs">
                         ⭐ FEATURED
                       </div>
                     )}
                   </div>
-                  <div className="p-5">
-                    <h3 className="line-clamp-2 min-h-[56px] text-xl font-extrabold leading-7 text-[#34414A]">
+                  <div className="flex flex-1 flex-col p-3.5 sm:p-5">
+                    <h3 className="line-clamp-2 min-h-[44px] text-sm font-extrabold leading-5 text-[#34414A] sm:min-h-[56px] sm:text-xl sm:leading-7">
                       {listing.title}
                     </h3>
-                    <div className="mt-3 text-2xl font-black text-[#9A7B37]">
+                    <div className="mt-2 text-lg font-black text-[#9A7B37] sm:mt-3 sm:text-2xl">
                       {listing.price}
                     </div>
-                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
+                    <div className="mt-3 grid w-full max-w-full grid-cols-2 gap-1.5 text-[10px] sm:mt-4 sm:gap-2 sm:text-xs">
+                      <div className="min-w-0 rounded-lg bg-[#F7F8F9] px-2 py-1.5 sm:px-3 sm:py-2">
                         <div className="text-[#89939A]">Year</div>
-                        <div className="mt-1 font-bold text-[#34414A]">{listing.year}</div>
+                        <div className="mt-0.5 truncate font-bold text-[#34414A] sm:mt-1">
+                          {listing.year}
+                        </div>
                       </div>
-                      <div className="rounded-lg bg-[#F7F8F9] px-3 py-2">
+                      <div className="min-w-0 rounded-lg bg-[#F7F8F9] px-2 py-1.5 sm:px-3 sm:py-2">
                         <div className="text-[#89939A]">Mileage</div>
-                        <div className="mt-1 font-bold text-[#34414A]">
+                        <div className="mt-0.5 truncate font-bold text-[#34414A] sm:mt-1">
                           {listing.mileage}
                         </div>
                       </div>
                     </div>
-                    <div className="mt-4 border-t border-[#E1E5E8] pt-4">
-                      <div className="text-sm text-[#66737C]">
+                    <div className="mt-3 border-t border-[#E1E5E8] pt-3 sm:mt-4 sm:pt-4">
+                      <div className="truncate text-xs text-[#66737C] sm:text-sm">
                         📍 {listing.location}
                       </div>
                     </div>
@@ -558,39 +564,39 @@ export default function SellerProfilePage() {
         </div>
       </section>
 
-      <section className="w-full bg-white py-16">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-[1fr_1.5fr]">
-            <div>
-              <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+      <section className="w-full max-w-full overflow-x-hidden bg-white py-10 sm:py-16">
+        <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 lg:px-8">
+          <div className="grid w-full max-w-full gap-8 lg:grid-cols-[1fr_1.5fr] lg:gap-10">
+            <div className="w-full max-w-full min-w-0">
+              <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37] sm:text-sm">
                 Ratings
               </div>
-              <h2 className="mt-2 text-3xl font-black tracking-tight text-[#34414A]">
+              <h2 className="mt-1 text-2xl font-black tracking-tight text-[#34414A] sm:mt-2 sm:text-3xl">
                 Seller Reviews
               </h2>
 
               {reviews.length > 0 ? (
-                <div className="mt-6 rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-6">
+                <div className="mt-5 w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-4 sm:mt-6 sm:p-6">
                   <div className="text-center">
-                    <div className="text-5xl font-black text-[#34414A]">
+                    <div className="text-4xl font-black text-[#34414A] sm:text-5xl">
                       {avgRating.toFixed(1)}
                     </div>
                     <div className="mt-2">
                       <Stars rating={Math.round(avgRating)} size="lg" />
                     </div>
-                    <div className="mt-2 text-sm text-[#66737C]">
+                    <div className="mt-2 text-xs text-[#66737C] sm:text-sm">
                       Based on {reviews.length} review
                       {reviews.length === 1 ? "" : "s"}
                     </div>
                   </div>
 
-                  <div className="mt-6 space-y-2">
+                  <div className="mt-5 space-y-1.5 sm:mt-6 sm:space-y-2">
                     {ratingDist.map(({ star, count }) => (
-                      <div key={star} className="flex items-center gap-3">
-                        <span className="w-12 text-xs font-bold text-[#66737C]">
+                      <div key={star} className="flex items-center gap-2 sm:gap-3">
+                        <span className="w-10 flex-shrink-0 text-[10px] font-bold text-[#66737C] sm:w-12 sm:text-xs">
                           {star} ★
                         </span>
-                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#E1E5E8]">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#E1E5E8] sm:h-2">
                           <div
                             className="h-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C]"
                             style={{
@@ -601,7 +607,7 @@ export default function SellerProfilePage() {
                             }}
                           />
                         </div>
-                        <span className="w-8 text-right text-xs font-bold text-[#66737C]">
+                        <span className="w-6 flex-shrink-0 text-right text-[10px] font-bold text-[#66737C] sm:w-8 sm:text-xs">
                           {count}
                         </span>
                       </div>
@@ -609,63 +615,62 @@ export default function SellerProfilePage() {
                   </div>
                 </div>
               ) : (
-                <div className="mt-6 rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-8 text-center">
+                <div className="mt-5 w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-6 text-center sm:mt-6 sm:p-8">
                   <div className="text-4xl">⭐</div>
-                  <p className="mt-3 text-sm text-[#66737C]">
+                  <p className="mt-3 text-xs text-[#66737C] sm:text-sm">
                     No reviews yet. Be the first to review this seller.
                   </p>
                 </div>
               )}
 
               {isOwnProfile ? (
-                <div className="mt-6">
-                  <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-5">
-                    <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
+                <div className="mt-5 w-full max-w-full sm:mt-6">
+                  <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4 sm:p-5">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9A7B37] sm:text-xs">
                       This is your profile
                     </div>
-                    <p className="mt-2 text-sm text-[#66737C]">
+                    <p className="mt-2 text-xs text-[#66737C] sm:text-sm">
                       You cannot review your own listings.
                     </p>
                   </div>
                 </div>
               ) : !currentUser ? (
-                <div className="mt-6">
+                <div className="mt-5 w-full max-w-full sm:mt-6">
                   <Link
                     href="/login"
-                    className="block w-full rounded-xl border border-[#B08D3C] bg-white px-6 py-4 text-center font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+                    className="block w-full rounded-xl border border-[#B08D3C] bg-white px-6 py-3.5 text-center text-sm font-bold text-[#8F7130] hover:bg-[#FBF7EC] sm:py-4 sm:text-base"
                   >
                     Log in to leave a review
                   </Link>
                 </div>
               ) : (
-                <div className="mt-6">
+                <div className="mt-5 w-full max-w-full sm:mt-6">
                   {myReview ? (
-                    <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-5">
-                      <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
+                    <div className="w-full max-w-full rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4 sm:p-5">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9A7B37] sm:text-xs">
                         Your Review
                       </div>
                       <div className="mt-2 flex items-center gap-2">
                         <Stars rating={myReview.rating} size="sm" />
-                        <span className="text-sm text-[#66737C]">
-                          ({myReview.rating} star
-                          {myReview.rating === 1 ? "" : "s"})
+                        <span className="text-xs text-[#66737C] sm:text-sm">
+                          ({myReview.rating} ★)
                         </span>
                       </div>
                       {myReview.comment && (
-                        <p className="mt-2 text-sm leading-6 text-[#4A5962]">
+                        <p className="mt-2 text-xs leading-5 text-[#4A5962] sm:text-sm sm:leading-6">
                           {myReview.comment}
                         </p>
                       )}
-                      <div className="mt-4 flex gap-2">
+                      <div className="mt-4 flex w-full gap-2">
                         <button
                           onClick={() => setShowReviewForm(!showReviewForm)}
-                          className="flex-1 rounded-lg border border-[#B08D3C] bg-white px-4 py-2 text-xs font-bold text-[#8F7130] hover:bg-[#FBF7EC]"
+                          className="flex-1 rounded-lg border border-[#B08D3C] bg-white px-3 py-2 text-[10px] font-bold text-[#8F7130] hover:bg-[#FBF7EC] sm:px-4 sm:text-xs"
                         >
-                          {showReviewForm ? "Cancel" : "Edit Review"}
+                          {showReviewForm ? "Cancel" : "Edit"}
                         </button>
                         <button
                           onClick={handleDeleteReview}
-                          className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-100"
+                          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[10px] font-bold text-red-600 hover:bg-red-100 sm:px-4 sm:text-xs"
                         >
                           Delete
                         </button>
@@ -674,7 +679,7 @@ export default function SellerProfilePage() {
                   ) : (
                     <button
                       onClick={() => setShowReviewForm(!showReviewForm)}
-                      className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 font-bold text-white shadow-md hover:brightness-105"
+                      className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3.5 text-sm font-bold text-white shadow-md hover:brightness-105 sm:py-4 sm:text-base"
                     >
                       {showReviewForm ? "Cancel" : "Write a Review"}
                     </button>
@@ -683,14 +688,14 @@ export default function SellerProfilePage() {
                   {showReviewForm && (
                     <form
                       onSubmit={handleSubmitReview}
-                      className="mt-6 rounded-2xl border border-[#D5DBDF] bg-white p-6 shadow-sm"
+                      className="mt-5 w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white p-4 shadow-sm sm:mt-6 sm:p-6"
                     >
-                      <h3 className="text-lg font-black text-[#34414A]">
+                      <h3 className="text-base font-black text-[#34414A] sm:text-lg">
                         {myReview ? "Update your review" : "Write a review"}
                       </h3>
 
                       <div className="mt-4">
-                        <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                        <label className="mb-2 block text-xs font-bold text-[#34414A] sm:text-sm">
                           Rating
                         </label>
                         <div className="flex gap-1">
@@ -699,8 +704,7 @@ export default function SellerProfilePage() {
                               key={star}
                               type="button"
                               onClick={() => setReviewRating(star)}
-                              className="text-4xl transition hover:scale-110"
-                              aria-label={`${star} stars`}
+                              className="text-3xl transition hover:scale-110 sm:text-4xl"
                             >
                               <span
                                 className={
@@ -714,13 +718,13 @@ export default function SellerProfilePage() {
                             </button>
                           ))}
                         </div>
-                        <p className="mt-1 text-xs text-[#89939A]">
+                        <p className="mt-1 text-[10px] text-[#89939A] sm:text-xs">
                           {reviewRating} star{reviewRating === 1 ? "" : "s"}
                         </p>
                       </div>
 
                       <div className="mt-5">
-                        <label className="mb-2 block text-sm font-bold text-[#34414A]">
+                        <label className="mb-2 block text-xs font-bold text-[#34414A] sm:text-sm">
                           Your review
                         </label>
                         <textarea
@@ -728,13 +732,13 @@ export default function SellerProfilePage() {
                           onChange={(e) => setReviewComment(e.target.value)}
                           rows={4}
                           placeholder="Tell other buyers about your experience with this seller..."
-                          className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                          className="w-full max-w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3 text-sm leading-6 outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
                         />
                       </div>
 
                       {reviewMessage && (
                         <div
-                          className={`mt-4 rounded-xl border p-3 text-center text-sm font-bold ${
+                          className={`mt-4 rounded-xl border p-3 text-center text-xs font-bold sm:text-sm ${
                             reviewMessage.startsWith("✓")
                               ? "border-green-200 bg-green-50 text-green-700"
                               : "border-red-200 bg-red-50 text-red-600"
@@ -747,7 +751,7 @@ export default function SellerProfilePage() {
                       <button
                         type="submit"
                         disabled={reviewSubmitting}
-                        className="mt-5 w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3.5 font-bold text-white shadow-md hover:brightness-105 disabled:opacity-60"
+                        className="mt-5 w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3.5 text-sm font-bold text-white shadow-md hover:brightness-105 disabled:opacity-60 sm:text-base"
                       >
                         {reviewSubmitting
                           ? "Submitting..."
@@ -761,39 +765,39 @@ export default function SellerProfilePage() {
               )}
             </div>
 
-            <div>
-              <h3 className="text-lg font-black text-[#34414A]">
+            <div className="w-full max-w-full min-w-0">
+              <h3 className="text-base font-black text-[#34414A] sm:text-lg">
                 All Reviews ({reviews.length})
               </h3>
 
               {reviews.length === 0 ? (
-                <div className="mt-4 rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-8 text-center">
-                  <p className="text-sm text-[#66737C]">
+                <div className="mt-4 w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-6 text-center sm:p-8">
+                  <p className="text-xs text-[#66737C] sm:text-sm">
                     No reviews yet. Be the first to review this seller.
                   </p>
                 </div>
               ) : (
-                <div className="mt-4 space-y-4">
+                <div className="mt-4 w-full max-w-full space-y-3 sm:space-y-4">
                   {reviews.map((review) => (
                     <div
                       key={review.id}
-                      className="rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-5"
+                      className="w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-[#F7F8F9] p-3.5 sm:p-5"
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-sm font-black text-white">
+                      <div className="flex w-full items-start gap-3 sm:gap-4">
+                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-xs font-black text-white sm:h-11 sm:w-11 sm:text-sm">
                           {review.reviewerName?.charAt(0).toUpperCase() || "?"}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-bold text-[#34414A]">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <span className="text-xs font-bold text-[#34414A] sm:text-sm">
                               {review.reviewerName}
                             </span>
                             {review.reviewer_id === currentUser?.id && (
-                              <span className="rounded-full bg-[#FBF7EC] px-2 py-0.5 text-xs font-bold text-[#8F7130]">
+                              <span className="rounded-full bg-[#FBF7EC] px-2 py-0.5 text-[10px] font-bold text-[#8F7130] sm:text-xs">
                                 You
                               </span>
                             )}
-                            <span className="text-xs text-[#89939A]">
+                            <span className="text-[10px] text-[#89939A] sm:text-xs">
                               {new Date(review.created_at).toLocaleDateString(
                                 "en-ZA",
                                 {
@@ -808,7 +812,7 @@ export default function SellerProfilePage() {
                             <Stars rating={review.rating} size="sm" />
                           </div>
                           {review.comment && (
-                            <p className="mt-3 text-sm leading-6 text-[#4A5962]">
+                            <p className="mt-2 text-xs leading-5 text-[#4A5962] sm:mt-3 sm:text-sm sm:leading-6">
                               {review.comment}
                             </p>
                           )}
