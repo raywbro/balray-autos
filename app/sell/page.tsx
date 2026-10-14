@@ -286,8 +286,8 @@ export default function SellPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen w-full flex items-center justify-center bg-[#F7F8F9]">
-        <div className="text-lg font-bold animate-pulse text-[#9A7B37]">
+      <main className="min-h-screen w-full max-w-full overflow-x-hidden flex items-center justify-center bg-[#F7F8F9] p-4">
+        <div className="text-base sm:text-lg font-bold animate-pulse text-[#9A7B37] text-center">
           Verifying your account...
         </div>
       </main>
@@ -299,13 +299,13 @@ export default function SellPage() {
   // ===== PHONE REQUIRED GATE =====
   if (needsPhone) {
     return (
-      <main className="min-h-screen w-full bg-[#F7F8F9] text-[#34414A] p-4 flex items-center justify-center">
-        <div className="w-full max-w-md rounded-3xl border-2 border-[#B08D3C] bg-white p-8 shadow-lg">
+      <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A] p-4 flex items-center justify-center">
+        <div className="w-full max-w-md rounded-3xl border-2 border-[#B08D3C] bg-white p-6 shadow-lg sm:p-8">
           <div className="text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-3xl text-white">
               📱
             </div>
-            <h1 className="mt-5 text-2xl font-black text-[#34414A]">
+            <h1 className="mt-5 text-xl font-black text-[#34414A] sm:text-2xl">
               Add Your Phone Number
             </h1>
             <p className="mt-3 text-sm text-[#66737C]">
@@ -325,7 +325,7 @@ export default function SellPage() {
                 onChange={(e) => setPhoneInput(e.target.value)}
                 placeholder="e.g. 082 123 4567"
                 required
-                className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
               />
               {phoneError && (
                 <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-600">
@@ -354,21 +354,21 @@ export default function SellPage() {
   // ===== PAYWALL =====
   if (showPaywall) {
     return (
-      <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
-        <section className="relative overflow-hidden bg-black px-4 py-16 text-center sm:px-6 sm:py-24 lg:px-8">
+      <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
+        <section className="relative w-full max-w-full overflow-hidden bg-black px-4 py-12 text-center sm:px-6 sm:py-24 lg:px-8">
           <div className="relative z-10 mx-auto max-w-2xl">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-4xl shadow-xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-3xl shadow-xl sm:h-20 sm:w-20 sm:text-4xl">
               🔒
             </div>
-            <h1 className="mt-6 text-3xl font-black text-white sm:text-4xl">
+            <h1 className="mt-6 text-2xl font-black text-white sm:text-4xl">
               You&apos;ve Used All 3 Free Listings
             </h1>
-            <p className="mt-4 text-base leading-7 text-white/80">
+            <p className="mt-4 text-sm leading-6 text-white/80 sm:text-base sm:leading-7">
               You&apos;ve posted {listingCount} free listings. To post another
               advert, subscribe and wait for admin to confirm your payment.
             </p>
 
-            <div className="mt-8 rounded-2xl border-2 border-[#D3B86A]/60 bg-white/5 p-6 text-left backdrop-blur-sm">
+            <div className="mt-8 w-full max-w-full rounded-2xl border-2 border-[#D3B86A]/60 bg-white/5 p-5 text-left backdrop-blur-sm sm:p-6">
               <div className="text-xs font-black uppercase tracking-[0.16em] text-[#D2B66A]">
                 Subscription Unlocks
               </div>
@@ -387,22 +387,22 @@ export default function SellPage() {
                   </span>
                 </div>
               </div>
-              <div className="mt-6 grid grid-cols-3 gap-3 border-t border-white/10 pt-6">
+              <div className="mt-6 grid grid-cols-3 gap-2 border-t border-white/10 pt-6 sm:gap-3">
                 <div className="text-center">
-                  <div className="text-2xl font-black text-white">R39</div>
-                  <div className="mt-1 text-xs uppercase tracking-wider text-white/60">
+                  <div className="text-xl font-black text-white sm:text-2xl">R39</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-wider text-white/60 sm:text-xs">
                     Weekly
                   </div>
                 </div>
                 <div className="border-x border-white/10 text-center">
-                  <div className="text-2xl font-black text-[#D2B66A]">R99</div>
-                  <div className="mt-1 text-xs uppercase tracking-wider text-white/60">
+                  <div className="text-xl font-black text-[#D2B66A] sm:text-2xl">R99</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-wider text-white/60 sm:text-xs">
                     Monthly
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-black text-white">R799</div>
-                  <div className="mt-1 text-xs uppercase tracking-wider text-white/60">
+                  <div className="text-xl font-black text-white sm:text-2xl">R799</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-wider text-white/60 sm:text-xs">
                     Yearly
                   </div>
                 </div>
@@ -423,7 +423,7 @@ export default function SellPage() {
 
   // ===== SELL FORM =====
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
       <HeroBanner
         badgeText="Sell With Balray Autos"
         title={
@@ -441,20 +441,23 @@ export default function SellPage() {
         height="md"
       />
 
-      <section id="sell-form" className="w-full bg-[#F7F8F9]">
-        <div className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+      <section
+        id="sell-form"
+        className="w-full max-w-full overflow-x-hidden bg-[#F7F8F9]"
+      >
+        <div className="mx-auto w-full max-w-5xl px-3 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
           {!hasActiveSubscription && (
-            <div className="mb-6 overflow-hidden rounded-2xl border border-[#D3B86A]/50 bg-gradient-to-r from-[#FBF7EC] to-[#F7F8F9] p-5">
-              <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[#D3B86A]/50 bg-gradient-to-r from-[#FBF7EC] to-[#F7F8F9] p-4 sm:p-5">
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-xl text-white">
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-lg text-white sm:h-12 sm:w-12 sm:text-xl">
                     🎁
                   </div>
-                  <div>
-                    <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#9A7B37]">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9A7B37] sm:text-xs">
                       Free Listings
                     </div>
-                    <div className="mt-1 text-lg font-black text-[#34414A]">
+                    <div className="mt-1 text-base font-black text-[#34414A] sm:text-lg">
                       {listingCount} of {FREE_LISTING_LIMIT} used
                     </div>
                   </div>
@@ -469,16 +472,16 @@ export default function SellPage() {
           )}
 
           {hasActiveSubscription && (
-            <div className="mb-6 rounded-2xl border border-green-300 bg-green-50 p-5">
+            <div className="mb-6 w-full max-w-full rounded-2xl border border-green-300 bg-green-50 p-4 sm:p-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-600 to-green-700 text-xl text-white">
+                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-green-600 to-green-700 text-lg text-white sm:h-12 sm:w-12 sm:text-xl">
                   🚀
                 </div>
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-green-700">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-green-700 sm:text-xs">
                     Active {subscriptionTier} Subscription
                   </div>
-                  <div className="mt-1 text-sm font-black text-green-700">
+                  <div className="mt-1 text-xs font-black text-green-700 sm:text-sm">
                     ✅ Unlimited posting unlocked
                     {subscriptionExpiry &&
                       ` — expires ${new Date(subscriptionExpiry).toLocaleDateString(
@@ -492,26 +495,26 @@ export default function SellPage() {
           )}
 
           {submitted ? (
-            <div className="rounded-3xl border border-[#D5DBDF] bg-white p-8 text-center shadow-sm sm:p-12">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#FBF7EC] text-4xl">
+            <div className="w-full max-w-full rounded-3xl border border-[#D5DBDF] bg-white p-6 text-center shadow-sm sm:p-12">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#FBF7EC] text-3xl sm:h-20 sm:w-20 sm:text-4xl">
                 ✓
               </div>
-              <h2 className="mt-6 text-3xl font-black text-[#34414A] sm:text-4xl">
+              <h2 className="mt-6 text-2xl font-black text-[#34414A] sm:text-4xl">
                 Thank You!
               </h2>
-              <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[#66737C]">
+              <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-[#66737C] sm:text-base sm:leading-7">
                 Your listing has been saved and submitted for review.
               </p>
               <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
                   href="/marketplace"
-                  className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 font-bold text-white"
+                  className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-sm font-bold text-white sm:text-base"
                 >
                   Browse Marketplace
                 </Link>
                 <Link
                   href="/my-listings"
-                  className="rounded-xl border border-[#B08D3C] bg-white px-6 py-4 font-bold text-[#8F7130]"
+                  className="rounded-xl border border-[#B08D3C] bg-white px-6 py-4 text-sm font-bold text-[#8F7130] sm:text-base"
                 >
                   View My Listings
                 </Link>
@@ -520,38 +523,38 @@ export default function SellPage() {
           ) : (
             <form
               onSubmit={handleSubmit}
-              className="overflow-hidden rounded-3xl border border-[#D5DBDF] bg-white shadow-sm"
+              className="w-full max-w-full overflow-hidden rounded-3xl border border-[#D5DBDF] bg-white shadow-sm"
             >
-              <div className="border-b border-[#E1E5E8] bg-[#34414A] px-6 py-8 sm:px-10">
-                <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#D2B66A]">
+              <div className="w-full max-w-full border-b border-[#E1E5E8] bg-[#34414A] px-4 py-6 sm:px-10 sm:py-8">
+                <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#D2B66A] sm:text-sm">
                   Listing Information
                 </div>
-                <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl">
+                <h2 className="mt-2 text-xl font-black text-white sm:text-3xl">
                   Tell us about what you&apos;re selling
                 </h2>
               </div>
 
               {errorMessage && (
-                <div className="bg-red-50 p-4 text-center text-sm font-bold text-red-600 border-b border-red-200">
+                <div className="bg-red-50 p-4 text-center text-xs font-bold text-red-600 border-b border-red-200 sm:text-sm">
                   Error: {errorMessage}
                 </div>
               )}
 
-              <div className="space-y-10 p-6 sm:p-10">
-                <div>
+              <div className="w-full max-w-full space-y-8 p-4 sm:space-y-10 sm:p-10">
+                <div className="w-full max-w-full">
                   <div className="mb-5">
-                    <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+                    <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37] sm:text-sm">
                       01
                     </div>
-                    <h3 className="mt-1 text-xl font-black text-[#34414A]">
+                    <h3 className="mt-1 text-lg font-black text-[#34414A] sm:text-xl">
                       Your Information
                     </h3>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-4">
+                  <div className="w-full max-w-full space-y-4">
+                    <div className="w-full max-w-full rounded-2xl border border-[#D3B86A]/50 bg-[#FBF7EC] p-3 sm:p-4">
                       <div className="flex items-start gap-3">
-                        <span className="text-lg">🔒</span>
+                        <span className="text-lg flex-shrink-0">🔒</span>
                         <p className="text-xs leading-5 text-[#8F7130]">
                           Your name, email, and phone are locked to your account
                           and are used automatically on this advert.
@@ -559,13 +562,13 @@ export default function SellPage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-5 md:grid-cols-3">
-                      <div>
+                    <div className="grid w-full max-w-full gap-4 sm:gap-5 md:grid-cols-3">
+                      <div className="w-full max-w-full min-w-0">
                         <label className="mb-2 block text-sm font-bold text-[#34414A]">
                           Full Name
                         </label>
-                        <div className="flex items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-4 py-3.5">
-                          <span className="text-lg">👤</span>
+                        <div className="flex w-full max-w-full items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-3 py-3 sm:px-4 sm:py-3.5">
+                          <span className="text-lg flex-shrink-0">👤</span>
                           <span className="truncate text-sm font-bold text-[#66737C]">
                             {profile?.full_name ||
                               user.user_metadata?.full_name ||
@@ -573,23 +576,23 @@ export default function SellPage() {
                           </span>
                         </div>
                       </div>
-                      <div>
+                      <div className="w-full max-w-full min-w-0">
                         <label className="mb-2 block text-sm font-bold text-[#34414A]">
                           Email
                         </label>
-                        <div className="flex items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-4 py-3.5">
-                          <span className="text-lg">✉️</span>
+                        <div className="flex w-full max-w-full items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-3 py-3 sm:px-4 sm:py-3.5">
+                          <span className="text-lg flex-shrink-0">✉️</span>
                           <span className="truncate text-sm font-bold text-[#66737C]">
                             {user.email}
                           </span>
                         </div>
                       </div>
-                      <div>
+                      <div className="w-full max-w-full min-w-0">
                         <label className="mb-2 block text-sm font-bold text-[#34414A]">
                           Phone
                         </label>
-                        <div className="flex items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-4 py-3.5">
-                          <span className="text-lg">📱</span>
+                        <div className="flex w-full max-w-full items-center gap-2 rounded-xl border border-[#E1E5E8] bg-[#F7F8F9] px-3 py-3 sm:px-4 sm:py-3.5">
+                          <span className="text-lg flex-shrink-0">📱</span>
                           <span className="truncate text-sm font-bold text-[#66737C]">
                             {profile?.phone ||
                               user.user_metadata?.phone ||
@@ -599,7 +602,7 @@ export default function SellPage() {
                       </div>
                     </div>
 
-                    <div>
+                    <div className="w-full max-w-full">
                       <label
                         htmlFor="sellerType"
                         className="mb-2 block text-sm font-bold text-[#34414A]"
@@ -611,7 +614,7 @@ export default function SellPage() {
                         name="sellerType"
                         required
                         defaultValue=""
-                        className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                        className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3.5"
                       >
                         <option value="" disabled>
                           Select seller type
@@ -624,17 +627,17 @@ export default function SellPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-[#E1E5E8] pt-10">
+                <div className="w-full max-w-full border-t border-[#E1E5E8] pt-8 sm:pt-10">
                   <div className="mb-5">
-                    <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+                    <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37] sm:text-sm">
                       02
                     </div>
-                    <h3 className="mt-1 text-xl font-black text-[#34414A]">
+                    <h3 className="mt-1 text-lg font-black text-[#34414A] sm:text-xl">
                       What Are You Selling?
                     </h3>
                   </div>
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <div>
+                  <div className="grid w-full max-w-full gap-4 sm:gap-5 md:grid-cols-2">
+                    <div className="w-full max-w-full">
                       <label
                         htmlFor="category"
                         className="mb-2 block text-sm font-bold text-[#34414A]"
@@ -646,7 +649,7 @@ export default function SellPage() {
                         name="category"
                         required
                         defaultValue=""
-                        className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                        className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3.5"
                       >
                         <option value="" disabled>
                           Select category
@@ -659,7 +662,7 @@ export default function SellPage() {
                         <option value="parts">Parts & Accessories</option>
                       </select>
                     </div>
-                    <div>
+                    <div className="w-full max-w-full">
                       <label
                         htmlFor="condition"
                         className="mb-2 block text-sm font-bold text-[#34414A]"
@@ -671,7 +674,7 @@ export default function SellPage() {
                         name="condition"
                         required
                         defaultValue=""
-                        className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                        className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3.5"
                       >
                         <option value="" disabled>
                           Select condition
@@ -685,17 +688,17 @@ export default function SellPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-[#E1E5E8] pt-10">
+                <div className="w-full max-w-full border-t border-[#E1E5E8] pt-8 sm:pt-10">
                   <div className="mb-5">
-                    <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+                    <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37] sm:text-sm">
                       03
                     </div>
-                    <h3 className="mt-1 text-xl font-black text-[#34414A]">
+                    <h3 className="mt-1 text-lg font-black text-[#34414A] sm:text-xl">
                       Vehicle / Product Details
                     </h3>
                   </div>
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <div>
+                  <div className="grid w-full max-w-full gap-4 sm:gap-5 md:grid-cols-2">
+                    <div className="w-full max-w-full">
                       <label
                         htmlFor="make"
                         className="mb-2 block text-sm font-bold text-[#34414A]"
@@ -708,10 +711,10 @@ export default function SellPage() {
                         type="text"
                         required
                         placeholder="e.g. Toyota"
-                        className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                        className="w-full max-w-full rounded-xl border border-[#D5DBDF] px-3 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3.5"
                       />
                     </div>
-                    <div>
+                    <div className="w-full max-w-full">
                       <label
                         htmlFor="model"
                         className="mb-2 block text-sm font-bold text-[#34414A]"
@@ -724,10 +727,10 @@ export default function SellPage() {
                         type="text"
                         required
                         placeholder="e.g. Hilux 2.8 GD-6"
-                        className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                        className="w-full max-w-full rounded-xl border border-[#D5DBDF] px-3 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3.5"
                       />
                     </div>
-                    <div>
+                    <div className="w-full max-w-full">
                       <label
                         htmlFor="year"
                         className="mb-2 block text-sm font-bold text-[#34414A]"
@@ -741,10 +744,10 @@ export default function SellPage() {
                         min="1900"
                         max="2100"
                         placeholder="e.g. 2022"
-                        className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                        className="w-full max-w-full rounded-xl border border-[#D5DBDF] px-3 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3.5"
                       />
                     </div>
-                    <div>
+                    <div className="w-full max-w-full">
                       <label
                         htmlFor="price"
                         className="mb-2 block text-sm font-bold text-[#34414A]"
@@ -758,10 +761,10 @@ export default function SellPage() {
                         min="0"
                         required
                         placeholder="e.g. 489900"
-                        className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                        className="w-full max-w-full rounded-xl border border-[#D5DBDF] px-3 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3.5"
                       />
                     </div>
-                    <div>
+                    <div className="w-full max-w-full">
                       <label
                         htmlFor="mileage"
                         className="mb-2 block text-sm font-bold text-[#34414A]"
@@ -773,10 +776,10 @@ export default function SellPage() {
                         name="mileage"
                         type="text"
                         placeholder="e.g. 68,000 km"
-                        className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                        className="w-full max-w-full rounded-xl border border-[#D5DBDF] px-3 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3.5"
                       />
                     </div>
-                    <div>
+                    <div className="w-full max-w-full">
                       <label
                         htmlFor="location"
                         className="mb-2 block text-sm font-bold text-[#34414A]"
@@ -789,10 +792,10 @@ export default function SellPage() {
                         type="text"
                         required
                         placeholder="e.g. Gqeberha, Eastern Cape"
-                        className="w-full rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                        className="w-full max-w-full rounded-xl border border-[#D5DBDF] px-3 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3.5"
                       />
                     </div>
-                    <div>
+                    <div className="w-full max-w-full">
                       <label
                         htmlFor="transmission"
                         className="mb-2 block text-sm font-bold text-[#34414A]"
@@ -803,7 +806,7 @@ export default function SellPage() {
                         id="transmission"
                         name="transmission"
                         defaultValue=""
-                        className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                        className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3.5"
                       >
                         <option value="">Select transmission</option>
                         <option value="automatic">Automatic</option>
@@ -812,7 +815,7 @@ export default function SellPage() {
                         <option value="other">Other / N/A</option>
                       </select>
                     </div>
-                    <div>
+                    <div className="w-full max-w-full">
                       <label
                         htmlFor="fuel"
                         className="mb-2 block text-sm font-bold text-[#34414A]"
@@ -823,7 +826,7 @@ export default function SellPage() {
                         id="fuel"
                         name="fuel"
                         defaultValue=""
-                        className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3.5 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                        className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-3 text-sm text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3.5"
                       >
                         <option value="">Select fuel type</option>
                         <option value="petrol">Petrol</option>
@@ -834,7 +837,7 @@ export default function SellPage() {
                       </select>
                     </div>
                   </div>
-                  <div className="mt-5">
+                  <div className="mt-4 w-full max-w-full sm:mt-5">
                     <label
                       htmlFor="description"
                       className="mb-2 block text-sm font-bold text-[#34414A]"
@@ -847,10 +850,10 @@ export default function SellPage() {
                       required
                       rows={6}
                       placeholder="Describe the vehicle or product. Do not include phone numbers — buyers will contact you using the Call/WhatsApp buttons."
-                      className="w-full resize-y rounded-xl border border-[#D5DBDF] px-4 py-3.5 text-sm leading-6 text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                      className="w-full max-w-full resize-y rounded-xl border border-[#D5DBDF] px-3 py-3 text-sm leading-6 text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3.5"
                     />
                     <div className="mt-2 flex items-start gap-2 rounded-lg bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
-                      <span>⚠️</span>
+                      <span className="flex-shrink-0">⚠️</span>
                       <span>
                         Phone numbers in descriptions are automatically blocked
                         to protect buyers from scams.
@@ -859,46 +862,48 @@ export default function SellPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-[#E1E5E8] pt-10">
+                <div className="w-full max-w-full border-t border-[#E1E5E8] pt-8 sm:pt-10">
                   <div className="mb-5">
-                    <div className="text-sm font-bold uppercase tracking-[0.16em] text-[#9A7B37]">
+                    <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37] sm:text-sm">
                       04
                     </div>
-                    <h3 className="mt-1 text-xl font-black text-[#34414A]">
+                    <h3 className="mt-1 text-lg font-black text-[#34414A] sm:text-xl">
                       Photos & Video
                     </h3>
-                    <p className="mt-1 text-sm text-[#66737C]">
+                    <p className="mt-1 text-xs text-[#66737C] sm:text-sm">
                       Up to 10 photos (watermarked) and 1 optional video.
                     </p>
                   </div>
 
-                  <div className="mb-4 flex justify-end">
+                  <div className="mb-4 flex w-full max-w-full justify-end">
                     <button
                       type="button"
                       onClick={() => setShowCamera(true)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-[#D3B86A] bg-[#FBF7EC] px-4 py-2 text-xs font-bold text-[#8F7130] hover:bg-[#F5EDD8]"
+                      className="inline-flex items-center gap-2 rounded-xl border border-[#D3B86A] bg-[#FBF7EC] px-3 py-2 text-[10px] font-bold text-[#8F7130] hover:bg-[#F5EDD8] sm:px-4 sm:text-xs"
                     >
                       📷 Take Photo with Camera
                     </button>
                   </div>
 
-                  <ImageVideoManager
-                    userId={user.id}
-                    initialImages={[]}
-                    initialVideo={null}
-                    onImagesChange={() => {}}
-                    onVideoChange={() => {}}
-                    maxImages={10}
-                    uploadRef={uploadRef}
-                  />
+                  <div className="w-full max-w-full">
+                    <ImageVideoManager
+                      userId={user.id}
+                      initialImages={[]}
+                      initialVideo={null}
+                      onImagesChange={() => {}}
+                      onVideoChange={() => {}}
+                      maxImages={10}
+                      uploadRef={uploadRef}
+                    />
+                  </div>
                 </div>
 
-                <div className="border-t border-[#E1E5E8] pt-10">
-                  <label className="flex cursor-pointer items-start gap-3">
+                <div className="w-full max-w-full border-t border-[#E1E5E8] pt-8 sm:pt-10">
+                  <label className="flex w-full max-w-full cursor-pointer items-start gap-3">
                     <input
                       type="checkbox"
                       required
-                      className="mt-1 h-4 w-4 accent-[#B08D3C]"
+                      className="mt-1 h-4 w-4 flex-shrink-0 accent-[#B08D3C]"
                     />
                     <span className="text-sm leading-6 text-[#66737C]">
                       I confirm that the information provided is accurate and
@@ -908,11 +913,11 @@ export default function SellPage() {
                   </label>
                 </div>
 
-                <div className="border-t border-[#E1E5E8] pt-8">
+                <div className="w-full max-w-full border-t border-[#E1E5E8] pt-6 sm:pt-8">
                   <button
                     type="submit"
                     disabled={uploading}
-                    className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-base font-bold text-white shadow-md transition hover:brightness-105 disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-4 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:opacity-70 disabled:cursor-not-allowed sm:text-base"
                   >
                     {uploading ? "UPLOADING..." : "SUBMIT LISTING"}
                   </button>
