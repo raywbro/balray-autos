@@ -280,7 +280,7 @@ function MarketplaceContent() {
   });
 
   return (
-    <>
+    <div className="w-full max-w-full overflow-x-hidden">
       <HeroBanner
         subtitle="Browse thousands of cars, bakkies, motorcycles, trucks, machinery and parts from trusted sellers across South Africa."
         primaryCTA={{ label: "Sell Your Vehicle", href: "/sell" }}
@@ -288,20 +288,20 @@ function MarketplaceContent() {
       />
 
       {/* SEARCH */}
-      <section className="w-full bg-[#34414A]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+      <section className="w-full max-w-full overflow-x-hidden bg-[#34414A]">
+        <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-6 sm:py-7 lg:px-8">
+          <div className="grid w-full max-w-full gap-2 sm:gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search make, model, category or location..."
-              className="min-w-0 w-full rounded-xl border border-white/10 bg-[#FAFBFC] px-4 py-3.5 text-sm text-[#34414A] outline-none placeholder:text-[#879198] focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-5 sm:py-4"
+              className="min-w-0 w-full max-w-full rounded-xl border border-white/10 bg-[#FAFBFC] px-3 py-3 text-sm text-[#34414A] outline-none placeholder:text-[#879198] focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-5 sm:py-4"
             />
             <button
               type="button"
               onClick={() => setSearch(search)}
-              className="rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3.5 text-sm font-bold text-white sm:px-8 sm:py-4"
+              className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-sm font-bold text-white sm:w-auto sm:px-8 sm:py-4"
             >
               Search
             </button>
@@ -310,15 +310,18 @@ function MarketplaceContent() {
       </section>
 
       {/* CATEGORY FILTERS */}
-      <section id="categories" className="w-full bg-[#F7F8F9]">
-        <div className="mx-auto w-full max-w-7xl px-3 py-8 sm:px-6 sm:py-12 lg:px-8">
-          <div className="flex w-full gap-2 overflow-x-auto pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <section
+        id="categories"
+        className="w-full max-w-full overflow-x-hidden bg-[#F7F8F9]"
+      >
+        <div className="mx-auto w-full max-w-7xl px-3 py-6 sm:px-6 sm:py-12 lg:px-8">
+          <div className="flex w-full max-w-full gap-2 overflow-x-auto pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {categories.map((category) => (
               <button
                 key={category}
                 type="button"
                 onClick={() => setSelectedCategory(category)}
-                className={`whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold transition sm:text-sm ${
+                className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-bold transition sm:px-4 sm:py-2 sm:text-sm ${
                   selectedCategory === category
                     ? "border-[#B08D3C] bg-[#B08D3C] text-white"
                     : "border-[#D5DBDF] bg-white text-[#34414A] hover:border-[#B08D3C] hover:text-[#9A7B37]"
@@ -329,12 +332,12 @@ function MarketplaceContent() {
             ))}
           </div>
 
-          <div className="mt-6 flex flex-col gap-4 sm:mt-8 lg:flex-row lg:items-end lg:justify-between">
-            <div>
+          <div className="mt-5 flex w-full max-w-full flex-col gap-3 sm:mt-8 sm:gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
               <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37] sm:text-sm">
                 Marketplace
               </div>
-              <h2 className="mt-1 text-2xl font-black tracking-tight text-[#34414A] sm:mt-2 sm:text-3xl">
+              <h2 className="mt-1 text-xl font-black tracking-tight text-[#34414A] sm:mt-2 sm:text-3xl">
                 Available Listings
               </h2>
               <p className="mt-1 text-xs text-[#66737C] sm:mt-2 sm:text-sm">
@@ -343,11 +346,11 @@ function MarketplaceContent() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="flex w-full max-w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
               <button
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
-                className={`relative rounded-xl border px-4 py-2.5 text-xs font-bold transition sm:px-5 sm:py-3 sm:text-sm ${
+                className={`relative rounded-xl border px-3.5 py-2.5 text-xs font-bold transition sm:px-5 sm:py-3 sm:text-sm ${
                   showFilters || activeFilterCount > 0
                     ? "border-[#B08D3C] bg-[#FBF7EC] text-[#8F7130]"
                     : "border-[#D5DBDF] bg-white text-[#34414A] hover:border-[#B08D3C]"
@@ -361,11 +364,11 @@ function MarketplaceContent() {
                 )}
               </button>
 
-              <div className="flex flex-1 items-center gap-2 sm:flex-initial">
+              <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-2.5 text-xs font-bold text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:w-auto sm:px-4 sm:py-3 sm:text-sm"
+                  className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-2.5 text-xs font-bold text-[#34414A] outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:w-auto sm:px-4 sm:py-3 sm:text-sm"
                 >
                   <option value="featured">⭐ Boosted First</option>
                   <option value="newest">🆕 Newest Arrivals</option>
@@ -380,7 +383,7 @@ function MarketplaceContent() {
 
               <Link
                 href="/sell"
-                className="inline-flex flex-1 justify-center rounded-xl bg-[#34414A] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#4A5962] sm:flex-initial sm:px-5 sm:py-3 sm:text-sm"
+                className="inline-flex flex-1 justify-center rounded-xl bg-[#34414A] px-3.5 py-2.5 text-xs font-bold text-white hover:bg-[#4A5962] sm:flex-initial sm:px-5 sm:py-3 sm:text-sm"
               >
                 Sell
               </Link>
@@ -388,9 +391,9 @@ function MarketplaceContent() {
           </div>
 
           {showFilters && (
-            <div className="mt-6 rounded-2xl border border-[#D5DBDF] bg-white p-4 shadow-sm sm:p-6">
-              <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
-                <div>
+            <div className="mt-5 w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white p-4 shadow-sm sm:mt-6 sm:p-6">
+              <div className="grid w-full max-w-full gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
+                <div className="w-full max-w-full min-w-0">
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                     Min Price (R)
                   </label>
@@ -400,10 +403,10 @@ function MarketplaceContent() {
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
                     placeholder="e.g. 50000"
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3"
                   />
                 </div>
-                <div>
+                <div className="w-full max-w-full min-w-0">
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                     Max Price (R)
                   </label>
@@ -413,10 +416,10 @@ function MarketplaceContent() {
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
                     placeholder="e.g. 500000"
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3"
                   />
                 </div>
-                <div>
+                <div className="w-full max-w-full min-w-0">
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                     Min Year
                   </label>
@@ -427,10 +430,10 @@ function MarketplaceContent() {
                     value={minYear}
                     onChange={(e) => setMinYear(e.target.value)}
                     placeholder="e.g. 2015"
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3"
                   />
                 </div>
-                <div>
+                <div className="w-full max-w-full min-w-0">
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                     Max Year
                   </label>
@@ -441,17 +444,17 @@ function MarketplaceContent() {
                     value={maxYear}
                     onChange={(e) => setMaxYear(e.target.value)}
                     placeholder="e.g. 2024"
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3"
                   />
                 </div>
-                <div>
+                <div className="w-full max-w-full min-w-0">
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                     Transmission
                   </label>
                   <select
                     value={transmissionFilter}
                     onChange={(e) => setTransmissionFilter(e.target.value)}
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3"
                   >
                     <option value="">Any</option>
                     <option value="automatic">Automatic</option>
@@ -460,14 +463,14 @@ function MarketplaceContent() {
                     <option value="other">Other / N/A</option>
                   </select>
                 </div>
-                <div>
+                <div className="w-full max-w-full min-w-0">
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                     Fuel Type
                   </label>
                   <select
                     value={fuelFilter}
                     onChange={(e) => setFuelFilter(e.target.value)}
-                    className="w-full rounded-xl border border-[#D5DBDF] bg-white px-4 py-3 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20"
+                    className="w-full max-w-full rounded-xl border border-[#D5DBDF] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#B08D3C] focus:ring-2 focus:ring-[#B08D3C]/20 sm:px-4 sm:py-3"
                   >
                     <option value="">Any</option>
                     <option value="petrol">Petrol</option>
@@ -479,7 +482,7 @@ function MarketplaceContent() {
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#E1E5E8] pt-4 sm:mt-5 sm:pt-5">
+              <div className="mt-4 flex w-full max-w-full flex-wrap items-center justify-between gap-3 border-t border-[#E1E5E8] pt-4 sm:mt-5 sm:pt-5">
                 <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#89939A]">
                   {activeFilterCount > 0
                     ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} applied`
@@ -497,18 +500,18 @@ function MarketplaceContent() {
           )}
 
           {loading ? (
-            <div className="mt-10 rounded-2xl border border-[#D5DBDF] bg-white p-10 text-center animate-pulse">
+            <div className="mt-8 w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white p-8 text-center animate-pulse sm:mt-10 sm:p-10">
               <div className="text-4xl">🚗</div>
-              <h3 className="mt-4 text-xl font-black text-[#34414A]">
+              <h3 className="mt-4 text-lg font-black text-[#34414A] sm:text-xl">
                 Loading vehicles...
               </h3>
             </div>
           ) : sortedListings.length > 0 ? (
-            <div className="mt-6 grid gap-4 sm:mt-8 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+            <div className="mt-5 grid w-full max-w-full grid-cols-1 gap-4 sm:mt-8 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
               {sortedListings.map((listing) => (
                 <article
                   key={listing.id}
-                  className={`group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
+                  className={`group flex w-full max-w-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 ${
                     listing.isSubscribedSeller
                       ? "border-2 border-[#8F7130] shadow-[0_15px_40px_rgba(143,113,48,0.25)]"
                       : listing.featured
@@ -516,31 +519,34 @@ function MarketplaceContent() {
                       : "border border-[#D5DBDF] hover:border-[#B08D3C]/60 hover:shadow-[0_20px_50px_rgba(52,65,74,0.12)]"
                   }`}
                 >
-                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#E9EDF0] sm:aspect-[16/10]">
-                    <img
-                      src={listing.image}
-                      alt={listing.title}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    />
+                  <div className="relative w-full max-w-full overflow-hidden bg-[#E9EDF0]">
+                    <div className="aspect-[4/3] w-full max-w-full sm:aspect-[16/10]">
+                      <img
+                        src={listing.image}
+                        alt={listing.title}
+                        className="block h-full w-full max-w-full object-cover transition duration-500 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    </div>
 
-                    <div className="absolute left-3 top-3 rounded-full bg-[#34414A]/90 px-2.5 py-1.5 text-[10px] font-bold text-white backdrop-blur sm:left-4 sm:top-4 sm:px-3 sm:py-2 sm:text-xs">
+                    <div className="absolute left-2.5 top-2.5 rounded-full bg-[#34414A]/90 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur sm:left-4 sm:top-4 sm:px-3 sm:py-2 sm:text-xs">
                       {listing.category}
                     </div>
 
                     {listing.isSubscribedSeller && (
-                      <div className="absolute left-3 top-10 rounded-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C] px-2.5 py-1.5 text-[10px] font-bold text-white shadow-md sm:left-4 sm:top-14 sm:px-3 sm:py-2 sm:text-xs">
+                      <div className="absolute left-2.5 top-9 rounded-full bg-gradient-to-r from-[#8F7130] to-[#B08D3C] px-2.5 py-1 text-[10px] font-bold text-white shadow-md sm:left-4 sm:top-14 sm:px-3 sm:py-2 sm:text-xs">
                         🚀 BOOSTED
                       </div>
                     )}
 
                     {!listing.isSubscribedSeller && listing.featured && (
-                      <div className="absolute left-3 top-10 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-2.5 py-1.5 text-[10px] font-bold text-white shadow-md sm:left-4 sm:top-14 sm:px-3 sm:py-2 sm:text-xs">
+                      <div className="absolute left-2.5 top-9 rounded-full bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] px-2.5 py-1 text-[10px] font-bold text-white shadow-md sm:left-4 sm:top-14 sm:px-3 sm:py-2 sm:text-xs">
                         ⭐ FEATURED
                       </div>
                     )}
 
                     {listing.hasPriceDrop && (
-                      <div className="absolute right-3 top-3 animate-pulse rounded-full bg-red-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-md sm:right-4 sm:top-4 sm:px-3 sm:py-2 sm:text-xs">
+                      <div className="absolute right-2.5 top-2.5 animate-pulse rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-bold text-white shadow-md sm:right-4 sm:top-4 sm:px-3 sm:py-2 sm:text-xs">
                         💰 DROP
                       </div>
                     )}
@@ -548,14 +554,14 @@ function MarketplaceContent() {
                     <button
                       type="button"
                       onClick={() => toggleFavorite(listing.id)}
-                      className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-lg shadow-md backdrop-blur transition hover:scale-105 hover:bg-white sm:bottom-4 sm:right-4 sm:h-11 sm:w-11 sm:text-xl"
+                      className="absolute bottom-2.5 right-2.5 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-lg shadow-md backdrop-blur transition hover:scale-105 hover:bg-white sm:bottom-4 sm:right-4 sm:h-11 sm:w-11 sm:text-xl"
                       aria-label="Save to favorites"
                     >
                       {favorites.includes(listing.id) ? "❤️" : "🤍"}
                     </button>
                   </div>
 
-                  <div className="p-3.5 sm:p-5">
+                  <div className="flex flex-1 flex-col p-3.5 sm:p-5">
                     <h3 className="line-clamp-2 min-h-[44px] text-base font-extrabold leading-5 text-[#34414A] sm:min-h-[56px] sm:text-xl sm:leading-7">
                       {listing.title}
                     </h3>
@@ -580,26 +586,26 @@ function MarketplaceContent() {
                       )}
                     </div>
 
-                    <div className="mt-3 grid grid-cols-2 gap-1.5 text-[10px] sm:mt-4 sm:gap-2 sm:text-xs">
-                      <div className="rounded-lg bg-[#F7F8F9] px-2 py-1.5 sm:px-3 sm:py-2">
+                    <div className="mt-3 grid w-full max-w-full grid-cols-2 gap-1.5 text-[10px] sm:mt-4 sm:gap-2 sm:text-xs">
+                      <div className="min-w-0 rounded-lg bg-[#F7F8F9] px-2 py-1.5 sm:px-3 sm:py-2">
                         <div className="text-[#89939A]">Year</div>
                         <div className="mt-0.5 truncate font-bold text-[#34414A] sm:mt-1">
                           {listing.year}
                         </div>
                       </div>
-                      <div className="rounded-lg bg-[#F7F8F9] px-2 py-1.5 sm:px-3 sm:py-2">
+                      <div className="min-w-0 rounded-lg bg-[#F7F8F9] px-2 py-1.5 sm:px-3 sm:py-2">
                         <div className="text-[#89939A]">Mileage</div>
                         <div className="mt-0.5 truncate font-bold text-[#34414A] sm:mt-1">
                           {listing.mileage}
                         </div>
                       </div>
-                      <div className="rounded-lg bg-[#F7F8F9] px-2 py-1.5 sm:px-3 sm:py-2">
+                      <div className="min-w-0 rounded-lg bg-[#F7F8F9] px-2 py-1.5 sm:px-3 sm:py-2">
                         <div className="text-[#89939A]">Trans.</div>
                         <div className="mt-0.5 truncate font-bold text-[#34414A] sm:mt-1">
                           {listing.transmission}
                         </div>
                       </div>
-                      <div className="rounded-lg bg-[#F7F8F9] px-2 py-1.5 sm:px-3 sm:py-2">
+                      <div className="min-w-0 rounded-lg bg-[#F7F8F9] px-2 py-1.5 sm:px-3 sm:py-2">
                         <div className="text-[#89939A]">Fuel</div>
                         <div className="mt-0.5 truncate font-bold text-[#34414A] sm:mt-1">
                           {listing.fuel}
@@ -613,7 +619,7 @@ function MarketplaceContent() {
                       </div>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-5">
+                    <div className="mt-auto grid w-full max-w-full grid-cols-2 gap-2 pt-3 sm:pt-5">
                       <Link
                         href={`/listing/${listing.id}`}
                         className="rounded-xl border border-[#B08D3C] bg-white px-3 py-2.5 text-center text-xs font-bold text-[#8F7130] hover:bg-[#FBF7EC] sm:px-4 sm:py-3 sm:text-sm"
@@ -637,7 +643,7 @@ function MarketplaceContent() {
               ))}
             </div>
           ) : (
-            <div className="mt-10 rounded-2xl border border-[#D5DBDF] bg-white p-8 text-center sm:p-10">
+            <div className="mt-8 w-full max-w-full rounded-2xl border border-[#D5DBDF] bg-white p-8 text-center sm:mt-10 sm:p-10">
               <div className="text-4xl">🔎</div>
               <h3 className="mt-4 text-xl font-black text-[#34414A]">
                 No listings match your filters
@@ -658,9 +664,9 @@ function MarketplaceContent() {
       </section>
 
       {/* SELL CTA */}
-      <section className="w-full bg-gradient-to-r from-[#E6EAED] via-[#F7F8F9] to-[#DCE2E6]">
-        <div className="mx-auto grid w-full max-w-7xl items-center gap-6 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-8 lg:px-8 lg:py-16">
-          <div>
+      <section className="w-full max-w-full overflow-x-hidden bg-gradient-to-r from-[#E6EAED] via-[#F7F8F9] to-[#DCE2E6]">
+        <div className="mx-auto grid w-full max-w-7xl items-center gap-6 px-3 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-8 lg:px-8 lg:py-16">
+          <div className="min-w-0">
             <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A7B37] sm:text-sm">
               Selling a Vehicle?
             </div>
@@ -682,13 +688,13 @@ function MarketplaceContent() {
 
       {/* FLOATING COMPARE BAR */}
       {compareList.length > 0 && (
-        <div className="fixed bottom-3 left-1/2 z-40 w-[95%] max-w-3xl -translate-x-1/2 rounded-2xl border-2 border-[#B08D3C] bg-white p-3 shadow-2xl sm:bottom-4 sm:p-4">
+        <div className="fixed bottom-3 left-1/2 z-40 w-[calc(100%-1.5rem)] max-w-3xl -translate-x-1/2 rounded-2xl border-2 border-[#B08D3C] bg-white p-3 shadow-2xl sm:bottom-4 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-base text-white sm:h-10 sm:w-10 sm:text-lg">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8F7130] to-[#B08D3C] text-base text-white sm:h-10 sm:w-10 sm:text-lg">
                 ⚖️
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs font-black text-[#34414A] sm:text-sm">
                   {compareList.length} vehicle{compareList.length === 1 ? "" : "s"}
                 </div>
@@ -720,21 +726,21 @@ function MarketplaceContent() {
       )}
 
       {compareToast && (
-        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-[#34414A] px-4 py-2.5 text-xs font-bold text-white shadow-lg sm:bottom-24 sm:px-6 sm:py-3 sm:text-sm">
+        <div className="fixed bottom-20 left-1/2 z-50 max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-xl bg-[#34414A] px-4 py-2.5 text-xs font-bold text-white shadow-lg sm:bottom-24 sm:px-6 sm:py-3 sm:text-sm">
           {compareToast}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
 export default function MarketplacePage() {
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#F7F8F9] text-[#34414A]">
       <Suspense
         fallback={
-          <div className="min-h-screen w-full flex items-center justify-center">
-            <div className="text-lg font-bold animate-pulse text-[#9A7B37]">
+          <div className="min-h-screen w-full flex items-center justify-center p-4">
+            <div className="text-base font-bold animate-pulse text-[#9A7B37] sm:text-lg text-center">
               Loading marketplace...
             </div>
           </div>
