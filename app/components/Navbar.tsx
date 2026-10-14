@@ -70,33 +70,32 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#D9DEE2] bg-white/95 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-3 py-2.5 sm:px-6 sm:py-3 lg:px-8">
 
         <Link
           href="/"
           onClick={() => setMenuOpen(false)}
-          className="flex min-w-0 items-center gap-3"
+          className="flex min-w-0 items-center gap-2 sm:gap-3"
         >
           <img
             src="/balray-autos-logo.png"
             alt="Balray Autos"
-            className="h-11 w-auto max-w-[170px] object-contain sm:h-12"
+            className="h-9 w-auto max-w-[120px] object-contain sm:h-11 sm:max-w-[170px]"
           />
           <div className="hidden min-w-0 sm:block">
-            <div className="truncate text-lg font-extrabold tracking-tight text-[#34414A]">
+            <div className="truncate text-base font-extrabold tracking-tight text-[#34414A] sm:text-lg">
               Balray{" "}
               <span className="bg-gradient-to-r from-[#8F7130] via-[#D2B66A] to-[#A47F32] bg-clip-text text-transparent">
                 Autos
               </span>
             </div>
-            <div className="text-xs text-[#7A858D]">
+            <div className="text-[10px] text-[#7A858D] sm:text-xs">
               Automotive Marketplace
             </div>
           </div>
         </Link>
 
-        {/* DESKTOP NAV */}
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden items-center gap-5 md:flex">
           <Link href="/" className={navLinkClass("/")}>Home</Link>
           <Link href="/marketplace" className={navLinkClass("/marketplace")}>Buy</Link>
           <Link href="/sell" className={navLinkClass("/sell")}>Sell</Link>
@@ -106,158 +105,106 @@ export default function Navbar() {
               <Link href="/my-listings" className={navLinkClass("/my-listings")}>
                 My Listings
               </Link>
+              <Link
+                href="/account/subscription"
+                className={navLinkClass("/account/subscription")}
+              >
+                🚀 Boost
+              </Link>
               <Link href="/analytics" className={navLinkClass("/analytics")}>
                 Analytics
               </Link>
               <Link href="/favorites" className={navLinkClass("/favorites")}>
                 Favorites
               </Link>
-              <Link href="/account/settings" className={navLinkClass("/account/settings")}>
-                Settings
-              </Link>
             </>
           )}
 
           {isAdmin && (
             <Link href="/admin" className={navLinkClass("/admin")}>
-              Admin Panel
+              Admin
             </Link>
           )}
 
           <Link href="/blog" className={navLinkClass("/blog")}>Blog</Link>
-          <Link href="/about" className={navLinkClass("/about")}>About</Link>
-          <Link href="/contact" className={navLinkClass("/contact")}>Contact</Link>
 
           {user ? (
             <button
               onClick={handleLogout}
-              className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100"
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-100"
             >
               LOG OUT
             </button>
           ) : (
             <Link
               href="/login"
-              className="rounded-xl bg-[#34414A] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#4A5962]"
+              className="rounded-xl bg-[#34414A] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#4A5962]"
             >
               LOG IN
             </Link>
           )}
         </nav>
 
-        {/* MOBILE MENU BUTTON */}
         <button
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
-          className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#D9DEE2] bg-white text-2xl font-bold text-[#34414A] md:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9DEE2] bg-white text-xl font-bold text-[#34414A] md:hidden"
           aria-label="Open navigation menu"
         >
           {menuOpen ? "✕" : "☰"}
         </button>
       </div>
 
-      {/* MOBILE NAV */}
       {menuOpen && (
         <div className="border-t border-[#D9DEE2] bg-white md:hidden">
-          <nav className="mx-auto flex w-full max-w-7xl flex-col gap-1 px-4 py-4 sm:px-6">
-            <Link
-              href="/"
-              onClick={() => setMenuOpen(false)}
-              className={mobileLinkClass("/")}
-            >
+          <nav className="mx-auto flex w-full max-w-7xl flex-col gap-1 px-3 py-3 sm:px-6">
+            <Link href="/" onClick={() => setMenuOpen(false)} className={mobileLinkClass("/")}>
               Home
             </Link>
-
-            <Link
-              href="/marketplace"
-              onClick={() => setMenuOpen(false)}
-              className={mobileLinkClass("/marketplace")}
-            >
+            <Link href="/marketplace" onClick={() => setMenuOpen(false)} className={mobileLinkClass("/marketplace")}>
               Buy
             </Link>
-
-            <Link
-              href="/sell"
-              onClick={() => setMenuOpen(false)}
-              className={mobileLinkClass("/sell")}
-            >
+            <Link href="/sell" onClick={() => setMenuOpen(false)} className={mobileLinkClass("/sell")}>
               Sell
             </Link>
 
             {user && (
               <>
-                <Link
-                  href="/my-listings"
-                  onClick={() => setMenuOpen(false)}
-                  className={mobileLinkClass("/my-listings")}
-                >
+                <Link href="/my-listings" onClick={() => setMenuOpen(false)} className={mobileLinkClass("/my-listings")}>
                   My Listings
                 </Link>
-
-                <Link
-                  href="/analytics"
-                  onClick={() => setMenuOpen(false)}
-                  className={mobileLinkClass("/analytics")}
-                >
+                <Link href="/account/subscription" onClick={() => setMenuOpen(false)} className={mobileLinkClass("/account/subscription")}>
+                  🚀 Boost All Listings
+                </Link>
+                <Link href="/analytics" onClick={() => setMenuOpen(false)} className={mobileLinkClass("/analytics")}>
                   Analytics
                 </Link>
-
-                <Link
-                  href="/favorites"
-                  onClick={() => setMenuOpen(false)}
-                  className={mobileLinkClass("/favorites")}
-                >
+                <Link href="/favorites" onClick={() => setMenuOpen(false)} className={mobileLinkClass("/favorites")}>
                   Favorites
-                </Link>
-
-                <Link
-                  href="/account/settings"
-                  onClick={() => setMenuOpen(false)}
-                  className={mobileLinkClass("/account/settings")}
-                >
-                  Settings
                 </Link>
               </>
             )}
 
             {isAdmin && (
-              <Link
-                href="/admin"
-                onClick={() => setMenuOpen(false)}
-                className={mobileLinkClass("/admin")}
-              >
+              <Link href="/admin" onClick={() => setMenuOpen(false)} className={mobileLinkClass("/admin")}>
                 Admin Panel
               </Link>
             )}
 
-            <Link
-              href="/blog"
-              onClick={() => setMenuOpen(false)}
-              className={mobileLinkClass("/blog")}
-            >
+            <Link href="/blog" onClick={() => setMenuOpen(false)} className={mobileLinkClass("/blog")}>
               Blog
             </Link>
-
-            <Link
-              href="/about"
-              onClick={() => setMenuOpen(false)}
-              className={mobileLinkClass("/about")}
-            >
+            <Link href="/about" onClick={() => setMenuOpen(false)} className={mobileLinkClass("/about")}>
               About
             </Link>
-
-            <Link
-              href="/contact"
-              onClick={() => setMenuOpen(false)}
-              className={mobileLinkClass("/contact")}
-            >
+            <Link href="/contact" onClick={() => setMenuOpen(false)} className={mobileLinkClass("/contact")}>
               Contact
             </Link>
 
             {user ? (
               <button
                 onClick={handleLogout}
-                className="mt-4 rounded-xl bg-red-50 px-5 py-3.5 text-center text-base font-bold text-red-600"
+                className="mt-3 rounded-xl bg-red-50 px-5 py-3.5 text-center text-base font-bold text-red-600"
               >
                 LOG OUT
               </button>
@@ -265,7 +212,7 @@ export default function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMenuOpen(false)}
-                className="mt-4 rounded-xl bg-[#34414A] px-5 py-3.5 text-center text-base font-bold text-white"
+                className="mt-3 rounded-xl bg-[#34414A] px-5 py-3.5 text-center text-base font-bold text-white"
               >
                 LOG IN
               </Link>
