@@ -72,19 +72,12 @@ export default function HeroBanner({
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center px-4 text-center sm:px-6">
           
           {/* South African Flag Badge */}
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/40 px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md sm:mb-4 sm:px-4 sm:py-1.5 sm:text-xs">
-            <span className="flex h-3 w-4 overflow-hidden rounded-sm sm:h-3.5 sm:w-5">
-              {/* Mini SA Flag SVG */}
-              <svg viewBox="0 0 30 20" className="h-full w-full object-cover">
-                <rect width="30" height="20" fill="#007A4D"/>
-                <path d="M0,0 L30,20 M0,20 L30,0" stroke="#FFF" strokeWidth="4"/>
-                <path d="M0,0 L30,20 M0,20 L30,0" stroke="#FFB612" strokeWidth="2"/>
-                <path d="M15,0 L0,10 L15,20 L30,10 Z" fill="#002395"/>
-                <path d="M15,3 L3,10 L15,17 L27,10 Z" fill="#FFF"/>
-                <path d="M15,6 L6,10 L15,14 L24,10 Z" fill="#007A4D"/>
-                <circle cx="15" cy="10" r="2" fill="#FFB612"/>
-              </svg>
-            </span>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/40 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md sm:mb-4 sm:px-4 sm:py-2 sm:text-xs">
+            <img 
+              src="/flag.jpg" 
+              alt="South Africa Flag" 
+              className="h-3.5 w-5 rounded-sm object-cover shadow-sm sm:h-4 sm:w-6" 
+            />
             Proudly South African
           </div>
 
