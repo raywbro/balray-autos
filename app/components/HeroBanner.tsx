@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 
 type Props = {
   title?: ReactNode;
@@ -24,27 +24,53 @@ const categories = [
   { title: "Parts & Accessories", href: "/marketplace?category=Parts+%26+Accessories", icon: "⚙️" },
 ];
 
-// Free AI-generated realistic image — trucks and cars only, natural daylight, no color tint.
-const HERO_IMAGE =
-  "https://image.pollinations.ai/prompt/ultra%20realistic%20photograph%20of%20a%20commercial%20truck%20lorry%20parked%20next%20to%20a%20modern%20car%20and%20a%20double%20cab%20bakkie%20pickup%20outside%20a%20clean%20modern%20dealership%20building%2C%20bright%20natural%20daylight%2C%20clear%20blue%20sky%20with%20soft%20white%20clouds%2C%20grey%20concrete%20ground%2C%20photorealistic%2C%20sharp%20focus%2C%20high%20detail%2C%20professional%20automotive%20photography%2C%20DSLR%2050mm%20lens%2C%20no%20tint%2C%20no%20filter%2C%20natural%20true%20colors?width=2000&height=900&model=flux&nologo=true&seed=555&enhance=true";
+// Array of realistic AI-generated images (truck -> bike -> bakkie -> car)
+const HERO_IMAGES = [
+  // 1. Truck
+  "https://image.pollinations.ai/prompt/ultra%20realistic%20photograph%20of%20a%20big%20commercial%20truck%20lorry%20parked%20outside%20a%20modern%20dealership%2C%20bright%20natural%20daylight%2C%20clear%20sky%2C%20grey%20concrete%20ground%2C%20photorealistic%2C%20sharp%20focus%2C%20professional%20automotive%20photography%2C%20no%20filter%2C%20natural%20true%20colors?width=2000&height=900&model=flux&nologo=true&enhance=true&seed=101",
+  // 2. Motorcycle
+  "https://image.pollinations.ai/prompt/ultra%20realistic%20photograph%20of%20a%20modern%20sport%20motorcycle%20parked%20outside%20a%20modern%20dealership%2C%20bright%20natural%20daylight%2C%20clear%20sky%2C%20grey%20concrete%20ground%2C%20photorealistic%2C%20sharp%20focus%2C%20professional%20automotive%20photography%2C%20no%20filter%2C%20natural%20true%20colors?width=2000&height=900&model=flux&nologo=true&enhance=true&seed=202",
+  // 3. Bakkie
+  "https://image.pollinations.ai/prompt/ultra%20realistic%20photograph%20of%20a%20double%20cab%20bakkie%20pickup%20truck%20parked%20outside%20a%20modern%20dealership%2C%20bright%20natural%20daylight%2C%20clear%20sky%2C%20grey%20concrete%20ground%2C%20photorealistic%2C%20sharp%20focus%2C%20professional%20automotive%20photography%2C%20no%20filter%2C%20natural%20true%20colors?width=2000&height=900&model=flux&nologo=true&enhance=true&seed=303",
+  // 4. Car
+  "https://image.pollinations.ai/prompt/ultra%20realistic%20photograph%20of%20a%20modern%20sports%20car%20parked%20outside%20a%20modern%20dealership%2C%20bright%20natural%20daylight%2C%20clear%20sky%2C%20grey%20concrete%20ground%2C%20photorealistic%2C%20sharp%20focus%2C%20professional%20automotive%20photography%2C%20no%20filter%2C%20natural%20true%20colors?width=2000&height=900&model=flux&nologo=true&enhance=true&seed=404",
+];
 
 export default function HeroBanner({
   subtitle = "South Africa's marketplace for vehicles, machinery & automotive products.",
   primaryCTA,
   secondaryCTA,
 }: Props) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    // Change image every 60,000 milliseconds (1 minute)
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % HERO_IMAGES.length);
+    }, 60000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <section className="relative w-full max-w-full overflow-hidden bg-[#E8EEF3]">
-      {/* FULL-WIDTH REALISTIC IMAGE — trucks and cars, natural daylight, no color tint */}
+      {/* FULL-WIDTH REALISTIC IMAGE SLIDER */}
       <div className="relative h-[280px] w-full overflow-hidden sm:h-[380px] lg:h-[460px]">
-        <img
-          src={HERO_IMAGE}
-          alt="Realistic scene of a commercial truck, car and bakkie parked outside a modern dealership"
-          className="absolute inset-0 block h-full w-full max-w-full object-cover"
-          loading="eager"
-        />
+        {HERO_IMAGES.map((imgSrc, index) => (
+          <img
+            key={index}
+            src={imgSrc}
+            alt="Realistic scene of a vehicle parked outside a modern dealership"
+            className={`absolute inset-0 block h-full w-full max-w-full object-cover transition-opacity duration-1000 ease-in-out ${
+              index === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+            }`}
+            loading={index === 0 ? "eager" : "lazy"}
+          />
+        ))}
+        
         {/* SOFT NEUTRAL OVERLAY — no color tint, just enough shade so white text stays readable */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/45" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/25 via-transparent to-black/45 pointer-events-none" />
 
         {/* TOP BAR: BUY | SELL | CONNECT */}
         <div className="absolute inset-x-0 top-0 z-20 border-b border-white/20 bg-white/15 backdrop-blur-md">
@@ -66,7 +92,7 @@ export default function HeroBanner({
         </div>
 
         {/* CENTERED TEXT OVERLAY */}
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center sm:px-6">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center px-4 text-center sm:px-6 pointer-events-none">
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
             <span className="hidden h-[2px] w-10 bg-gradient-to-r from-transparent to-[#F4E0A1] sm:block sm:w-16" />
             <h1 className="text-xs font-black uppercase tracking-[0.24em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] sm:text-lg sm:tracking-[0.4em]">
@@ -80,7 +106,7 @@ export default function HeroBanner({
           </p>
 
           {(primaryCTA || secondaryCTA) && (
-            <div className="mx-auto mt-5 flex w-full max-w-md flex-col justify-center gap-2.5 sm:mt-8 sm:max-w-none sm:flex-row sm:gap-3">
+            <div className="mx-auto mt-5 flex w-full max-w-md flex-col justify-center gap-2.5 sm:mt-8 sm:max-w-none sm:flex-row sm:gap-3 pointer-events-auto">
               {primaryCTA && (
                 <Link
                   href={primaryCTA.href}
