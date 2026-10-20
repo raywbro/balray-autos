@@ -24,76 +24,88 @@ const categories = [
   { title: "Parts & Accessories", href: "/marketplace?category=Parts+%26+Accessories", icon: "⚙️" },
 ];
 
+// Free AI-generated sketched automotive showroom image.
+// This URL generates a sketch-style image on every request — no file, no JPG.
+const HERO_IMAGE =
+  "https://image.pollinations.ai/prompt/sketched%20automotive%20showroom%20with%20trucks%20lorries%20cars%20motorcycles%20bakkies%20and%20heavy%20machinery%20parked%20in%20a%20row%2C%20pencil%20sketch%20style%2C%20detailed%20line%20art%2C%20black%20and%20white%20with%20gold%20accents%2C%20wide%20landscape%20view?width=2000&height=800&model=flux&nologo=true";
+
 export default function HeroBanner({
   subtitle = "South Africa's marketplace for vehicles, machinery & automotive products.",
   primaryCTA,
   secondaryCTA,
 }: Props) {
   return (
-    <section className="relative w-full max-w-full overflow-x-hidden bg-black">
-      {/* TOP BAR: BUY | SELL | CONNECT */}
-      <div className="relative z-20 border-b border-white/10 bg-black">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-end px-3 py-3 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.24em] text-white sm:gap-5 sm:text-sm sm:tracking-[0.28em]">
-            <Link href="/marketplace" className="transition hover:text-[#D2B66A]">
-              Buy
-            </Link>
-            <span className="text-[#D2B66A]">|</span>
-            <Link href="/sell" className="transition hover:text-[#D2B66A]">
-              Sell
-            </Link>
-            <span className="text-[#D2B66A]">|</span>
-            <Link href="/contact" className="transition hover:text-[#D2B66A]">
-              Connect
-            </Link>
+    <section className="relative w-full max-w-full overflow-hidden bg-[#0a0a0a]">
+      {/* FULL-WIDTH SKETCHED SHOWROOM IMAGE */}
+      <div className="relative h-[280px] w-full overflow-hidden sm:h-[380px] lg:h-[460px]">
+        <img
+          src={HERO_IMAGE}
+          alt="Sketched automotive showroom with trucks, cars, motorcycles and machinery"
+          className="absolute inset-0 block h-full w-full max-w-full object-cover"
+          loading="eager"
+        />
+        {/* DARK OVERLAY so white text stays readable */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/60 to-black/90" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60" />
+
+        {/* TOP BAR: BUY | SELL | CONNECT */}
+        <div className="absolute inset-x-0 top-0 z-20 border-b border-white/10 bg-black/40 backdrop-blur-sm">
+          <div className="mx-auto flex w-full max-w-7xl items-center justify-end px-3 py-2.5 sm:px-6 sm:py-3 lg:px-8">
+            <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.24em] text-white sm:gap-5 sm:text-sm sm:tracking-[0.28em]">
+              <Link href="/marketplace" className="transition hover:text-[#D2B66A]">
+                Buy
+              </Link>
+              <span className="text-[#D2B66A]">|</span>
+              <Link href="/sell" className="transition hover:text-[#D2B66A]">
+                Sell
+              </Link>
+              <span className="text-[#D2B66A]">|</span>
+              <Link href="/contact" className="transition hover:text-[#D2B66A]">
+                Connect
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* MAIN BANNER */}
-      <div className="relative w-full max-w-full bg-gradient-to-br from-[#0a0a0a] via-[#141414] to-[#0a0a0a] px-4 py-10 text-center sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-        <div className="pointer-events-none absolute left-6 top-10 h-24 w-24 rounded-full border border-[#D2B66A]/10 sm:left-10 sm:h-32 sm:w-32" />
-        <div className="pointer-events-none absolute bottom-10 right-6 h-28 w-28 rounded-full border border-[#D2B66A]/10 sm:right-10 sm:h-40 sm:w-40" />
-
-        {/* TAGLINE */}
-        <div className="relative z-10 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-          <span className="hidden h-[2px] w-10 bg-gradient-to-r from-transparent to-[#D2B66A] sm:block sm:w-16" />
-          <h1 className="text-[10px] font-black uppercase tracking-[0.24em] text-white sm:text-base sm:tracking-[0.4em]">
-            Connecting Buyers &amp; Sellers
-          </h1>
-          <span className="hidden h-[2px] w-10 bg-gradient-to-l from-transparent to-[#D2B66A] sm:block sm:w-16" />
-        </div>
-
-        {/* SUBTITLE */}
-        <p className="relative z-10 mx-auto mt-4 max-w-md text-xs leading-6 text-white/80 sm:mt-5 sm:max-w-2xl sm:text-base sm:leading-7">
-          {subtitle}
-        </p>
-
-        {/* CTAs */}
-        {(primaryCTA || secondaryCTA) && (
-          <div className="relative z-10 mx-auto mt-6 flex w-full max-w-md flex-col justify-center gap-3 sm:mt-8 sm:max-w-none sm:flex-row">
-            {primaryCTA && (
-              <Link
-                href={primaryCTA.href}
-                className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3.5 text-center text-sm font-bold text-white shadow-xl transition hover:brightness-110 sm:w-auto sm:px-7"
-              >
-                {primaryCTA.label}
-              </Link>
-            )}
-            {secondaryCTA && (
-              <Link
-                href={secondaryCTA.href}
-                className="w-full rounded-xl border-2 border-[#D2B66A]/60 bg-white/5 px-6 py-3.5 text-center text-sm font-bold text-white transition hover:bg-white/10 sm:w-auto sm:px-7"
-              >
-                {secondaryCTA.label}
-              </Link>
-            )}
+        {/* CENTERED TEXT OVERLAY */}
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center sm:px-6">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+            <span className="hidden h-[2px] w-10 bg-gradient-to-r from-transparent to-[#D2B66A] sm:block sm:w-16" />
+            <h1 className="text-[11px] font-black uppercase tracking-[0.24em] text-white drop-shadow-lg sm:text-base sm:tracking-[0.4em]">
+              Connecting Buyers &amp; Sellers
+            </h1>
+            <span className="hidden h-[2px] w-10 bg-gradient-to-l from-transparent to-[#D2B66A] sm:block sm:w-16" />
           </div>
-        )}
+
+          <p className="mx-auto mt-3 max-w-md text-xs leading-6 text-white/85 drop-shadow sm:mt-5 sm:max-w-2xl sm:text-base sm:leading-7">
+            {subtitle}
+          </p>
+
+          {(primaryCTA || secondaryCTA) && (
+            <div className="mx-auto mt-5 flex w-full max-w-md flex-col justify-center gap-2.5 sm:mt-8 sm:max-w-none sm:flex-row sm:gap-3">
+              {primaryCTA && (
+                <Link
+                  href={primaryCTA.href}
+                  className="w-full rounded-xl bg-gradient-to-r from-[#8F7130] via-[#B08D3C] to-[#A47F32] px-6 py-3 text-center text-sm font-bold text-white shadow-xl transition hover:brightness-110 sm:w-auto sm:px-7 sm:py-3.5"
+                >
+                  {primaryCTA.label}
+                </Link>
+              )}
+              {secondaryCTA && (
+                <Link
+                  href={secondaryCTA.href}
+                  className="w-full rounded-xl border-2 border-[#D2B66A]/70 bg-black/30 px-6 py-3 text-center text-sm font-bold text-white backdrop-blur-sm transition hover:bg-black/50 sm:w-auto sm:px-7 sm:py-3.5"
+                >
+                  {secondaryCTA.label}
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* CATEGORY ROW */}
-      <div className="relative z-10 border-t border-white/10 bg-black">
+      <div className="relative z-10 border-t border-white/10 bg-[#0a0a0a]">
         <div className="mx-auto grid w-full max-w-7xl grid-cols-3 gap-x-1 gap-y-4 px-2 py-4 sm:gap-x-3 sm:gap-y-5 sm:px-6 sm:py-6 lg:grid-cols-6 lg:px-8">
           {categories.map((cat) => (
             <Link
@@ -113,7 +125,7 @@ export default function HeroBanner({
       </div>
 
       {/* BOTTOM BAR */}
-      <div className="relative z-10 border-t border-white/10 bg-black py-3 sm:py-4">
+      <div className="relative z-10 border-t border-white/10 bg-[#0a0a0a] py-3 sm:py-4">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 text-center text-[9px] font-black uppercase tracking-[0.2em] text-white/80 sm:gap-x-4 sm:text-xs sm:tracking-[0.32em]">
           <span>Quality Vehicles</span>
           <span className="text-[#D2B66A]">•</span>
