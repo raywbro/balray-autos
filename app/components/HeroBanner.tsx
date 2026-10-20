@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode } from "react";
 
 type Props = {
   title?: ReactNode;
@@ -24,56 +24,33 @@ const categories = [
   { title: "Parts & Accessories", href: "/marketplace?category=Parts+%26+Accessories", icon: "⚙️" },
 ];
 
-// Array of realistic AI-generated images (truck -> bike -> bakkie -> car)
-const HERO_IMAGES = [
-  // 1. Truck
-  "https://image.pollinations.ai/prompt/ultra%20realistic%20photograph%20of%20a%20big%20commercial%20truck%20lorry%20parked%20outside%20a%20modern%20dealership%2C%20bright%20natural%20daylight%2C%20clear%20sky%2C%20grey%20concrete%20ground%2C%20photorealistic%2C%20sharp%20focus%2C%20professional%20automotive%20photography%2C%20no%20filter%2C%20natural%20true%20colors?width=2000&height=900&model=flux&nologo=true&enhance=true&seed=101",
-  // 2. Motorcycle
-  "https://image.pollinations.ai/prompt/ultra%20realistic%20photograph%20of%20a%20modern%20sport%20motorcycle%20parked%20outside%20a%20modern%20dealership%2C%20bright%20natural%20daylight%2C%20clear%20sky%2C%20grey%20concrete%20ground%2C%20photorealistic%2C%20sharp%20focus%2C%20professional%20automotive%20photography%2C%20no%20filter%2C%20natural%20true%20colors?width=2000&height=900&model=flux&nologo=true&enhance=true&seed=202",
-  // 3. Bakkie
-  "https://image.pollinations.ai/prompt/ultra%20realistic%20photograph%20of%20a%20double%20cab%20bakkie%20pickup%20truck%20parked%20outside%20a%20modern%20dealership%2C%20bright%20natural%20daylight%2C%20clear%20sky%2C%20grey%20concrete%20ground%2C%20photorealistic%2C%20sharp%20focus%2C%20professional%20automotive%20photography%2C%20no%20filter%2C%20natural%20true%20colors?width=2000&height=900&model=flux&nologo=true&enhance=true&seed=303",
-  // 4. Car
-  "https://image.pollinations.ai/prompt/ultra%20realistic%20photograph%20of%20a%20modern%20sports%20car%20parked%20outside%20a%20modern%20dealership%2C%20bright%20natural%20daylight%2C%20clear%20sky%2C%20grey%20concrete%20ground%2C%20photorealistic%2C%20sharp%20focus%2C%20professional%20automotive%20photography%2C%20no%20filter%2C%20natural%20true%20colors?width=2000&height=900&model=flux&nologo=true&enhance=true&seed=404",
-];
+// Static, reliable South African outdoor automotive scene (trucks/bakkies on a dry landscape).
+// Loads instantly from a CDN. No AI generation. No rate limits. Never changes.
+const STATIC_HERO_IMAGE =
+  "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=2000&q=80";
 
 export default function HeroBanner({
   subtitle = "South Africa's marketplace for vehicles, machinery & automotive products.",
   primaryCTA,
   secondaryCTA,
 }: Props) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    // Change image every 60,000 milliseconds (1 minute)
-    const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % HERO_IMAGES.length);
-    }, 60000);
-
-    // Cleanup interval on unmount
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <section className="relative w-full max-w-full overflow-hidden bg-[#E8EEF3]">
-      {/* FULL-WIDTH REALISTIC IMAGE SLIDER */}
+      
+      {/* STATIC IMAGE BANNER */}
       <div className="relative h-[280px] w-full overflow-hidden sm:h-[380px] lg:h-[460px]">
-        {HERO_IMAGES.map((imgSrc, index) => (
-          <img
-            key={index}
-            src={imgSrc}
-            alt="Realistic scene of a vehicle parked outside a modern dealership"
-            className={`absolute inset-0 block h-full w-full max-w-full object-cover transition-opacity duration-1000 ease-in-out ${
-              index === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"
-            }`}
-            loading={index === 0 ? "eager" : "lazy"}
-          />
-        ))}
+        <img
+          src={STATIC_HERO_IMAGE}
+          alt="South African automotive marketplace - trucks, bakkies and cars"
+          className="absolute inset-0 block h-full w-full max-w-full object-cover"
+          loading="eager"
+        />
         
-        {/* SOFT NEUTRAL OVERLAY — no color tint, just enough shade so white text stays readable */}
-        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/25 via-transparent to-black/45 pointer-events-none" />
+        {/* SOFT NEUTRAL OVERLAY — keeps text readable without ruining the image */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/40 via-black/20 to-black/60 pointer-events-none" />
 
         {/* TOP BAR: BUY | SELL | CONNECT */}
-        <div className="absolute inset-x-0 top-0 z-20 border-b border-white/20 bg-white/15 backdrop-blur-md">
+        <div className="absolute inset-x-0 top-0 z-20 border-b border-white/20 bg-black/20 backdrop-blur-sm">
           <div className="mx-auto flex w-full max-w-7xl items-center justify-end px-3 py-2.5 sm:px-6 sm:py-3 lg:px-8">
             <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.24em] text-white drop-shadow-md sm:gap-5 sm:text-sm sm:tracking-[0.28em]">
               <Link href="/marketplace" className="transition hover:text-[#F4E0A1]">
@@ -92,7 +69,25 @@ export default function HeroBanner({
         </div>
 
         {/* CENTERED TEXT OVERLAY */}
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center px-4 text-center sm:px-6 pointer-events-none">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center px-4 text-center sm:px-6">
+          
+          {/* South African Flag Badge */}
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/40 px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md sm:mb-4 sm:px-4 sm:py-1.5 sm:text-xs">
+            <span className="flex h-3 w-4 overflow-hidden rounded-sm sm:h-3.5 sm:w-5">
+              {/* Mini SA Flag SVG */}
+              <svg viewBox="0 0 30 20" className="h-full w-full object-cover">
+                <rect width="30" height="20" fill="#007A4D"/>
+                <path d="M0,0 L30,20 M0,20 L30,0" stroke="#FFF" strokeWidth="4"/>
+                <path d="M0,0 L30,20 M0,20 L30,0" stroke="#FFB612" strokeWidth="2"/>
+                <path d="M15,0 L0,10 L15,20 L30,10 Z" fill="#002395"/>
+                <path d="M15,3 L3,10 L15,17 L27,10 Z" fill="#FFF"/>
+                <path d="M15,6 L6,10 L15,14 L24,10 Z" fill="#007A4D"/>
+                <circle cx="15" cy="10" r="2" fill="#FFB612"/>
+              </svg>
+            </span>
+            Proudly South African
+          </div>
+
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
             <span className="hidden h-[2px] w-10 bg-gradient-to-r from-transparent to-[#F4E0A1] sm:block sm:w-16" />
             <h1 className="text-xs font-black uppercase tracking-[0.24em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] sm:text-lg sm:tracking-[0.4em]">
@@ -106,7 +101,7 @@ export default function HeroBanner({
           </p>
 
           {(primaryCTA || secondaryCTA) && (
-            <div className="mx-auto mt-5 flex w-full max-w-md flex-col justify-center gap-2.5 sm:mt-8 sm:max-w-none sm:flex-row sm:gap-3 pointer-events-auto">
+            <div className="mx-auto mt-5 flex w-full max-w-md flex-col justify-center gap-2.5 sm:mt-8 sm:max-w-none sm:flex-row sm:gap-3">
               {primaryCTA && (
                 <Link
                   href={primaryCTA.href}
@@ -128,7 +123,7 @@ export default function HeroBanner({
         </div>
       </div>
 
-      {/* CATEGORY ROW — neutral light grey, no color tint */}
+      {/* CATEGORY ROW */}
       <div className="relative z-10 border-t border-[#CBD5DD] bg-[#F1F4F7]">
         <div className="mx-auto grid w-full max-w-7xl grid-cols-3 gap-x-1 gap-y-4 px-2 py-4 sm:gap-x-3 sm:gap-y-5 sm:px-6 sm:py-6 lg:grid-cols-6 lg:px-8">
           {categories.map((cat) => (
@@ -148,7 +143,7 @@ export default function HeroBanner({
         </div>
       </div>
 
-      {/* BOTTOM BAR — neutral light grey, no color tint */}
+      {/* BOTTOM BAR */}
       <div className="relative z-10 border-t border-[#CBD5DD] bg-[#F1F4F7] py-3 sm:py-4">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 text-center text-[9px] font-black uppercase tracking-[0.2em] text-[#34414A] sm:gap-x-4 sm:text-xs sm:tracking-[0.32em]">
           <span>Quality Vehicles</span>
