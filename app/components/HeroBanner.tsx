@@ -24,9 +24,9 @@ const categories = [
   { title: "Parts & Accessories", href: "/marketplace?category=Parts+%26+Accessories", icon: "⚙️" },
 ];
 
-// Free AI-generated realistic purple/violet twilight scene — trucks, cars, bakkies, motorcycles together.
+// Free AI-generated realistic image — trucks and cars only, natural daylight, no color tint.
 const HERO_IMAGE =
-  "https://image.pollinations.ai/prompt/ultra%20realistic%20wide%20photograph%20of%20an%20outdoor%20vehicle%20dealership%20at%20purple%20violet%20twilight%20dusk%2C%20a%20big%20commercial%20truck%20lorry%20and%20a%20double%20cab%20bakkie%20pickup%20and%20a%20modern%20SUV%20car%20and%20two%20motorcycles%20parked%20together%20on%20smooth%20grey%20asphalt%20concrete%20ground%2C%20soft%20purple%20pink%20and%20lavender%20sky%20with%20dramatic%20clouds%2C%20warm%20golden%20street%20lights%20glowing%2C%20cinematic%20lighting%2C%20photorealistic%2C%20sharp%20focus%2C%20high%20detail%2C%20professional%20automotive%20photography%2C%20no%20grass%2C%20no%20green%20anything?width=2000&height=900&model=flux&nologo=true&seed=777&enhance=true";
+  "https://image.pollinations.ai/prompt/ultra%20realistic%20photograph%20of%20a%20commercial%20truck%20lorry%20parked%20next%20to%20a%20modern%20car%20and%20a%20double%20cab%20bakkie%20pickup%20outside%20a%20clean%20modern%20dealership%20building%2C%20bright%20natural%20daylight%2C%20clear%20blue%20sky%20with%20soft%20white%20clouds%2C%20grey%20concrete%20ground%2C%20photorealistic%2C%20sharp%20focus%2C%20high%20detail%2C%20professional%20automotive%20photography%2C%20DSLR%2050mm%20lens%2C%20no%20tint%2C%20no%20filter%2C%20natural%20true%20colors?width=2000&height=900&model=flux&nologo=true&seed=555&enhance=true";
 
 export default function HeroBanner({
   subtitle = "South Africa's marketplace for vehicles, machinery & automotive products.",
@@ -34,18 +34,17 @@ export default function HeroBanner({
   secondaryCTA,
 }: Props) {
   return (
-    <section className="relative w-full max-w-full overflow-hidden bg-[#1a0f2e]">
-      {/* FULL-WIDTH REALISTIC PURPLE TWILIGHT SCENE */}
+    <section className="relative w-full max-w-full overflow-hidden bg-[#E8EEF3]">
+      {/* FULL-WIDTH REALISTIC IMAGE — trucks and cars, natural daylight, no color tint */}
       <div className="relative h-[280px] w-full overflow-hidden sm:h-[380px] lg:h-[460px]">
         <img
           src={HERO_IMAGE}
-          alt="Realistic purple twilight scene with trucks, bakkies, cars and motorcycles parked together"
+          alt="Realistic scene of a commercial truck, car and bakkie parked outside a modern dealership"
           className="absolute inset-0 block h-full w-full max-w-full object-cover"
           loading="eager"
         />
-        {/* LIGHT PURPLE GRADIENT OVERLAY — subtle, no black, keeps image bright */}
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/40 via-purple-800/20 to-purple-900/50" />
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-900/30 via-transparent to-purple-900/30" />
+        {/* SOFT NEUTRAL OVERLAY — no color tint, just enough shade so white text stays readable */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/45" />
 
         {/* TOP BAR: BUY | SELL | CONNECT */}
         <div className="absolute inset-x-0 top-0 z-20 border-b border-white/20 bg-white/15 backdrop-blur-md">
@@ -103,8 +102,8 @@ export default function HeroBanner({
         </div>
       </div>
 
-      {/* CATEGORY ROW — light lavender, no green, no black */}
-      <div className="relative z-10 border-t border-[#C9B8E0] bg-[#F3EFFA]">
+      {/* CATEGORY ROW — neutral light grey, no color tint */}
+      <div className="relative z-10 border-t border-[#CBD5DD] bg-[#F1F4F7]">
         <div className="mx-auto grid w-full max-w-7xl grid-cols-3 gap-x-1 gap-y-4 px-2 py-4 sm:gap-x-3 sm:gap-y-5 sm:px-6 sm:py-6 lg:grid-cols-6 lg:px-8">
           {categories.map((cat) => (
             <Link
@@ -123,8 +122,8 @@ export default function HeroBanner({
         </div>
       </div>
 
-      {/* BOTTOM BAR — light lavender, no green, no black */}
-      <div className="relative z-10 border-t border-[#C9B8E0] bg-[#F3EFFA] py-3 sm:py-4">
+      {/* BOTTOM BAR — neutral light grey, no color tint */}
+      <div className="relative z-10 border-t border-[#CBD5DD] bg-[#F1F4F7] py-3 sm:py-4">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 text-center text-[9px] font-black uppercase tracking-[0.2em] text-[#34414A] sm:gap-x-4 sm:text-xs sm:tracking-[0.32em]">
           <span>Quality Vehicles</span>
           <span className="text-[#B08D3C]">•</span>
