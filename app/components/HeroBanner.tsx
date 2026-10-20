@@ -24,8 +24,8 @@ const categories = [
   { title: "Parts & Accessories", href: "/marketplace?category=Parts+%26+Accessories", icon: "⚙️" },
 ];
 
-// Static, reliable South African outdoor automotive scene (trucks/bakkies on a dry landscape).
-// Loads instantly from a CDN. No AI generation. No rate limits. Never changes.
+// Static, reliable outdoor automotive scene (trucks, cars, concrete ground).
+// Loads instantly from a CDN. No AI generation. Never fails.
 const STATIC_HERO_IMAGE =
   "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=2000&q=80";
 
@@ -36,8 +36,7 @@ export default function HeroBanner({
 }: Props) {
   return (
     <section className="relative w-full max-w-full overflow-hidden bg-[#E8EEF3]">
-      
-      {/* STATIC IMAGE BANNER */}
+      {/* STATIC FULL-WIDTH IMAGE */}
       <div className="relative h-[280px] w-full overflow-hidden sm:h-[380px] lg:h-[460px]">
         <img
           src={STATIC_HERO_IMAGE}
@@ -46,8 +45,8 @@ export default function HeroBanner({
           loading="eager"
         />
         
-        {/* SOFT NEUTRAL OVERLAY — keeps text readable without ruining the image */}
-        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/40 via-black/20 to-black/60 pointer-events-none" />
+        {/* SOFT NEUTRAL OVERLAY — keeps text readable, no color tint */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/30 via-black/20 to-black/50 pointer-events-none" />
 
         {/* TOP BAR: BUY | SELL | CONNECT */}
         <div className="absolute inset-x-0 top-0 z-20 border-b border-white/20 bg-black/20 backdrop-blur-sm">
@@ -71,7 +70,7 @@ export default function HeroBanner({
         {/* CENTERED TEXT OVERLAY */}
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center px-4 text-center sm:px-6">
           
-          {/* South African Flag Badge */}
+          {/* South African Flag Badge using your local flag.jpg */}
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/40 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md sm:mb-4 sm:px-4 sm:py-2 sm:text-xs">
             <img 
               src="/flag.jpg" 
@@ -116,7 +115,7 @@ export default function HeroBanner({
         </div>
       </div>
 
-      {/* CATEGORY ROW */}
+      {/* CATEGORY ROW — neutral light grey */}
       <div className="relative z-10 border-t border-[#CBD5DD] bg-[#F1F4F7]">
         <div className="mx-auto grid w-full max-w-7xl grid-cols-3 gap-x-1 gap-y-4 px-2 py-4 sm:gap-x-3 sm:gap-y-5 sm:px-6 sm:py-6 lg:grid-cols-6 lg:px-8">
           {categories.map((cat) => (
@@ -136,7 +135,7 @@ export default function HeroBanner({
         </div>
       </div>
 
-      {/* BOTTOM BAR */}
+      {/* BOTTOM BAR — neutral light grey */}
       <div className="relative z-10 border-t border-[#CBD5DD] bg-[#F1F4F7] py-3 sm:py-4">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 text-center text-[9px] font-black uppercase tracking-[0.2em] text-[#34414A] sm:gap-x-4 sm:text-xs sm:tracking-[0.32em]">
           <span>Quality Vehicles</span>
